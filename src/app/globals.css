@@ -1,0 +1,349 @@
+@import "tailwindcss";
+
+/* ===================================================================
+   SKILLIO · DESIGN TOKENS
+   Paleta terrosa derivada de #A5402D · #FBF1EF · #353831
+   Light = default · Dark = [data-theme="dark"]
+   =================================================================== */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  /* Landing page font variables */
+  --font-serif: var(--font-instrument-serif), "Cormorant Garamond", Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-roboto: var(--font-roboto-loaded), "Roboto", ui-sans-serif, system-ui, sans-serif;
+
+  /* Surfaces */
+  --bg: #fbf1ef;
+  --bg-2: #f5e8e4;
+  --paper: #ffffff;
+  --paper-warm: #fdf7f5;
+  --paper-2: #f5e8e4;
+
+  /* Ink (text) */
+  --ink: #353831;
+  --ink-soft: #6b6b65;
+  --ink-softer: #9a9a92;
+
+  /* Rules / borders */
+  --rule: rgba(53, 56, 49, 0.14);
+  --rule-soft: rgba(53, 56, 49, 0.07);
+
+  /* Accent (rojo ladrillo) */
+  --accent: #a5402d;
+  --accent-2: #c56450;
+  --accent-hover: #8b3425;
+  --accent-soft: rgba(165, 64, 45, 0.08);
+  --accent-softer: rgba(165, 64, 45, 0.04);
+  --accent-glow: rgba(165, 64, 45, 0.22);
+
+  /* Semantic */
+  --success: #4a7c59;
+  --success-soft: rgba(74, 124, 89, 0.12);
+  --warning: #c47b2b;
+  --warning-soft: rgba(196, 123, 43, 0.13);
+  --info: #4a6b8a;
+  --info-soft: rgba(74, 107, 138, 0.13);
+  --danger: #a5402d;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(53, 56, 49, 0.04);
+  --shadow-card: 0 4px 24px rgba(53, 56, 49, 0.06);
+  --shadow-lg: 0 20px 60px rgba(53, 56, 49, 0.12);
+
+  /* Theme-toggle */
+  --track: #e8d8d3;
+  --thumb: #ffffff;
+}
+
+[data-theme="dark"] {
+  --bg: #1e1f1b;
+  --bg-2: #232420;
+  --paper: #272820;
+  --paper-warm: #2a2b23;
+  --paper-2: #2f3029;
+
+  --ink: #fbf1ef;
+  --ink-soft: #b8b8ae;
+  --ink-softer: #84847c;
+
+  --rule: rgba(251, 241, 239, 0.1);
+  --rule-soft: rgba(251, 241, 239, 0.05);
+
+  --accent: #c4553e;
+  --accent-2: #d77966;
+  --accent-hover: #d4604a;
+  --accent-soft: rgba(196, 85, 62, 0.14);
+  --accent-softer: rgba(196, 85, 62, 0.06);
+  --accent-glow: rgba(196, 85, 62, 0.35);
+
+  --success: #5e9e72;
+  --success-soft: rgba(94, 158, 114, 0.16);
+  --warning: #d4903a;
+  --warning-soft: rgba(212, 144, 58, 0.16);
+  --info: #6b8fad;
+  --info-soft: rgba(107, 143, 173, 0.16);
+  --danger: #c4553e;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.45);
+
+  --track: #c4553e;
+  --thumb: #fbf1ef;
+}
+
+/* Expose tokens as Tailwind utilities (text-ink, bg-accent, font-display, etc) */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-paper: var(--paper);
+  --color-paper-warm: var(--paper-warm);
+  --color-paper-2: var(--paper-2);
+
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-softer: var(--ink-softer);
+
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
+
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-softer: var(--accent-softer);
+  --color-accent-glow: var(--accent-glow);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-danger: var(--danger);
+
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-lg: var(--shadow-lg);
+}
+
+/* ===================================================================
+   Base resets & defaults
+   =================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  background-color: var(--bg);
+  color: var(--ink);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  font-variation-settings: "opsz" 96;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Numeric / monospace-feeling labels for stats */
+.num {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ===================================================================
+   Animaciones del loading screen
+   =================================================================== */
+@keyframes skillio-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .3; transform: scale(.7); }
+}
+
+@keyframes skillio-loadbar {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+@keyframes skillio-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes skillio-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.animate-skillio-blink   { animation: skillio-blink 1s ease-in-out infinite; }
+.animate-skillio-loadbar { animation: skillio-loadbar 2s cubic-bezier(.4,0,.2,1) forwards; }
+.animate-skillio-fade-in { animation: skillio-fade-in .5s ease-out both; }
+.animate-skillio-bob     { animation: skillio-bob 3s ease-in-out infinite; }
+
+/* ===================================================================
+   Pomodoro · gamification animations
+   =================================================================== */
+@keyframes pomo-breathe {
+  0%, 100% { opacity: .45; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: .78; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+@keyframes pomo-xp-float {
+  0%   { opacity: 0; transform: translate(-50%, -45%) scale(.6); }
+  18%  { opacity: 1; transform: translate(-50%, -55%) scale(1.18); }
+  35%  { opacity: 1; transform: translate(-50%, -68%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -170%) scale(.95); }
+}
+
+@keyframes pomo-confetti {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  60%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--tx, 0), var(--ty, 0)) scale(.35); }
+}
+
+@keyframes pomo-gem-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(244, 201, 105, .55)); }
+  50%      { filter: drop-shadow(0 0 11px rgba(244, 201, 105, .9)); }
+}
+
+@keyframes pomo-gem-pop {
+  0%   { transform: scale(.4) rotate(-12deg); opacity: 0; }
+  60%  { transform: scale(1.18) rotate(4deg);  opacity: 1; }
+  100% { transform: scale(1) rotate(0deg);     opacity: 1; }
+}
+
+/* ===================================================================
+   XP bar shimmer
+   =================================================================== */
+@keyframes xp-shimmer {
+  0%   { left: -64px; opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { left: calc(100% + 64px); opacity: 0; }
+}
+
+/* ===================================================================
+   Toasts & modals
+   =================================================================== */
+@keyframes skillio-toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+@keyframes skillio-toast-bar {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+@keyframes skillio-modal-pop {
+  0%   { opacity: 0; transform: translateY(14px) scale(.95); }
+  100% { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+@keyframes skillio-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50%      { box-shadow: 0 0 0 6px transparent; }
+}
+
+.animate-skillio-toast-in  { animation: skillio-toast-in .35s cubic-bezier(.22,1,.36,1) both; }
+.animate-skillio-toast-bar { animation: skillio-toast-bar 4.2s linear forwards; }
+.animate-skillio-pulse-glow { animation: skillio-pulse-glow 2.2s ease-in-out infinite; }
+
+/* ===================================================================
+   Markmap · custom styling
+   Hacemos que los labels (texto) sean PILLS con borde del color del
+   nodo, en vez del rendering por defecto (texto suelto al lado de un
+   dot chico). Resultado: mind-map estilo nodos visibles + click para
+   plegar/desplegar.
+   =================================================================== */
+.markmap-foreign > div {
+  background: var(--paper);
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1.5px solid currentColor;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ink);
+  /* Permitir wrap de texto largo, con limite max para no extenderse */
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 220px;
+  box-shadow: 0 2px 8px rgba(53, 56, 49, 0.06);
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+[data-theme="dark"] .markmap-foreign > div {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.markmap-foreign > div:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 14px rgba(53, 56, 49, 0.1);
+}
+
+/* El "circulito" del nodo: lo agrandamos y lo rellenamos con el color
+   de la rama, asi se ve como un punto de union claro entre la pill y
+   la linea. Cuando tiene hijos plegados (clase fold), lo marcamos. */
+.markmap-node > circle {
+  r: 5;
+  stroke-width: 2;
+  cursor: pointer;
+}
+.markmap-node.markmap-fold > circle {
+  fill: currentColor !important;
+  stroke: var(--paper);
+  r: 6;
+}
+
+/* Las lineas (links) un toque mas gruesas para mejor legibilidad */
+.markmap-link {
+  stroke-width: 1.6;
+  opacity: .9;
+}
+
+.eyebrow {
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+

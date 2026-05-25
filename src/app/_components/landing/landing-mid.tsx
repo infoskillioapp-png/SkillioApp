@@ -1,0 +1,475 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
+import { IconDoc, IconExam, IconFlash, IconChat, IconUpload, IconBolt, IconTrophy, IconSparkles, IconArrow, IconCheck, IconX } from "./landing-top";
+
+// ============================================================
+// SHARED: SECTION HEADER
+// ============================================================
+export function SectionHeader({ eyebrow, title, sub }: { eyebrow: string; title: ReactNode; sub?: string | null }) {
+  return (
+    <div className="reveal" style={{ textAlign: "center", maxWidth: 760, margin: "0 auto" }}>
+      <div className="eyebrow" style={{ marginBottom: 12, color: "var(--accent)" }}>{eyebrow}</div>
+      <h2 className="h-section" style={{ margin: 0 }}>{title}</h2>
+      {sub && <p style={{ marginTop: 14, fontSize: 17, lineHeight: 1.55, color: "var(--ink-soft)" }}>{sub}</p>}
+    </div>
+  );
+}
+
+// ============================================================
+// FEATURES
+// ============================================================
+export function Features() {
+  const items = [
+    { Icon: IconDoc, title: "Resúmenes IA", body: "Subí PDF, foto del pizarrón o tu apunte garabateado. Te lo convertimos en puntos clave, resumen académico o ficha de estudio." },
+    { Icon: IconExam, title: "Simulacros de parciales", body: "Generá exámenes de 5 a 20 preguntas: opción múltiple, V/F y desarrollo corto. Con corrección y explicación." },
+    { Icon: IconFlash, title: "Flashcards inteligentes", body: "Mazos generados de tus apuntes con repetición espaciada. Te avisamos qué repasar antes del parcial." },
+  ];
+  return (
+    <section id="funciones" className="section">
+      <div className="container-x">
+        <SectionHeader
+          eyebrow="Funciones principales"
+          title={<>Tres herramientas que <span className="gradient-text">reemplazan</span> tu noche de estudio</>}
+          sub="Todo en un solo lugar. Sin abrir 17 pestañas, sin pegar texto en otra IA, sin perderte."
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18, marginTop: 42 }}>
+          {items.map((it, i) => (
+            <div key={i} className="card lift" style={{ padding: 26, display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(165,64,45,0.10)", color: "var(--accent)" }}>
+                <it.Icon size={24} />
+              </div>
+              <div>
+                <h3 className="h-card" style={{ margin: 0, marginBottom: 8 }}>{it.title}</h3>
+                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.55, color: "var(--ink-soft)" }}>{it.body}</p>
+              </div>
+              <a href="#como" style={{ marginTop: "auto", color: "var(--accent)", fontSize: 13, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                Ver demo <IconArrow size={14} />
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// HOW IT WORKS
+// ============================================================
+export function HowItWorks() {
+  const steps = [
+    { n: "01", title: "Subí tu apunte", body: "Tirá un PDF, foto del pizarrón, una hoja escaneada o el PowerPoint del profe.", Icon: IconUpload },
+    { n: "02", title: "Generá lo que necesites", body: "Resumen ejecutivo, flashcards, simulacro de parcial o una explicación más simple.", Icon: IconBolt },
+    { n: "03", title: "Estudiá y aprobá", body: "Repasá con repetición espaciada, hacé el simulacro y entrá al parcial con todo.", Icon: IconTrophy },
+  ];
+  return (
+    <section id="como" className="section" style={{ background: "var(--bg-2)" }}>
+      <div className="container-x">
+        <SectionHeader
+          eyebrow="Cómo funciona"
+          title={<>De 200 páginas a parcial aprobado<br />en tres pasos</>}
+          sub="Sin curva de aprendizaje. Si sabés usar WhatsApp, sabés usar Skillio."
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 50 }}>
+          {steps.map((s, i) => (
+            <div key={i} style={{ background: "var(--paper)", borderRadius: 22, padding: 28, position: "relative", border: "1px solid rgba(53,56,49,0.06)" }}>
+              <div style={{ position: "absolute", top: 22, right: 22, fontFamily: "var(--font-serif)", fontSize: 48, color: "var(--bg-2)", lineHeight: 0.8 }}>{s.n}</div>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--accent)", color: "white", display: "grid", placeItems: "center", marginBottom: 22 }}>
+                <s.Icon size={24} />
+              </div>
+              <h3 className="h-card" style={{ margin: "0 0 10px", fontSize: 22 }}>{s.title}</h3>
+              <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--ink-soft)" }}>{s.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// INTERACTIVE DEMO
+// ============================================================
+const PRESETS = [
+  { label: "Mitocondria", text: `La mitocondria es un orgánulo de las células eucariotas que produce la mayor parte de la energía química necesaria para activar las reacciones bioquímicas de la célula. La energía química producida por las mitocondrias se almacena en una pequeña molécula llamada adenosín trifosfato (ATP). Las mitocondrias contienen su propio cromosoma (ADN mitocondrial) y generalmente se heredan únicamente de la madre.` },
+  { label: "Teorema de Pitágoras", text: `En todo triángulo rectángulo, el cuadrado de la hipotenusa es igual a la suma de los cuadrados de los catetos. Si llamamos c a la hipotenusa, y a y b a los catetos: c² = a² + b². Este teorema permite calcular cualquiera de los lados conociendo los otros dos, y tiene aplicaciones en arquitectura, navegación, física y trigonometría.` },
+  { label: "Revolución de Mayo", text: `La Revolución de Mayo fue una serie de acontecimientos políticos y sociales ocurridos durante la semana del 18 al 25 de mayo de 1810 en la ciudad de Buenos Aires. Significó la destitución del virrey Cisneros y la conformación de la Primera Junta, marcando el inicio del proceso de independencia del Virreinato del Río de la Plata respecto a la corona española.` },
+];
+
+type DemoMode = "puntos" | "resumen" | "flashcards";
+type DemoOutput = { items?: string[] } | { resumen?: string } | { cards?: { q: string; a: string }[] } | null;
+
+function buildPrompt(mode: DemoMode, text: string) {
+  if (mode === "puntos") {
+    return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Hacé puntos clave del siguiente apunte. Devolvé SOLO un JSON con esta forma exacta, sin texto adicional:\n{"items":["punto 1","punto 2","..."]}\nEntre 4 y 6 puntos, claros y concisos. Tono argentino informal.\n\nApunte:\n${text}` }] };
+  }
+  if (mode === "resumen") {
+    return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Hacé un resumen académico breve (2-3 párrafos cortos) del siguiente apunte. Devolvé SOLO un JSON con esta forma: {"resumen":"texto..."}. Tono claro, sin tecnicismos innecesarios.\n\nApunte:\n${text}` }] };
+  }
+  return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Generá 4 flashcards del siguiente apunte. Devolvé SOLO un JSON con esta forma:\n{"cards":[{"q":"pregunta","a":"respuesta"}, ...]}\nLas preguntas deben ser cortas y útiles para repasar.\n\nApunte:\n${text}` }] };
+}
+
+function parseOutput(mode: DemoMode, raw: string): DemoOutput {
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("bad json");
+  return JSON.parse(m[0]);
+}
+
+function DemoEmpty({ mode }: { mode: DemoMode }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "40px 20px", color: "var(--ink-softer)" }}>
+      <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(165,64,45,0.08)", color: "var(--accent)", display: "grid", placeItems: "center", marginBottom: 16 }}>
+        <IconSparkles size={28} />
+      </div>
+      <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--ink)" }}>
+        {mode === "puntos" ? "Puntos clave aparecerán acá" : mode === "resumen" ? "Tu resumen aparecerá acá" : "Tus flashcards aparecerán acá"}
+      </div>
+      <div style={{ fontSize: 13.5, marginTop: 6 }}>Tocá <b>Generar con IA</b> para ver la magia</div>
+    </div>
+  );
+}
+
+function DemoLoading({ mode }: { mode: DemoMode }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {[...Array(mode === "flashcards" ? 3 : 5)].map((_, i) => (
+        <div key={i} className="shimmer" style={{ height: mode === "flashcards" ? 64 : 14, borderRadius: mode === "flashcards" ? 12 : 6, width: i === 0 ? "70%" : i === 4 ? "55%" : "100%" }} />
+      ))}
+      <div style={{ fontSize: 12, color: "var(--ink-softer)", marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+        <span className="dot-pulse">●</span> Procesando con Claude...
+      </div>
+    </div>
+  );
+}
+
+function FlashcardDeck({ cards }: { cards: { q: string; a: string }[] }) {
+  const [i, setI] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const card = cards[i];
+  if (!card) return null;
+  return (
+    <div>
+      <div onClick={() => setFlipped((f) => !f)} style={{ background: "var(--paper)", borderRadius: 16, padding: 28, minHeight: 180, cursor: "pointer", border: "1.5px solid rgba(165,64,45,0.25)", display: "flex", flexDirection: "column", justifyContent: "center", gap: 8, position: "relative" }}>
+        <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>{flipped ? "Respuesta" : "Pregunta"}</div>
+        <div style={{ fontFamily: flipped ? "var(--font-sans)" : "var(--font-serif)", fontSize: flipped ? 16 : 22, lineHeight: 1.4, color: "var(--ink)" }}>{flipped ? card.a : card.q}</div>
+        <div style={{ position: "absolute", bottom: 12, right: 16, fontSize: 11, color: "var(--ink-softer)" }}>Tocá para {flipped ? "ver pregunta" : "ver respuesta"}</div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, gap: 8 }}>
+        <button className="btn btn-ghost" style={{ padding: "8px 14px", fontSize: 13 }} disabled={i === 0} onClick={() => { setI(i - 1); setFlipped(false); }}>← Anterior</button>
+        <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>Carta <b>{i + 1}</b> de {cards.length}</span>
+        <button className="btn btn-ghost" style={{ padding: "8px 14px", fontSize: 13 }} disabled={i === cards.length - 1} onClick={() => { setI(i + 1); setFlipped(false); }}>Siguiente →</button>
+      </div>
+    </div>
+  );
+}
+
+function DemoOutput({ mode, output }: { mode: DemoMode; output: DemoOutput }) {
+  const o = output as Record<string, unknown>;
+  if (mode === "puntos" && Array.isArray(o?.items)) {
+    return (
+      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
+        {(o.items as string[]).map((it, i) => (
+          <li key={i} style={{ display: "flex", gap: 12, padding: 12, background: "var(--paper)", borderRadius: 12, border: "1px solid rgba(53,56,49,0.06)" }}>
+            <div style={{ flex: "0 0 26px", height: 26, borderRadius: 8, background: "var(--accent)", color: "white", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700 }}>{i + 1}</div>
+            <div style={{ fontSize: 14.5, lineHeight: 1.5, color: "var(--ink)" }}>{it}</div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (mode === "resumen" && typeof o?.resumen === "string") {
+    return <div style={{ padding: 18, background: "var(--paper)", borderRadius: 14, border: "1px solid rgba(53,56,49,0.06)", fontSize: 15, lineHeight: 1.6, color: "var(--ink)", whiteSpace: "pre-wrap" }}>{o.resumen}</div>;
+  }
+  if (mode === "flashcards" && Array.isArray(o?.cards)) {
+    return <FlashcardDeck cards={o.cards as { q: string; a: string }[]} />;
+  }
+  return <div style={{ fontSize: 13, color: "var(--ink-softer)" }}>Sin output válido.</div>;
+}
+
+export function Demo() {
+  const [activePreset, setActivePreset] = useState(0);
+  const [text, setText] = useState(PRESETS[0].text);
+  const [mode, setMode] = useState<DemoMode>("puntos");
+  const [loading, setLoading] = useState(false);
+  const [output, setOutput] = useState<DemoOutput>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const pickPreset = (i: number) => { setActivePreset(i); setText(PRESETS[i].text); setOutput(null); setError(null); };
+
+  const generate = async () => {
+    setLoading(true); setError(null); setOutput(null);
+    try {
+      const prompt = buildPrompt(mode, text);
+      const res = await fetch("/api/demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prompt) });
+      if (!res.ok) throw new Error("API error");
+      const { text: raw } = await res.json();
+      setOutput(parseOutput(mode, raw));
+    } catch {
+      setError("No pude conectar con la IA. Probá de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="section" style={{ position: "relative" }}>
+      <div className="container-x">
+        <SectionHeader
+          eyebrow="Probalo ahora"
+          title={<>Pegá un apunte, mirá la <span className="gradient-text">magia</span></>}
+          sub="Sin registrarte. Sin descargas. Esto es exactamente lo que recibe un usuario PRO."
+        />
+        <div className="card" style={{ marginTop: 42, padding: 0, overflow: "hidden", borderRadius: 24 }}>
+          {/* Toolbar */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid rgba(53,56,49,0.07)", background: "var(--paper-warm)", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", gap: 6 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 999, background: "#e6b8ad", display: "inline-block" }} />
+                <span style={{ width: 10, height: 10, borderRadius: 999, background: "#d9cfca", display: "inline-block" }} />
+                <span style={{ width: 10, height: 10, borderRadius: 999, background: "#d9cfca", display: "inline-block" }} />
+              </div>
+              <span className="mono" style={{ fontSize: 12, color: "var(--ink-softer)" }}>skillio.app/generar</span>
+            </div>
+            <span className="badge"><IconSparkles size={12} /> Powered by Claude</span>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.05fr)" }} className="demo-grid">
+            {/* LEFT */}
+            <div style={{ padding: 24, borderRight: "1px solid rgba(53,56,49,0.07)" }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-softer)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>Apunte de ejemplo</div>
+              <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+                {PRESETS.map((p, i) => (
+                  <button key={i} onClick={() => pickPreset(i)} style={{ padding: "6px 12px", fontSize: 13, fontWeight: 500, borderRadius: 999, border: "1px solid " + (activePreset === i ? "var(--accent)" : "rgba(53,56,49,0.12)"), background: activePreset === i ? "var(--accent)" : "transparent", color: activePreset === i ? "white" : "var(--ink)", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={text}
+                onChange={(e) => { setText(e.target.value); setOutput(null); }}
+                rows={9}
+                style={{ width: "100%", resize: "vertical", background: "var(--bg)", border: "1px solid rgba(53,56,49,0.1)", borderRadius: 14, padding: 14, fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: 1.5, color: "var(--ink)", outline: "none" }}
+                onFocus={(e) => (e.target.style.borderColor = "var(--accent)")}
+                onBlur={(e) => (e.target.style.borderColor = "rgba(53,56,49,0.1)")}
+              />
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-softer)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>Generar como</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {([{ v: "puntos", label: "Puntos clave" }, { v: "resumen", label: "Resumen" }, { v: "flashcards", label: "Flashcards" }] as { v: DemoMode; label: string }[]).map((m) => (
+                    <button key={m.v} onClick={() => { setMode(m.v); setOutput(null); }} style={{ padding: "8px 14px", fontSize: 13.5, fontWeight: 600, borderRadius: 10, border: "1px solid " + (mode === m.v ? "var(--accent)" : "rgba(53,56,49,0.12)"), background: mode === m.v ? "var(--accent)" : "var(--paper)", color: mode === m.v ? "white" : "var(--ink)", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button className={"btn btn-primary" + (!loading && text.trim() ? " btn-pulse" : "")} style={{ marginTop: 18, width: "100%", fontSize: 15.5, fontWeight: 700 }} onClick={generate} disabled={loading || !text.trim()}>
+                {loading ? <><span className="dot-pulse">●</span> Generando...</> : <><IconSparkles size={16} /> Generar con IA</>}
+              </button>
+              <p style={{ marginTop: 10, fontSize: 12, color: "var(--ink-softer)", textAlign: "center" }}>Costaría · 28 créditos PRO en la app real</p>
+            </div>
+
+            {/* RIGHT */}
+            <div style={{ padding: 24, background: "var(--paper-warm)", minHeight: 380 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-softer)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 14 }}>
+                Output · {mode === "puntos" ? "Puntos clave" : mode === "resumen" ? "Resumen académico" : "Flashcards"}
+              </div>
+              {!output && !loading && !error && <DemoEmpty mode={mode} />}
+              {loading && <DemoLoading mode={mode} />}
+              {error && <div style={{ color: "var(--accent)", fontSize: 14, padding: 12, background: "rgba(165,64,45,0.08)", borderRadius: 10 }}>{error}</div>}
+              {output && !loading && <DemoOutput mode={mode} output={output} />}
+            </div>
+          </div>
+        </div>
+        <p style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: "var(--ink-softer)" }}>
+          La IA puede tardar unos segundos. Tus datos no se guardan en este demo.
+        </p>
+      </div>
+      <style>{`@media (max-width: 820px) { .demo-grid { grid-template-columns: 1fr !important; } .demo-grid > div:first-child { border-right: none !important; border-bottom: 1px solid rgba(53,56,49,0.07); } }`}</style>
+    </section>
+  );
+}
+
+// ============================================================
+// TOOLKIT
+// ============================================================
+function AgendaCard() {
+  return (
+    <div className="card" style={{ padding: 28, display: "flex", flexDirection: "column", gap: 18, gridRow: "span 2" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(165,64,45,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Agenda con recordatorios</h3>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>Tus parciales, TPs y entregas en un solo calendario</p>
+          </div>
+        </div>
+        <span className="badge"><span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--accent)", display: "inline-block" }} className="dot-pulse" /> 3 esta semana</span>
+      </div>
+      <div style={{ background: "var(--paper-warm)", borderRadius: 16, padding: 16, border: "1px solid rgba(53,56,49,0.05)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: 12 }}>
+          {["L", "M", "X", "J", "V", "S", "D"].map((d, i) => (
+            <div key={i} style={{ aspectRatio: "1", display: "grid", placeItems: "center", borderRadius: 10, fontSize: 13, fontWeight: 600, background: i === 2 ? "var(--accent)" : i === 4 ? "rgba(165,64,45,0.12)" : "transparent", color: i === 2 ? "white" : i === 4 ? "var(--accent)" : "var(--ink-soft)", border: i === 1 ? "1.5px solid var(--accent)" : "1px solid transparent" }}>
+              <div style={{ textAlign: "center", lineHeight: 1.1 }}><div style={{ fontSize: 10, opacity: 0.7 }}>{d}</div><div>{14 + i}</div></div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {[
+            { day: "Hoy · Miércoles", title: "Parcial · Anatomía II", time: "14:00", accent: true },
+            { day: "Viernes", title: "Entregar TP · Estadística", time: "23:59", accent: false },
+            { day: "Lunes próximo", title: "Repaso flashcards · Histología", time: "auto", accent: false },
+          ].map((ev, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: ev.accent ? "rgba(165,64,45,0.08)" : "var(--paper)", borderRadius: 10, borderLeft: "3px solid " + (ev.accent ? "var(--accent)" : "rgba(53,56,49,0.2)") }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: "var(--ink-softer)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{ev.day}</div>
+                <div style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600 }}>{ev.title}</div>
+              </div>
+              <div className="mono" style={{ fontSize: 12, color: "var(--ink-soft)" }}>{ev.time}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PomodoroCard() {
+  const [t, setT] = useState(25 * 60);
+  const [run, setRun] = useState(false);
+  useEffect(() => {
+    if (!run) return;
+    const id = setInterval(() => setT((x) => (x > 0 ? x - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [run]);
+  const mins = String(Math.floor(t / 60)).padStart(2, "0");
+  const secs = String(t % 60).padStart(2, "0");
+  const pct = 1 - t / (25 * 60);
+  const C = 2 * Math.PI * 54;
+  return (
+    <div className="card" style={{ padding: 28, display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(165,64,45,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8" /><path d="M12 5c0-2 1.5-3 3-3M12 5c0-2-1.5-3-3-3" /><path d="M12 5v3" /></svg>
+        </div>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Pomodoro</h3>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>25 min focus · 5 break</p>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 0 4px" }}>
+        <div style={{ position: "relative", width: 140, height: 140 }}>
+          <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--bg-2)" strokeWidth="8" />
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--accent)" strokeWidth="8" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} strokeLinecap="round" style={{ transition: "stroke-dashoffset .5s ease" }} />
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontFamily: "var(--font-serif)", fontSize: 38, color: "var(--ink)", letterSpacing: "-0.02em" }}>{mins}:{secs}</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setRun((r) => !r)}>{run ? "Pausar" : "Empezar"}</button>
+        <button className="btn btn-ghost" style={{ padding: "10px 14px" }} onClick={() => { setRun(false); setT(25 * 60); }}>Reset</button>
+      </div>
+    </div>
+  );
+}
+
+function LogrosCard() {
+  const logros = [
+    { title: "Maratonista", desc: "Estudiá 7 días seguidos", pct: 100, unlocked: true },
+    { title: "Curioso", desc: "10 preguntas al tutor IA", pct: 100, unlocked: true },
+    { title: "Memoria fotográfica", desc: "50 flashcards repasadas", pct: 64, unlocked: false },
+  ];
+  return (
+    <div className="card" style={{ padding: 28 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(165,64,45,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+          <IconTrophy size={20} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Logros & XP</h3>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>Tu nivel actual: <b style={{ color: "var(--accent)" }}>02 · Curioso</b> · 250 XP</p>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {logros.map((l, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: l.unlocked ? "rgba(165,64,45,0.06)" : "var(--paper-warm)", borderRadius: 12, border: "1px solid rgba(53,56,49,0.05)" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 999, background: l.unlocked ? "var(--accent)" : "var(--bg-2)", color: l.unlocked ? "white" : "var(--ink-softer)", display: "grid", placeItems: "center", fontSize: 14 }}>
+              {l.unlocked ? "✓" : "🔒"}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{l.title}</div>
+              <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>{l.desc}</div>
+            </div>
+            <div style={{ width: 60 }}>
+              <div style={{ height: 5, background: "var(--bg-2)", borderRadius: 999, overflow: "hidden" }}><div className="progress-warm" style={{ height: "100%", width: l.pct + "%" }} /></div>
+              <div style={{ fontSize: 11, color: "var(--ink-softer)", marginTop: 4, textAlign: "right" }}>{l.pct}%</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MateriasCard() {
+  const materias = [
+    { code: "ANA", name: "Anatomía II", color: "var(--accent)", pct: 78, parcial: "12 jun" },
+    { code: "EST", name: "Estadística", color: "#4a6b8a", pct: 45, parcial: "20 jun" },
+    { code: "HIS", name: "Historia", color: "#4a7c59", pct: 92, parcial: "aprobado" },
+  ];
+  return (
+    <div className="card" style={{ padding: 28 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(165,64,45,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+        </div>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Tus materias</h3>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>Progreso por cursada</p>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {materias.map((m, i) => (
+          <div key={i}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: m.color, color: "white", display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700 }}>{m.code}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{m.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-softer)" }}>Parcial · {m.parcial}</div>
+                </div>
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: m.color }}>{m.pct}%</span>
+            </div>
+            <div style={{ height: 6, background: "var(--bg-2)", borderRadius: 999, overflow: "hidden" }}><div className={m.color === "var(--accent)" ? "progress-warm" : ""} style={{ height: "100%", width: m.pct + "%", background: m.color === "var(--accent)" ? undefined : m.color, borderRadius: 999 }} /></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function Toolkit() {
+  return (
+    <section className="section" style={{ position: "relative" }}>
+      <div className="container-x">
+        <SectionHeader
+          eyebrow="Más que IA"
+          title={<>Skillio te <span className="gradient-text">ordena</span> la cursada entera</>}
+          sub="Agenda, pomodoro y logros. Las herramientas que necesitás para no dejar todo para la última semana."
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 18, marginTop: 42 }} className="toolkit-grid">
+          <AgendaCard />
+          <PomodoroCard />
+          <LogrosCard />
+          <MateriasCard />
+        </div>
+      </div>
+      <style>{`@media (max-width: 880px) { .toolkit-grid { grid-template-columns: 1fr !important; } }`}</style>
+    </section>
+  );
+}
