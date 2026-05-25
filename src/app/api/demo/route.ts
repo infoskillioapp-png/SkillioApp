@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       system:
         "Respondé siempre con JSON válido solamente, sin texto adicional antes ni después del JSON.",
       messages,
-      maxTokens: 700,
+      maxOutputTokens: 700,
     });
     return NextResponse.json({ text: r.text });
   } catch (e) {
