@@ -13,7 +13,7 @@ export async function completeOnboarding(formData: FormData) {
   const institution = (formData.get("institution") as string)?.trim();
 
   if (!fullName || !institution || isNaN(age) || age < 10 || age > 100) {
-    return { error: "Completá todos los campos correctamente." };
+    redirect("/onboarding");
   }
 
   const sb = supabaseAdmin();
@@ -30,7 +30,7 @@ export async function completeOnboarding(formData: FormData) {
 
   if (error) {
     console.error("[onboarding] update error:", error);
-    return { error: "Error al guardar. Intentá de nuevo." };
+    redirect("/onboarding");
   }
 
   redirect("/app");
