@@ -158,7 +158,7 @@ export async function POST(req: Request) {
         model: anthropic(MODEL),
         system: RESUMEN_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userParts }],
-        maxTokens: 8000,
+        maxOutputTokens: 8000,
       });
       payload = { text: r.text };
     } else {
