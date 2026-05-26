@@ -27,7 +27,7 @@ export function Community({ onCTA }: { onCTA: () => void }) {
     <section id="comunidad" className="section" style={{ background: "var(--bg-2)", position: "relative", overflow: "hidden" }}>
       <div className="container-x" style={{ position: "relative", zIndex: 2 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 40, alignItems: "center" }} className="community-grid">
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div className="eyebrow" style={{ marginBottom: 12, color: "var(--accent)" }}>Comunidad Skillio</div>
             <h2 className="h-section" style={{ margin: 0 }}>
               Apuntes, pregunteros y TPs de otros estudiantes. <span className="gradient-text">Gratis.</span>
@@ -44,7 +44,7 @@ export function Community({ onCTA }: { onCTA: () => void }) {
               Explorar comunidad <IconArrow size={16} />
             </button>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
             {items.map((it, i) => (
               <div key={i} className={`card lift${i % 2 === 1 ? " community-card-odd" : ""}`} style={{ padding: 18, display: "flex", alignItems: "center", gap: 14 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 999, background: it.color, color: "white", display: "grid", placeItems: "center", fontFamily: "var(--font-serif)", fontSize: 18, flexShrink: 0 }}>{it.author[0]}</div>
