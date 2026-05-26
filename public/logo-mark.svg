@@ -1,0 +1,35 @@
+<svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brand" x1="5" y1="2" x2="47" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7A2818"/>
+      <stop offset="100%" stop-color="#C85C42"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="white" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="hex">
+      <path d="M26 2 L47 14 L47 38 L26 50 L5 38 L5 14Z"/>
+    </clipPath>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#A5402D" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Hexagon body -->
+  <path d="M26 2 L47 14 L47 38 L26 50 L5 38 L5 14Z" fill="url(#brand)" filter="url(#shadow)"/>
+
+  <!-- Gloss highlight on top half -->
+  <rect x="0" y="0" width="52" height="26" fill="url(#gloss)" clip-path="url(#hex)"/>
+
+  <!-- Rising bars — skill growth chart -->
+  <rect x="13" y="28" width="7" height="10" rx="2" fill="rgba(255,255,255,0.60)"/>
+  <rect x="22" y="21" width="7" height="17" rx="2" fill="rgba(255,255,255,0.80)"/>
+  <rect x="31" y="14" width="7" height="24" rx="2" fill="white"/>
+
+  <!-- Baseline -->
+  <rect x="12" y="39" width="27" height="2" rx="1" fill="rgba(255,255,255,0.40)"/>
+
+  <!-- Sparkle dot above tallest bar -->
+  <circle cx="34.5" cy="12" r="2" fill="rgba(255,255,255,0.80)"/>
+</svg>

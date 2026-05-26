@@ -47,6 +47,9 @@ export const metadata: Metadata = {
   title: "Skillio · estudiá con ritmo",
   description:
     "App de estudio con Pomodoro, gamificación, agenda y herramientas IA para estudiantes universitarios.",
+  icons: {
+    icon: [{ url: "/logo-mark.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

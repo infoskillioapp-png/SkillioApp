@@ -112,15 +112,37 @@ export const IconX = ({ size = 12, stroke = 2.5 }: IconProps) => (
 // ============================================================
 // SKILLIO WORDMARK
 // ============================================================
-export const SkillioMark = ({ color = "var(--accent)", size = 26 }: { color?: string; size?: number }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <path d="M16 3 L26 9 L26 21 L16 27 L6 21 L6 9 Z" stroke={color} strokeWidth="2" fill="none" />
-      <circle cx="16" cy="15" r="3.5" fill={color} />
-      <path d="M16 18.5 L16 24" stroke={color} strokeWidth="2" strokeLinecap="round" />
+export const SkillioMark = ({ color = "var(--ink)", size = 26 }: { color?: string; size?: number }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: Math.round(size * 0.32) }}>
+    <svg width={size} height={size} viewBox="0 0 52 52" fill="none">
+      <defs>
+        <linearGradient id="sm-brand" x1="5" y1="2" x2="47" y2="50" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#7A2818" />
+          <stop offset="100%" stopColor="#C85C42" />
+        </linearGradient>
+        <linearGradient id="sm-gloss" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="white" stopOpacity={0.20} />
+          <stop offset="100%" stopColor="white" stopOpacity={0} />
+        </linearGradient>
+        <clipPath id="sm-hex">
+          <path d="M26 2 L47 14 L47 38 L26 50 L5 38 L5 14Z" />
+        </clipPath>
+      </defs>
+      {/* Hexagon body */}
+      <path d="M26 2 L47 14 L47 38 L26 50 L5 38 L5 14Z" fill="url(#sm-brand)" />
+      {/* Gloss highlight */}
+      <rect x="0" y="0" width="52" height="26" fill="url(#sm-gloss)" clipPath="url(#sm-hex)" />
+      {/* Rising bars */}
+      <rect x="13" y="28" width="7" height="10" rx="2" fill="rgba(255,255,255,0.60)" />
+      <rect x="22" y="21" width="7" height="17" rx="2" fill="rgba(255,255,255,0.80)" />
+      <rect x="31" y="14" width="7" height="24" rx="2" fill="white" />
+      {/* Baseline */}
+      <rect x="12" y="39" width="27" height="2" rx="1" fill="rgba(255,255,255,0.40)" />
+      {/* Sparkle */}
+      <circle cx="34.5" cy="12" r="2" fill="rgba(255,255,255,0.80)" />
     </svg>
-    <span style={{ fontFamily: "var(--font-roboto)", fontSize: size * 0.95, color, lineHeight: 1, letterSpacing: "-0.03em", fontWeight: 700 }}>
-      skillio<span style={{ opacity: 0.5 }}>.</span>
+    <span style={{ fontFamily: "var(--font-roboto)", fontSize: size * 0.96, color, lineHeight: 1, letterSpacing: "-0.03em", fontWeight: 900 }}>
+      skillio<span style={{ opacity: 0.4 }}>.</span>
     </span>
   </div>
 );
