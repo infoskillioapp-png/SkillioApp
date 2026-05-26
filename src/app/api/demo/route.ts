@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const r = await generateText({
       model: anthropic("claude-haiku-4-5-20251001"),
       system:
-        "Respondé siempre con JSON válido solamente, sin texto adicional antes ni después del JSON.",
+        "Sos un asistente académico educativo. Respondé siempre con JSON válido solamente, sin texto adicional antes ni después del JSON. Usá lenguaje respetuoso y académico, sin malas palabras ni lenguaje inapropiado.",
       messages,
       maxOutputTokens: 700,
     });

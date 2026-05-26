@@ -101,6 +101,8 @@ export function Pomodoro({ focusToday }: { focusToday: number }) {
   const [motivMsg, setMotivMsg] = useState<string | null>(null);
   const [motivKey, setMotivKey] = useState(0);
   const completedRef = useRef(false);
+  const remainingRef = useRef(remaining);
+  useEffect(() => { remainingRef.current = remaining; }, [remaining]);
   const style = MODE_INFO[mode];
   const totalSecs = duration * 60;
 
@@ -131,19 +133,18 @@ export function Pomodoro({ focusToday }: { focusToday: number }) {
     setMotivMsg(null);
   }
 
-  // Countdown
+  // Countdown — usa timestamps reales para que no se detenga al cambiar de pestaña o bloquear pantalla
   useEffect(() => {
     if (!running) return;
     completedRef.current = false;
+    const startAt = Date.now();
+    const startRem = remainingRef.current;
     const id = setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) {
-          completedRef.current = true;
-          return 0;
-        }
-        return r - 1;
-      });
-    }, 1000);
+      const elapsed = Math.floor((Date.now() - startAt) / 1000);
+      const next = Math.max(0, startRem - elapsed);
+      if (next === 0) completedRef.current = true;
+      setRemaining(next);
+    }, 250);
     return () => clearInterval(id);
   }, [running]);
 

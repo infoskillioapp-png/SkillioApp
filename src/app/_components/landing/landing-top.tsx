@@ -142,7 +142,10 @@ export function Navbar({ onCTA }: { onCTA: () => void }) {
     e.preventDefault();
     setOpen(false);
     const el = document.getElementById(id);
-    if (el) window.scrollTo({ top: el.offsetTop - 70, behavior: "smooth" });
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.scrollY - 70;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
   };
 
   return (

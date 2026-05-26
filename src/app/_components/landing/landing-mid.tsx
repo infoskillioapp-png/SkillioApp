@@ -103,12 +103,12 @@ type DemoOutput = { items?: string[] } | { resumen?: string } | { cards?: { q: s
 
 function buildPrompt(mode: DemoMode, text: string) {
   if (mode === "puntos") {
-    return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Hacé puntos clave del siguiente apunte. Devolvé SOLO un JSON con esta forma exacta, sin texto adicional:\n{"items":["punto 1","punto 2","..."]}\nEntre 4 y 6 puntos, claros y concisos. Tono argentino informal.\n\nApunte:\n${text}` }] };
+    return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Hacé puntos clave del siguiente apunte. Devolvé SOLO un JSON con esta forma exacta, sin texto adicional:\n{"items":["punto 1","punto 2","..."]}\nEntre 4 y 6 puntos, claros y concisos. Tono amistoso y académico, sin malas palabras.\n\nApunte:\n${text}` }] };
   }
   if (mode === "resumen") {
-    return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Hacé un resumen académico breve (2-3 párrafos cortos) del siguiente apunte. Devolvé SOLO un JSON con esta forma: {"resumen":"texto..."}. Tono claro, sin tecnicismos innecesarios.\n\nApunte:\n${text}` }] };
+    return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Hacé un resumen académico breve (2-3 párrafos cortos) del siguiente apunte. Devolvé SOLO un JSON con esta forma: {"resumen":"texto..."}. Tono claro y académico, sin malas palabras ni tecnicismos innecesarios.\n\nApunte:\n${text}` }] };
   }
-  return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Generá 4 flashcards del siguiente apunte. Devolvé SOLO un JSON con esta forma:\n{"cards":[{"q":"pregunta","a":"respuesta"}, ...]}\nLas preguntas deben ser cortas y útiles para repasar.\n\nApunte:\n${text}` }] };
+  return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Generá 4 flashcards del siguiente apunte. Devolvé SOLO un JSON con esta forma:\n{"cards":[{"q":"pregunta","a":"respuesta"}, ...]}\nLas preguntas deben ser cortas y útiles para repasar. Tono académico, sin malas palabras.\n\nApunte:\n${text}` }] };
 }
 
 function parseOutput(mode: DemoMode, raw: string): DemoOutput {

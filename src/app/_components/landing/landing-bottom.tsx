@@ -46,7 +46,7 @@ export function Community({ onCTA }: { onCTA: () => void }) {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {items.map((it, i) => (
-              <div key={i} className="card lift" style={{ padding: 18, display: "flex", alignItems: "center", gap: 14, marginLeft: i % 2 === 1 ? 24 : 0 }}>
+              <div key={i} className={`card lift${i % 2 === 1 ? " community-card-odd" : ""}`} style={{ padding: 18, display: "flex", alignItems: "center", gap: 14 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 999, background: it.color, color: "white", display: "grid", placeItems: "center", fontFamily: "var(--font-serif)", fontSize: 18, flexShrink: 0 }}>{it.author[0]}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.title}</div>
@@ -59,7 +59,7 @@ export function Community({ onCTA }: { onCTA: () => void }) {
           </div>
         </div>
       </div>
-      <style>{`@media (max-width: 880px) { .community-grid { grid-template-columns: 1fr !important; } }`}</style>
+      <style>{`@media (max-width: 880px) { .community-grid { grid-template-columns: 1fr !important; } .community-card-odd { margin-left: 0 !important; } } @media (min-width: 881px) { .community-card-odd { margin-left: 24px; } }`}</style>
     </section>
   );
 }
@@ -160,7 +160,7 @@ export function FAQ() {
     { q: "¿Mis apuntes y datos son seguros?", a: "Sí. Tus apuntes son privados por default. Nadie ve nada salvo que vos decidas compartirlo en la Comunidad. Usamos cifrado en tránsito y en reposo." },
     { q: "¿Qué tan precisa es la IA?", a: "Muy buena para resumir, generar flashcards y simulacros. Igual: siempre revisá los resultados. La IA es una copilota, no reemplaza estudiar." },
     { q: "¿Puedo subir cualquier formato?", a: "Sí: PDFs, fotos de pizarrón o apuntes, fotos de hojas escritas a mano. Si lo podés leer vos, lo puede leer Skillio." },
-    { q: "¿Cómo pago el plan PRO?", a: "Con Mercado Pago: tarjeta, débito, dinero en cuenta o transferencia. Todo seguro y con factura electrónica." },
+    { q: "¿Cómo pago el plan PRO?", a: "A través de MERCADOPAGO con tarjeta de crédito o débito. Te adherís al débito automático y podés cancelar cuando quieras en 2 clicks." },
     { q: "¿Sirve para mi carrera?", a: "Sí. Funciona para Medicina, Ingenierías, Derecho, Económicas, Psicología, profesorados, secundario. Cualquier materia que tenga texto." },
   ];
   return (
