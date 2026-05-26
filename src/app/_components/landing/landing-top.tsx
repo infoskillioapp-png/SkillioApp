@@ -143,11 +143,7 @@ export function Navbar({ onCTA }: { onCTA: () => void }) {
     setOpen(false);
     const delay = open ? 380 : 0;
     setTimeout(() => {
-      const el = document.getElementById(id);
-      if (el) {
-        const top = el.getBoundingClientRect().top + window.scrollY - 70;
-        window.scrollTo({ top, behavior: "smooth" });
-      }
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, delay);
   };
 

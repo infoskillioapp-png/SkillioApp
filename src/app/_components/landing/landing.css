@@ -10,6 +10,7 @@
 .section {
   padding-top: clamp(72px, 9vw, 120px);
   padding-bottom: clamp(72px, 9vw, 120px);
+  scroll-margin-top: 68px;
 }
 .container-x { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
 @media (max-width: 640px) { .container-x { padding: 0 18px; } }
@@ -302,6 +303,7 @@ details.faq .body { margin-top: 12px; color: var(--ink-soft); font-size: 15.5px;
 .hero-wrapper {
   position: relative;
   overflow-x: hidden;
+  scroll-behavior: smooth;
   background: #FBEFE7;
   min-height: 100vh;
   /* Forzar siempre light mode — ignorar data-theme="dark" del dashboard */
