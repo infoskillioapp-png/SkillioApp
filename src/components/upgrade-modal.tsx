@@ -88,12 +88,24 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
-  function handleActivate() {
-    toast.info(
-      "Pronto disponible",
-      "Estamos terminando la integración con el sistema de pagos. Te avisamos por mail.",
-    );
-    onClose();
+  const [loading, setLoading] = useState(false);
+
+  async function handleActivate() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/subscription/create", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error("Error", data.error ?? "No se pudo iniciar el pago. Intentá de nuevo.");
+        setLoading(false);
+        return;
+      }
+      // Redirigir a MercadoPago
+      window.location.href = data.init_point;
+    } catch {
+      toast.error("Error", "No se pudo conectar con el servidor.");
+      setLoading(false);
+    }
   }
 
   return (
@@ -183,9 +195,10 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={handleActivate}
-              className="px-6 py-3 rounded-full bg-accent text-[#FBF1EF] font-display font-bold text-[13.5px] shadow-[0_10px_24px_var(--accent-glow)] hover:bg-accent-hover transition active:translate-y-[1px]"
+              disabled={loading}
+              className="px-6 py-3 rounded-full bg-accent text-[#FBF1EF] font-display font-bold text-[13.5px] shadow-[0_10px_24px_var(--accent-glow)] hover:bg-accent-hover transition active:translate-y-[1px] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Activar Pro →
+              {loading ? "Redirigiendo…" : "Activar Pro →"}
             </button>
           </div>
 

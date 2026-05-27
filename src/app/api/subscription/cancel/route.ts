@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { mpCancelSubscription } from "@/lib/mercadopago";
 
 export async function POST() {
   const { userId } = await auth();
@@ -10,19 +11,29 @@ export async function POST() {
 
   const { data: u, error: ue } = await sb
     .from("users")
-    .select("id, plan")
+    .select("id, plan, mp_subscription_id")
     .eq("clerk_user_id", userId)
     .maybeSingle();
 
   if (ue || !u) return NextResponse.json({ error: "user not found" }, { status: 404 });
 
+  // Cancelar en MercadoPago si tiene suscripción activa
+  if (u.mp_subscription_id) {
+    try {
+      await mpCancelSubscription(u.mp_subscription_id);
+    } catch (e) {
+      console.error("[subscription/cancel] MP cancel error:", e);
+      // Continuamos igual — el webhook también puede disparar el downgrade
+    }
+  }
+
   const { error } = await sb
     .from("users")
-    .update({ plan: "free", updated_at: new Date().toISOString() })
+    .update({ plan: "free", mp_subscription_id: null, updated_at: new Date().toISOString() })
     .eq("id", u.id);
 
   if (error) {
-    console.error("[api/subscription/cancel]", error);
+    console.error("[subscription/cancel]", error);
     return NextResponse.json({ error: "update failed" }, { status: 500 });
   }
 
