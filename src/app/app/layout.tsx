@@ -74,6 +74,7 @@ export default async function AppLayout({
   const user = await syncUserToSupabase();
   if (!user) redirect("/login");
 
+  if (user.plan === "free") redirect("/pagar");
   if (user.onboarding_completed === false) redirect("/onboarding");
 
   // Eventos próximos (exámenes, parciales, TPs) para Booki

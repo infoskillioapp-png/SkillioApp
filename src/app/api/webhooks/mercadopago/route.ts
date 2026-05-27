@@ -19,6 +19,12 @@ function verifySignature(req: NextRequest, dataId: string): boolean {
   return expected === v1;
 }
 
+function creditsForPlan(planId: string): number {
+  if (planId === process.env.MP_PLAN_ID_PRO) return 500;
+  if (planId === process.env.MP_PLAN_ID_BASICO) return 30;
+  return 500; // fallback seguro para planes legacy
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -43,11 +49,15 @@ export async function POST(req: NextRequest) {
     const matchValue = clerkUserId ?? payerEmail;
 
     if (subscription.status === "authorized") {
+      const credits = creditsForPlan(subscription.preapproval_plan_id);
       await sb
         .from("users")
         .update({
-          plan: "pro",
+          plan: subscription.preapproval_plan_id === process.env.MP_PLAN_ID_BASICO
+            ? "basico"
+            : "pro",
           mp_subscription_id: subscription.id,
+          credits,
           updated_at: new Date().toISOString(),
         })
         .eq(matchField, matchValue);
@@ -60,6 +70,7 @@ export async function POST(req: NextRequest) {
         .update({
           plan: "free",
           mp_subscription_id: null,
+          credits: 0,
           updated_at: new Date().toISOString(),
         })
         .eq(matchField, matchValue);

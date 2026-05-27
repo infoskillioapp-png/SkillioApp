@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { IconArrow, IconCheck, IconX, IconHeart, SkillioMark } from "./landing-top";
 import { SectionHeader } from "./landing-mid";
 
@@ -68,6 +69,7 @@ export function Community({ onCTA }: { onCTA: () => void }) {
 // PRICING
 // ============================================================
 export function Pricing({ onCTA }: { onCTA: () => void }) {
+  const router = useRouter();
   const plans = [
     {
       name: "Básico",
@@ -76,6 +78,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
       period: "/ mes",
       cta: "Empezá Básico Gratis · 24h",
       ctaStyle: "btn-ghost",
+      planKey: "basico",
       featured: false,
       perks: [
         { ok: true, t: "30 créditos mensuales" },
@@ -94,6 +97,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
       period: "/ mes",
       cta: "Empezá PRO Gratis · 24h",
       ctaStyle: "btn-primary",
+      planKey: "pro",
       featured: true,
       perks: [
         { ok: true, t: "Todo lo del plan Básico" },
@@ -126,7 +130,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
                 <span style={{ fontFamily: "var(--font-serif)", fontSize: 54, letterSpacing: "-0.025em", lineHeight: 1 }}>{p.price}</span>
                 <span style={{ fontSize: 14, opacity: 0.7 }}>{p.period}</span>
               </div>
-              <button className={"btn " + p.ctaStyle} style={{ width: "100%", marginTop: 20, ...(p.featured ? { background: "white", color: "var(--accent)" } : { background: "var(--paper-warm)", color: "var(--ink)" }) }} onClick={onCTA}>
+              <button className={"btn " + p.ctaStyle} style={{ width: "100%", marginTop: 20, ...(p.featured ? { background: "white", color: "var(--accent)" } : { background: "var(--paper-warm)", color: "var(--ink)" }) }} onClick={() => router.push(`/registro?plan=${p.planKey}`)}>
                 {p.cta}
               </button>
               <div style={{ height: 1, background: p.featured ? "rgba(255,255,255,0.25)" : "rgba(53,56,49,0.08)", margin: "24px 0" }} />

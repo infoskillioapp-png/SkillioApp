@@ -1,16 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { mpGetPlan } from "@/lib/mercadopago";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId)
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  const planId = process.env.MP_PLAN_ID_PRO;
+  const body = await req.json().catch(() => ({}));
+  const planType: "pro" | "basico" = body.plan === "basico" ? "basico" : "pro";
+
+  const planId =
+    planType === "pro"
+      ? process.env.MP_PLAN_ID_PRO
+      : process.env.MP_PLAN_ID_BASICO;
+
   if (!planId) {
-    console.error("[subscription/create] MP_PLAN_ID_PRO not set");
+    console.error(`[subscription/create] MP_PLAN_ID_${planType.toUpperCase()} not set`);
     return NextResponse.json(
       { error: "Planes no configurados. Contactá soporte." },
       { status: 500 },
@@ -26,11 +33,9 @@ export async function POST() {
 
   if (!user)
     return NextResponse.json({ error: "user not found" }, { status: 404 });
-  if (user.plan === "pro")
-    return NextResponse.json({ error: "already_pro" }, { status: 400 });
+  if (user.plan !== "free")
+    return NextResponse.json({ error: "already_subscribed" }, { status: 400 });
 
-  // Usamos el init_point del plan directamente — MP maneja la tarjeta en su checkout
   const plan = await mpGetPlan(planId);
-
   return NextResponse.json({ init_point: plan.init_point });
 }

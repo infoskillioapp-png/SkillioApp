@@ -8,7 +8,7 @@ export type SkillioUser = {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  plan: "free" | "pro";
+  plan: "free" | "basico" | "pro";
   mp_subscription_id: string | null;
   credits: number;
   current_streak: number;

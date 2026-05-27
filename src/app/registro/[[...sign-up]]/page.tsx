@@ -2,7 +2,14 @@ import Link from "next/link";
 import { SignUp } from "@clerk/nextjs";
 import { AuthShell } from "@/app/_components/auth-shell";
 
-export default function RegistroPage() {
+interface Props {
+  searchParams: Promise<{ plan?: string }>;
+}
+
+export default async function RegistroPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const plan = sp.plan === "basico" ? "basico" : "pro";
+
   return (
     <AuthShell
       step="Registro"
@@ -11,7 +18,7 @@ export default function RegistroPage() {
           Empezá tu <em className="italic text-accent">ritmo.</em>
         </>
       }
-      lead="Creá tu cuenta y arrancá con 15 días Premium gratis si te refirió un amigo."
+      lead="Creá tu cuenta gratis y elegí tu plan en el siguiente paso."
       footerLink={
         <>
           ¿Ya tenés cuenta?{" "}
@@ -28,7 +35,7 @@ export default function RegistroPage() {
         routing="path"
         path="/registro"
         signInUrl="/login"
-        fallbackRedirectUrl="/app"
+        forceRedirectUrl={`/pagar?plan=${plan}`}
         appearance={{
           elements: {
             rootBox: "w-full",

@@ -33,7 +33,7 @@ function CTAPost({ onCTA }: { onCTA: () => void }) {
 
 export function LandingPage() {
   const router = useRouter();
-  const onCTA = useCallback(() => router.push("/registro"), [router]);
+  const onCTA = useCallback(() => router.push("/registro?plan=pro"), [router]);
   useReveal();
 
   // Forzar light mode en la landing independientemente del tema del dashboard
