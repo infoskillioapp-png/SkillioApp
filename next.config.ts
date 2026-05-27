@@ -7,9 +7,5 @@ export default withSentryConfig(nextConfig, {
   org: "skillio",
   project: "javascript-nextjs",
   silent: true,
-  widenClientFileUpload: true,
-  hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: true,
   telemetry: false,
 });
