@@ -19,7 +19,7 @@ const SUMMARY_FORMATS = [
 type Props = {
   notes: Note[];
   credits: number;
-  plan: "free" | "pro";
+  plan: "free" | "basico" | "pro";
   history: AiOutputRow[];
 };
 
