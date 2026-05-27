@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-const SHOW_DELAY = 0;        // TEST: inmediato
+const SHOW_DELAY = 60_000;   // 60s para mostrar
 const AUTO_CLOSE = 30_000;   // 30s para cerrar si no interactuó
 const STORAGE_KEY = "skillio_feedback_done";
 const COOLDOWN_DAYS = 30;
@@ -30,7 +30,12 @@ export function FeedbackWidget() {
   const interacted = useRef(false);
 
   useEffect(() => {
-    // TEST: ignorar localStorage temporalmente
+    const done = localStorage.getItem(STORAGE_KEY);
+    if (done) {
+      const last = Number(done);
+      if (Date.now() - last < COOLDOWN_DAYS * 24 * 60 * 60 * 1000) return;
+    }
+
     const showTimer = setTimeout(() => setVisible(true), SHOW_DELAY);
     return () => clearTimeout(showTimer);
   }, []);
