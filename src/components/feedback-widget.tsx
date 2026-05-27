@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-const SHOW_DELAY = 60_000;   // 60s para mostrar
+const SHOW_DELAY = 10_000;   // 10s para mostrar
 const AUTO_CLOSE = 30_000;   // 30s para cerrar si no interactuó
 const STORAGE_KEY = "skillio_feedback_done";
 const COOLDOWN_DAYS = 30;
