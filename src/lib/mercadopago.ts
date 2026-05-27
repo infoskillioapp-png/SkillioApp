@@ -28,6 +28,7 @@ export interface MpPlan {
   id: string;
   status: string;
   reason: string;
+  init_point: string;
 }
 
 export interface MpSubscription {
@@ -76,6 +77,10 @@ export function mpCreateSubscription(data: {
       status: "pending",
     }),
   });
+}
+
+export function mpGetPlan(id: string): Promise<MpPlan> {
+  return mpFetch<MpPlan>(`/preapproval_plan/${id}`);
 }
 
 export function mpGetSubscription(id: string): Promise<MpSubscription> {

@@ -5,7 +5,7 @@ import { mpGetSubscription } from "@/lib/mercadopago";
 
 function verifySignature(req: NextRequest, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
-  if (!secret) return true; // sin secret configurado, se omite la validación
+  if (!secret) return true;
 
   const xSignature = req.headers.get("x-signature") ?? "";
   const xRequestId = req.headers.get("x-request-id") ?? "";
@@ -19,14 +19,10 @@ function verifySignature(req: NextRequest, dataId: string): boolean {
   return expected === v1;
 }
 
-// MercadoPago notifica eventos de suscripciones (preapproval).
-// Cuando status = "authorized" → activar plan PRO.
-// Cuando status = "cancelled" | "paused" → bajar a free.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Solo procesamos notificaciones de suscripciones
     if (body.type !== "preapproval" || !body.data?.id) {
       return NextResponse.json({ ok: true });
     }
@@ -39,11 +35,12 @@ export async function POST(req: NextRequest) {
     }
 
     const subscription = await mpGetSubscription(subscriptionId);
+    const sb = supabaseAdmin();
 
     const clerkUserId = subscription.external_reference;
-    if (!clerkUserId) return NextResponse.json({ ok: true });
-
-    const sb = supabaseAdmin();
+    const payerEmail = subscription.payer_email;
+    const matchField = clerkUserId ? "clerk_user_id" : "email";
+    const matchValue = clerkUserId ?? payerEmail;
 
     if (subscription.status === "authorized") {
       await sb
@@ -53,7 +50,7 @@ export async function POST(req: NextRequest) {
           mp_subscription_id: subscription.id,
           updated_at: new Date().toISOString(),
         })
-        .eq("clerk_user_id", clerkUserId);
+        .eq(matchField, matchValue);
     } else if (
       subscription.status === "cancelled" ||
       subscription.status === "paused"
@@ -65,7 +62,7 @@ export async function POST(req: NextRequest) {
           mp_subscription_id: null,
           updated_at: new Date().toISOString(),
         })
-        .eq("clerk_user_id", clerkUserId);
+        .eq(matchField, matchValue);
     }
 
     return NextResponse.json({ ok: true });
