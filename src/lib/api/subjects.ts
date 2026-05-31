@@ -38,8 +38,6 @@ export type SubjectInput = {
   name: string;
   professor: string;
   color: string;
-  avg_grade: string;
-  hours_studied: string;
   attendance_pct: string;
   exam1_grade?: string;
   exam2_grade?: string;
@@ -49,17 +47,25 @@ export type SubjectInput = {
 function parseInput(input: SubjectInput) {
   const name = input.name?.trim();
   if (!name) throw new Error("name_required");
+
+  const e1 = input.exam1_grade ? Number(input.exam1_grade) : null;
+  const e2 = input.exam2_grade ? Number(input.exam2_grade) : null;
+  const e3 = input.exam3_grade ? Number(input.exam3_grade) : null;
+  const grades = [e1, e2, e3].filter((g) => g !== null) as number[];
+  const avg_grade = grades.length > 0
+    ? Math.round((grades.reduce((a, b) => a + b, 0) / grades.length) * 100) / 100
+    : null;
+
   return {
     code: input.code?.trim() || null,
     name,
     professor: input.professor?.trim() || null,
     color: input.color?.trim() || "#A5402D",
-    avg_grade: input.avg_grade ? Number(input.avg_grade) : null,
-    hours_studied: input.hours_studied ? Number(input.hours_studied) : 0,
+    avg_grade,
     attendance_pct: input.attendance_pct ? Number(input.attendance_pct) : 100,
-    exam1_grade: input.exam1_grade ? Number(input.exam1_grade) : null,
-    exam2_grade: input.exam2_grade ? Number(input.exam2_grade) : null,
-    exam3_grade: input.exam3_grade ? Number(input.exam3_grade) : null,
+    exam1_grade: e1,
+    exam2_grade: e2,
+    exam3_grade: e3,
   };
 }
 

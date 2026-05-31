@@ -18,8 +18,6 @@ export function SubjectForm({ open, editing, onClose }: Props) {
   const [name, setName] = useState("");
   const [professor, setProfessor] = useState("");
   const [color, setColor] = useState<string>(SUBJECT_COLORS[0].value);
-  const [avgGrade, setAvgGrade] = useState("");
-  const [hoursStudied, setHoursStudied] = useState("");
   const [attendance, setAttendance] = useState("100");
   const [exam1Grade, setExam1Grade] = useState("");
   const [exam2Grade, setExam2Grade] = useState("");
@@ -33,8 +31,6 @@ export function SubjectForm({ open, editing, onClose }: Props) {
       setName(editing.name);
       setProfessor(editing.professor ?? "");
       setColor(editing.color);
-      setAvgGrade(editing.avg_grade !== null ? String(editing.avg_grade) : "");
-      setHoursStudied(String(editing.hours_studied ?? ""));
       setAttendance(String(editing.attendance_pct ?? 100));
       setExam1Grade(editing.exam1_grade !== null ? String(editing.exam1_grade) : "");
       setExam2Grade(editing.exam2_grade !== null ? String(editing.exam2_grade) : "");
@@ -44,8 +40,6 @@ export function SubjectForm({ open, editing, onClose }: Props) {
       setName("");
       setProfessor("");
       setColor(SUBJECT_COLORS[0].value);
-      setAvgGrade("");
-      setHoursStudied("");
       setAttendance("100");
       setExam1Grade("");
       setExam2Grade("");
@@ -74,8 +68,6 @@ export function SubjectForm({ open, editing, onClose }: Props) {
           name,
           professor,
           color,
-          avg_grade: avgGrade,
-          hours_studied: hoursStudied,
           attendance_pct: attendance,
           exam1_grade: exam1Grade,
           exam2_grade: exam2Grade,
@@ -156,30 +148,7 @@ export function SubjectForm({ open, editing, onClose }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            <Field label="Promedio">
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                max="10"
-                value={avgGrade}
-                onChange={(e) => setAvgGrade(e.target.value)}
-                placeholder="7.5"
-                className="input"
-              />
-            </Field>
-            <Field label="Horas">
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                value={hoursStudied}
-                onChange={(e) => setHoursStudied(e.target.value)}
-                placeholder="12"
-                className="input"
-              />
-            </Field>
+          <div className="grid grid-cols-2 gap-3 mt-4">
             <Field label="Asistencia %">
               <input
                 type="number"
@@ -191,6 +160,11 @@ export function SubjectForm({ open, editing, onClose }: Props) {
                 className="input"
               />
             </Field>
+            <div className="flex items-end pb-1">
+              <p className="text-[11.5px] text-ink-softer leading-snug">
+                El promedio se calcula automáticamente a partir de las notas de los exámenes.
+              </p>
+            </div>
           </div>
 
           <div className="mt-4">

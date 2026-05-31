@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { syncUserToSupabase } from "@/lib/sync-user";
 import { AppProviders } from "@/components/app-providers";
+import { ReferralNudge } from "@/components/referral-nudge";
+import { headers } from "next/headers";
 import { Sidebar } from "./_components/sidebar";
 import { Topbar } from "./_components/topbar";
 import { Booki } from "./_components/booki";
@@ -86,6 +88,11 @@ export default async function AppLayout({
   const reminders = buildReminders(upcomingEvents);
   const firstName = user.full_name?.split(" ")[0] ?? "estudiante";
 
+  const h = await headers();
+  const host = h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const referralUrl = `${proto}://${host}/registro?ref=${user.referral_token ?? user.clerk_user_id}`;
+
   return (
     <AppProviders>
       <div className="fixed inset-0 grid grid-rows-[52px_1fr] bg-bg text-ink transition-colors">
@@ -101,6 +108,7 @@ export default async function AppLayout({
       {/* Booki fuera del main para que position:fixed funcione correctamente */}
       <Booki firstName={firstName} reminders={reminders} />
       <MobileNav />
+      <ReferralNudge referralUrl={referralUrl} />
     </AppProviders>
   );
 }

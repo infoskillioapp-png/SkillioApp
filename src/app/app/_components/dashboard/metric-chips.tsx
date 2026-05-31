@@ -39,7 +39,7 @@ export function MetricChips({ stats }: { stats: DashboardStats }) {
     {
       label: "Referidos",
       value: String(stats.referrals),
-      sub: "Invitá amigos +15d",
+      sub: "Cada 2: +150 créd.",
       tone: "info",
     },
   ];

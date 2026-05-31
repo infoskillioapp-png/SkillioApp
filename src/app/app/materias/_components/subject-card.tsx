@@ -68,15 +68,11 @@ export function SubjectCard({ subject, onEdit }: Props) {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         <Stat
           label="Promedio"
-          value={promedio !== null ? promedio.toFixed(1) : "—"}
+          value={promedio !== null ? promedio.toFixed(2) : "—"}
           accent={promedioLow ? "text-danger" : ""}
-        />
-        <Stat
-          label="Horas"
-          value={subject.hours_studied.toString().replace(".0", "")}
         />
         <Stat
           label="Asistencia"

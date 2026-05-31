@@ -53,10 +53,12 @@ export type EventInput = {
 
 function toIso(date: string, time: string): string | null {
   if (!date || !time) return null;
-  // Construir ISO local (sin UTC para evitar shifts)
-  const d = new Date(`${date}T${time}:00`);
+  // Adjuntamos el offset de Argentina (UTC-3, sin DST) para que Postgres
+  // almacene el timestamp correcto sin convertir a UTC desde el servidor.
+  const iso = `${date}T${time}:00-03:00`;
+  const d = new Date(iso);
   if (isNaN(d.getTime())) return null;
-  return d.toISOString();
+  return iso;
 }
 
 export async function upsertEvent(input: EventInput) {

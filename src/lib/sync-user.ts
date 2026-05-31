@@ -20,6 +20,7 @@ export type SkillioUser = {
   created_at: string;
   age: number | null;
   institution: string | null;
+  career: string | null;
   onboarding_completed: boolean;
 };
 
