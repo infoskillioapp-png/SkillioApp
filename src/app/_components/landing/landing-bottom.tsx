@@ -74,7 +74,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
     {
       name: "Básico",
       sub: "Para organizar tu cursada",
-      price: "$9.000",
+      price: "$10.000",
       period: "/ mes",
       cta: "Empezá Básico Gratis · 24h",
       ctaStyle: "btn-ghost",
@@ -93,7 +93,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
     {
       name: "PRO",
       sub: "Para aprobar bien con ayuda de IA",
-      price: "$14.000",
+      price: "$16.000",
       period: "/ mes",
       cta: "Empezá PRO Gratis · 24h",
       ctaStyle: "btn-primary",

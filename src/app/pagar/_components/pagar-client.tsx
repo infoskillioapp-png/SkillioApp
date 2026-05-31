@@ -6,7 +6,7 @@ import { SkillioMark } from "@/app/_components/landing/landing-top";
 const PLANS = {
   pro: {
     name: "PRO",
-    price: "$14.000",
+    price: "$16.000",
     period: "/ mes",
     credits: 500,
     perks: [
@@ -20,7 +20,7 @@ const PLANS = {
   },
   basico: {
     name: "Básico",
-    price: "$9.000",
+    price: "$10.000",
     period: "/ mes",
     credits: 30,
     perks: [
