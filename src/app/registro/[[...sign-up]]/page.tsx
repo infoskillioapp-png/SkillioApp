@@ -3,7 +3,7 @@ import { SignUp } from "@clerk/nextjs";
 import { AuthShell } from "@/app/_components/auth-shell";
 
 interface Props {
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; ref?: string }>;
 }
 
 export default async function RegistroPage({ searchParams }: Props) {
