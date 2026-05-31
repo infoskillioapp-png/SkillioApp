@@ -93,3 +93,15 @@ export function mpCancelSubscription(id: string): Promise<MpSubscription> {
     body: JSON.stringify({ status: "cancelled" }),
   });
 }
+
+export interface MpPayment {
+  id: number;
+  status: string;
+  preapproval_id: string | null;
+  external_reference: string | null;
+  payer: { email: string };
+}
+
+export function mpGetPayment(id: string): Promise<MpPayment> {
+  return mpFetch<MpPayment>(`/v1/payments/${id}`);
+}

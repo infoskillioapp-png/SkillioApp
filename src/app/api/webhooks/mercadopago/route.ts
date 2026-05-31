@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { mpGetSubscription } from "@/lib/mercadopago";
+import { mpGetSubscription, mpGetPayment } from "@/lib/mercadopago";
 
 function verifySignature(req: NextRequest, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -19,22 +19,19 @@ function verifySignature(req: NextRequest, dataId: string): boolean {
   return expected === v1;
 }
 
-function creditsForPlan(planId: string): number {
-  if (planId === process.env.MP_PLAN_ID_PRO) return 500;
-  if (planId === process.env.MP_PLAN_ID_BASICO) return 30;
-  return 500;
-}
-
-function planNameForId(planId: string): "pro" | "basico" {
+function planForId(planId: string): "pro" | "basico" {
   return planId === process.env.MP_PLAN_ID_BASICO ? "basico" : "pro";
 }
 
-// Recompensa al referrer cuando convierte 2 referidos pagos
+function fullCreditsForPlan(plan: "pro" | "basico"): number {
+  return plan === "pro" ? 500 : 30;
+}
+
+// Procesa recompensa al referrer: 150 créditos cada 2 referidos convertidos
 async function processReferrerReward(
   sb: ReturnType<typeof supabaseAdmin>,
   referrerId: string,
 ) {
-  // Contar referidos convertidos
   const { count } = await sb
     .from("referrals")
     .select("*", { count: "exact", head: true })
@@ -43,103 +40,150 @@ async function processReferrerReward(
 
   const converted = count ?? 0;
 
-  // Cada 2 referidos convertidos → dar recompensa
   if (converted > 0 && converted % 2 === 0) {
     const { data: referrer } = await sb
       .from("users")
-      .select("plan, credits")
+      .select("credits")
       .eq("id", referrerId)
       .maybeSingle();
 
     if (!referrer) return;
 
-    // Básico → +200 créditos, PRO → +150 créditos
-    const bonus = referrer.plan === "pro" ? 150 : 200;
     await sb
       .from("users")
-      .update({ credits: referrer.credits + bonus })
+      .update({ credits: referrer.credits + 150 })
       .eq("id", referrerId);
 
-    console.log(
-      `[webhook] referrer ${referrerId} recompensado con ${bonus} créditos (${converted} referidos)`,
-    );
+    console.log(`[webhook] referrer ${referrerId} +150 créditos (${converted} referidos)`);
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// HANDLER PREAPPROVAL: cambios de estado de la suscripción
+// "authorized" → activar plan con 30 créditos de trial (no completos aún)
+// "cancelled" / "paused" → bajar a free
+// ─────────────────────────────────────────────────────────────────────────────
+async function handlePreapproval(subscriptionId: string) {
+  const subscription = await mpGetSubscription(subscriptionId);
+  const sb = supabaseAdmin();
+
+  const clerkUserId = subscription.external_reference;
+  const payerEmail = subscription.payer_email;
+  const matchField = clerkUserId ? "clerk_user_id" : "email";
+  const matchValue = clerkUserId ?? payerEmail;
+
+  if (subscription.status === "authorized") {
+    const plan = planForId(subscription.preapproval_plan_id);
+    await sb
+      .from("users")
+      .update({
+        plan,
+        mp_subscription_id: subscription.id,
+        credits: 30, // créditos de trial: 30 para todos hasta el primer cobro real
+        updated_at: new Date().toISOString(),
+      })
+      .eq(matchField, matchValue);
+
+    console.log(`[webhook/preapproval] ${matchValue} activado plan=${plan} (30 créditos trial)`);
+  } else if (
+    subscription.status === "cancelled" ||
+    subscription.status === "paused"
+  ) {
+    await sb
+      .from("users")
+      .update({
+        plan: "free",
+        mp_subscription_id: null,
+        credits: 0,
+        updated_at: new Date().toISOString(),
+      })
+      .eq(matchField, matchValue);
+
+    console.log(`[webhook/preapproval] ${matchValue} bajado a free`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HANDLER PAYMENT: pago real procesado (primer cobro o renovación mensual)
+// - Dar créditos completos del plan
+// - Si tiene referido pendiente: +50 créditos + marcar convertido + reward referrer
+// ─────────────────────────────────────────────────────────────────────────────
+async function handlePayment(paymentId: string) {
+  const payment = await mpGetPayment(paymentId);
+
+  if (payment.status !== "approved") return;
+
+  const sb = supabaseAdmin();
+
+  // Buscar usuario por email del pagador
+  const payerEmail = payment.payer?.email;
+  if (!payerEmail) return;
+
+  const { data: user } = await sb
+    .from("users")
+    .select("id, plan, credits, referred_by")
+    .eq("email", payerEmail)
+    .maybeSingle();
+
+  if (!user || user.plan === "free") return;
+
+  // Verificar si hay referral pendiente (primer pago)
+  const { data: pendingReferral } = await sb
+    .from("referrals")
+    .select("id, referrer_id")
+    .eq("referred_id", user.id)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  const isFirstPayment = !!pendingReferral;
+  const referralBonus = isFirstPayment ? 50 : 0;
+  const fullCredits = fullCreditsForPlan(user.plan) + referralBonus;
+
+  await sb
+    .from("users")
+    .update({
+      credits: fullCredits,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  console.log(
+    `[webhook/payment] ${payerEmail} → ${fullCredits} créditos (plan=${user.plan}, referralBonus=${referralBonus})`,
+  );
+
+  // Procesar referral si es el primer pago
+  if (isFirstPayment && pendingReferral) {
+    await sb
+      .from("referrals")
+      .update({
+        status: "converted",
+        converted_at: new Date().toISOString(),
+      })
+      .eq("id", pendingReferral.id);
+
+    await processReferrerReward(sb, pendingReferral.referrer_id);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENTRY POINT
+// ─────────────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const dataId = String(body.data?.id ?? "");
 
-    if (body.type !== "preapproval" || !body.data?.id) {
-      return NextResponse.json({ ok: true });
-    }
+    if (!dataId) return NextResponse.json({ ok: true });
 
-    const subscriptionId = String(body.data.id);
-
-    if (!verifySignature(req, subscriptionId)) {
+    if (!verifySignature(req, dataId)) {
       console.warn("[webhooks/mercadopago] firma inválida");
       return NextResponse.json({ error: "invalid signature" }, { status: 401 });
     }
 
-    const subscription = await mpGetSubscription(subscriptionId);
-    const sb = supabaseAdmin();
-
-    const clerkUserId = subscription.external_reference;
-    const payerEmail = subscription.payer_email;
-    const matchField = clerkUserId ? "clerk_user_id" : "email";
-    const matchValue = clerkUserId ?? payerEmail;
-
-    if (subscription.status === "authorized") {
-      const baseCredits = creditsForPlan(subscription.preapproval_plan_id);
-      const plan = planNameForId(subscription.preapproval_plan_id);
-
-      // Traer usuario para ver si tiene referred_by
-      const { data: user } = await sb
-        .from("users")
-        .select("id, referred_by, credits")
-        .eq(matchField, matchValue)
-        .maybeSingle();
-
-      // Créditos finales: base del plan + 50 si es referido
-      const isReferred = !!user?.referred_by;
-      const totalCredits = baseCredits + (isReferred ? 50 : 0);
-
-      await sb
-        .from("users")
-        .update({
-          plan,
-          mp_subscription_id: subscription.id,
-          credits: totalCredits,
-          updated_at: new Date().toISOString(),
-        })
-        .eq(matchField, matchValue);
-
-      // Si es referido: marcar referral como convertido y procesar recompensa
-      if (user?.referred_by) {
-        await sb
-          .from("referrals")
-          .update({
-            status: "converted",
-            converted_at: new Date().toISOString(),
-          })
-          .eq("referred_id", user.id)
-          .eq("status", "pending");
-
-        await processReferrerReward(sb, user.referred_by);
-      }
-    } else if (
-      subscription.status === "cancelled" ||
-      subscription.status === "paused"
-    ) {
-      await sb
-        .from("users")
-        .update({
-          plan: "free",
-          mp_subscription_id: null,
-          credits: 0,
-          updated_at: new Date().toISOString(),
-        })
-        .eq(matchField, matchValue);
+    if (body.type === "preapproval") {
+      await handlePreapproval(dataId);
+    } else if (body.type === "payment") {
+      await handlePayment(dataId);
     }
 
     return NextResponse.json({ ok: true });
