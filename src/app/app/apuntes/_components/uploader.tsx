@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Subject } from "@/lib/types";
 
-const MAX_PDF_PAGES = 20;
+const MAX_PDF_PAGES = 50;
 
 // Lee el binario del PDF y cuenta páginas sin librerías externas.
 // Funciona para PDFs estándar (cross-reference table). Devuelve null si

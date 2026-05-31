@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         { status: 402 },
       );
 
-    const userParts = buildUserContent(content, USER_INSTRUCTION);
+    const userParts = await buildUserContent(content, USER_INSTRUCTION);
 
     const result = await generateObject({
       model: anthropic(MODEL),

@@ -134,7 +134,7 @@ export async function POST(req: Request) {
         { status: 402 },
       );
 
-    const userParts = buildUserContent(content, FORMAT_PROMPTS[format]);
+    const userParts = await buildUserContent(content, FORMAT_PROMPTS[format]);
 
     let payload: unknown;
     if (format === "puntos_clave") {

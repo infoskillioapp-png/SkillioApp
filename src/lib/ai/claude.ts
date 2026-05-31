@@ -1,11 +1,18 @@
 import "server-only";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { generateText } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
 import type { Note } from "@/lib/types";
 
 const BUCKET = "notes-uploads";
 
 export const MODEL = "claude-sonnet-4-6";
+const MAP_MODEL = "claude-haiku-4-5-20251001"; // modelo barato para el paso de mapeo
+
+// Umbral: si el texto supera esto, activamos map-reduce
+const MAP_REDUCE_THRESHOLD = 15_000; // ~4k tokens
+const CHUNK_SIZE = 14_000;
 
 export type NoteContent =
   | { type: "pdf"; data: Uint8Array; fileName: string }
@@ -13,10 +20,6 @@ export type NoteContent =
   | { type: "image"; data: Uint8Array; mime: string; fileName: string }
   | { type: "unsupported"; fileName: string };
 
-/**
- * Trae el contenido binario o de texto de un apunte del usuario actual.
- * Falla si el apunte no es del usuario logueado.
- */
 export async function getNoteContent(noteId: string): Promise<{
   note: Note;
   content: NoteContent;
@@ -73,9 +76,6 @@ export async function getNoteContent(noteId: string): Promise<{
   return { note: typedNote, content, userRow: u };
 }
 
-/**
- * Cobra creditos al usuario. Tira si no le alcanza.
- */
 export async function chargeCredits(
   userId: string,
   amount: number,
@@ -94,9 +94,6 @@ export async function chargeCredits(
   return remaining;
 }
 
-/**
- * Guarda un output generado por la IA.
- */
 export async function saveAiOutput(opts: {
   user_id: string;
   note_id: string | null;
@@ -128,40 +125,99 @@ export async function saveAiOutput(opts: {
   return data.id as string;
 }
 
-/**
- * Construye el campo `content` (multipart) para mandar a Claude.
- * - PDF / imagen: `file` part con el buffer
- * - texto: lo inyecta directo en el prompt
- */
-export function buildUserContent(content: NoteContent, instruction: string) {
+// ---------------------------------------------------------------------------
+// Map-reduce para textos largos
+// Divide el texto en chunks, resume cada uno con Haiku en paralelo,
+// y devuelve el texto combinado listo para pasarle al modelo final.
+// ---------------------------------------------------------------------------
+const MAP_SYSTEM =
+  "Sos un asistente académico. Resumí los conceptos clave de este fragmento de apunte preservando definiciones técnicas, fórmulas, nombres y fechas exactas. Sé exhaustivo.";
+
+async function mapReduceText(text: string): Promise<string> {
+  // Dividir en chunks
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+    chunks.push(text.slice(i, i + CHUNK_SIZE));
+  }
+
+  // Mapear: resumir cada chunk en paralelo con Haiku (barato)
+  const summaries = await Promise.all(
+    chunks.map((chunk, idx) =>
+      generateText({
+        model: anthropic(MAP_MODEL),
+        system: MAP_SYSTEM,
+        messages: [
+          {
+            role: "user",
+            content: `[Fragmento ${idx + 1} de ${chunks.length}]\n\n${chunk}`,
+          },
+        ],
+      }).then((r) => `[Sección ${idx + 1}]\n${r.text}`),
+    ),
+  );
+
+  // Reducir: combinar resúmenes
+  return summaries.join("\n\n");
+}
+
+// ---------------------------------------------------------------------------
+// buildUserContent — construye el content para el mensaje de usuario.
+// Para PDFs e imágenes: pasa el binario directo con cache control.
+// Para texto largo: aplica map-reduce antes de mandarlo al modelo final.
+// ---------------------------------------------------------------------------
+export async function buildUserContent(
+  content: NoteContent,
+  instruction: string,
+) {
   if (content.type === "pdf") {
+    // PDF nativo — Anthropic lo procesa directamente.
+    // Cache control: si el mismo usuario genera resumen + flashcards del mismo
+    // apunte, la segunda llamada reutiliza el PDF del cache (~90% más barata).
     return [
       {
         type: "file" as const,
-        mediaType: "application/pdf",
+        mediaType: "application/pdf" as const,
         data: content.data,
         filename: content.fileName,
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
       },
       { type: "text" as const, text: instruction },
     ];
   }
+
   if (content.type === "image") {
     return [
       {
         type: "file" as const,
-        mediaType: content.mime,
+        mediaType: content.mime as "image/png" | "image/jpeg" | "image/webp" | "image/gif",
         data: content.data,
         filename: content.fileName,
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
       },
       { type: "text" as const, text: instruction },
     ];
   }
+
   if (content.type === "text") {
-    const trimmed =
-      content.text.length > 60_000
-        ? content.text.slice(0, 60_000) + "\n\n[...truncado]"
-        : content.text;
-    return `Apunte: "${content.fileName}"\n\n---\n${trimmed}\n---\n\n${instruction}`;
+    let processedText = content.text;
+
+    if (content.text.length > MAP_REDUCE_THRESHOLD) {
+      // Texto largo → map-reduce con Haiku antes del modelo final
+      processedText = await mapReduceText(content.text);
+    }
+
+    // Truncado de seguridad para el modelo final
+    const finalText =
+      processedText.length > 80_000
+        ? processedText.slice(0, 80_000) + "\n\n[...truncado]"
+        : processedText;
+
+    return `Apunte: "${content.fileName}"\n\n---\n${finalText}\n---\n\n${instruction}`;
   }
+
   throw new Error("unsupported_content_type");
 }
