@@ -37,5 +37,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "already_subscribed" }, { status: 400 });
 
   const plan = await mpGetPlan(planId);
-  return NextResponse.json({ init_point: plan.init_point });
+
+  // Inyectamos external_reference (clerk userId) en el init_point para que
+  // el webhook y la confirmación post-pago puedan matchear al usuario.
+  const url = new URL(plan.init_point);
+  url.searchParams.set("external_reference", userId);
+
+  return NextResponse.json({ init_point: url.toString() });
 }
