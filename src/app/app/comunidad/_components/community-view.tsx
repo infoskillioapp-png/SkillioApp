@@ -7,6 +7,7 @@ type Props = {
   notes: PublicNote[];
   referralUrl: string;
   myReferrals: number;
+  userPlan: "free" | "basico" | "pro";
 };
 
 function initialsOf(name: string | null, email: string) {
@@ -30,7 +31,7 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR");
 }
 
-export function CommunityView({ notes, referralUrl, myReferrals }: Props) {
+export function CommunityView({ notes, referralUrl, myReferrals, userPlan }: Props) {
   const [search, setSearch] = useState("");
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
@@ -92,9 +93,15 @@ export function CommunityView({ notes, referralUrl, myReferrals }: Props) {
             <div className="font-display font-bold text-lg">
               Invitá a un compañero
             </div>
-            <p className="text-[12.5px] text-ink-soft mb-3">
-              Por cada <strong className="text-ink">2 compañeros</strong> que se unen con tu link ganás <strong className="text-accent">10 días de Premium gratis</strong>.
+            <p className="text-[12.5px] text-ink-soft mb-1">
+              Por cada <strong className="text-ink">2 compañeros</strong> que se unen y pagan con tu link ganás{" "}
+              <strong className="text-accent">
+                {userPlan === "pro" ? "+150 créditos de IA" : "+200 créditos de IA"}
+              </strong>.{" "}
               Llevás <strong className="text-ink">{myReferrals} referidos</strong>.
+            </p>
+            <p className="text-[11.5px] text-ink-softer mb-3">
+              🎁 Quienes entren por tu link reciben <strong className="text-ink">+50 créditos gratis</strong> al completar su primer pago.
             </p>
             <div className="flex items-center gap-2">
               <input

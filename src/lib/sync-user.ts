@@ -11,6 +11,8 @@ export type SkillioUser = {
   plan: "free" | "basico" | "pro";
   mp_subscription_id: string | null;
   credits: number;
+  referral_token: string | null;
+  referred_by: string | null;
   current_streak: number;
   longest_streak: number;
   total_xp: number;

@@ -9,6 +9,7 @@ interface Props {
 export default async function RegistroPage({ searchParams }: Props) {
   const sp = await searchParams;
   const plan = sp.plan === "basico" ? "basico" : "pro";
+  const ref = sp.ref ? `&ref=${sp.ref}` : "";
 
   return (
     <AuthShell
@@ -35,7 +36,7 @@ export default async function RegistroPage({ searchParams }: Props) {
         routing="path"
         path="/registro"
         signInUrl="/login"
-        forceRedirectUrl={`/pagar?plan=${plan}`}
+        forceRedirectUrl={`/pagar?plan=${plan}${ref}`}
         appearance={{
           elements: {
             rootBox: "w-full",

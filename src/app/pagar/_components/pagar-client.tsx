@@ -33,7 +33,7 @@ const PLANS = {
   },
 } as const;
 
-export function PagarClient({ plan }: { plan: "pro" | "basico" }) {
+export function PagarClient({ plan, hasReferral = false }: { plan: "pro" | "basico"; hasReferral?: boolean }) {
   const [selected, setSelected] = useState<"pro" | "basico">(plan);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +81,16 @@ export function PagarClient({ plan }: { plan: "pro" | "basico" }) {
           <SkillioMark size={28} />
           <span className="text-xs text-ink-softer">Paso final · Elegí tu plan</span>
         </div>
+
+        {/* Badge de referido */}
+        {hasReferral && (
+          <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-2xl border" style={{ background: "rgba(165,64,45,0.06)", borderColor: "var(--accent)" }}>
+            <span className="text-xl">🎁</span>
+            <p className="text-sm text-ink">
+              <strong className="text-accent">+50 créditos de regalo</strong> — un amigo te invitó. Se acreditarán cuando se efectúe tu primer pago.
+            </p>
+          </div>
+        )}
 
         {/* Selector de plan */}
         <div className="grid grid-cols-2 gap-3 mb-6">

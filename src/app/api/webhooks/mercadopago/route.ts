@@ -22,7 +22,48 @@ function verifySignature(req: NextRequest, dataId: string): boolean {
 function creditsForPlan(planId: string): number {
   if (planId === process.env.MP_PLAN_ID_PRO) return 500;
   if (planId === process.env.MP_PLAN_ID_BASICO) return 30;
-  return 500; // fallback seguro para planes legacy
+  return 500;
+}
+
+function planNameForId(planId: string): "pro" | "basico" {
+  return planId === process.env.MP_PLAN_ID_BASICO ? "basico" : "pro";
+}
+
+// Recompensa al referrer cuando convierte 2 referidos pagos
+async function processReferrerReward(
+  sb: ReturnType<typeof supabaseAdmin>,
+  referrerId: string,
+) {
+  // Contar referidos convertidos
+  const { count } = await sb
+    .from("referrals")
+    .select("*", { count: "exact", head: true })
+    .eq("referrer_id", referrerId)
+    .eq("status", "converted");
+
+  const converted = count ?? 0;
+
+  // Cada 2 referidos convertidos → dar recompensa
+  if (converted > 0 && converted % 2 === 0) {
+    const { data: referrer } = await sb
+      .from("users")
+      .select("plan, credits")
+      .eq("id", referrerId)
+      .maybeSingle();
+
+    if (!referrer) return;
+
+    // Básico → +200 créditos, PRO → +150 créditos
+    const bonus = referrer.plan === "pro" ? 150 : 200;
+    await sb
+      .from("users")
+      .update({ credits: referrer.credits + bonus })
+      .eq("id", referrerId);
+
+    console.log(
+      `[webhook] referrer ${referrerId} recompensado con ${bonus} créditos (${converted} referidos)`,
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -49,18 +90,43 @@ export async function POST(req: NextRequest) {
     const matchValue = clerkUserId ?? payerEmail;
 
     if (subscription.status === "authorized") {
-      const credits = creditsForPlan(subscription.preapproval_plan_id);
+      const baseCredits = creditsForPlan(subscription.preapproval_plan_id);
+      const plan = planNameForId(subscription.preapproval_plan_id);
+
+      // Traer usuario para ver si tiene referred_by
+      const { data: user } = await sb
+        .from("users")
+        .select("id, referred_by, credits")
+        .eq(matchField, matchValue)
+        .maybeSingle();
+
+      // Créditos finales: base del plan + 50 si es referido
+      const isReferred = !!user?.referred_by;
+      const totalCredits = baseCredits + (isReferred ? 50 : 0);
+
       await sb
         .from("users")
         .update({
-          plan: subscription.preapproval_plan_id === process.env.MP_PLAN_ID_BASICO
-            ? "basico"
-            : "pro",
+          plan,
           mp_subscription_id: subscription.id,
-          credits,
+          credits: totalCredits,
           updated_at: new Date().toISOString(),
         })
         .eq(matchField, matchValue);
+
+      // Si es referido: marcar referral como convertido y procesar recompensa
+      if (user?.referred_by) {
+        await sb
+          .from("referrals")
+          .update({
+            status: "converted",
+            converted_at: new Date().toISOString(),
+          })
+          .eq("referred_id", user.id)
+          .eq("status", "pending");
+
+        await processReferrerReward(sb, user.referred_by);
+      }
     } else if (
       subscription.status === "cancelled" ||
       subscription.status === "paused"
