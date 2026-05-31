@@ -86,11 +86,11 @@ export function ResultModal({ result, onClose }: Props) {
     >
       <div
         className={`relative w-full max-h-[92vh] rounded-3xl bg-paper border border-rule shadow-lg overflow-hidden flex flex-col ${
-          result.kind === "summary" &&
-          "data" in result &&
-          result.format === "mapa"
+          result.kind === "summary" && "data" in result && result.format === "mapa"
             ? "max-w-6xl"
-            : "max-w-3xl"
+            : result.kind === "summary"
+              ? "max-w-5xl"
+              : "max-w-4xl"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -117,7 +117,7 @@ export function ResultModal({ result, onClose }: Props) {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-7 py-6">
+        <div className="flex-1 overflow-y-auto px-8 py-7">
           {result.kind === "summary" && <SummaryDispatcher result={result} />}
           {result.kind === "flashcards" && <FlashcardsView deck={result.deck} />}
           {result.kind === "simulacro" && (
@@ -183,18 +183,18 @@ function ResumenView({ text }: { text: string }) {
       </button>
 
       {/* Markdown renderizado */}
-      <div className="prose prose-sm max-w-none pt-8
+      <div className="prose prose-base max-w-none pt-8
         prose-headings:font-display prose-headings:tracking-tight prose-headings:text-ink
-        prose-h2:text-xl prose-h2:font-extrabold prose-h2:mt-8 prose-h2:mb-3
-        prose-h3:text-base prose-h3:font-bold prose-h3:mt-5 prose-h3:mb-2
-        prose-p:text-[14px] prose-p:leading-relaxed prose-p:text-ink
+        prose-h2:text-2xl prose-h2:font-extrabold prose-h2:mt-8 prose-h2:mb-3
+        prose-h3:text-lg prose-h3:font-bold prose-h3:mt-5 prose-h3:mb-2
+        prose-p:text-[15.5px] prose-p:leading-[1.75] prose-p:text-ink
         prose-strong:text-ink prose-strong:font-bold
-        prose-li:text-[14px] prose-li:text-ink
-        prose-table:text-[13px] prose-th:font-bold prose-th:text-ink prose-td:text-ink-soft
-        prose-code:bg-paper-warm prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-accent prose-code:text-[12.5px]
+        prose-li:text-[15px] prose-li:text-ink prose-li:leading-[1.7]
+        prose-table:text-[14px] prose-th:font-bold prose-th:text-ink prose-td:text-ink-soft
+        prose-code:bg-paper-warm prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-accent prose-code:text-[13px]
         prose-blockquote:border-l-accent prose-blockquote:text-ink-soft
-        [&_table]:border-collapse [&_td]:border [&_td]:border-rule-soft [&_td]:px-3 [&_td]:py-2
-        [&_th]:border [&_th]:border-rule-soft [&_th]:px-3 [&_th]:py-2 [&_th]:bg-paper-warm">
+        [&_table]:border-collapse [&_td]:border [&_td]:border-rule-soft [&_td]:px-4 [&_td]:py-2.5
+        [&_th]:border [&_th]:border-rule-soft [&_th]:px-4 [&_th]:py-2.5 [&_th]:bg-paper-warm">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
       </div>
     </div>
