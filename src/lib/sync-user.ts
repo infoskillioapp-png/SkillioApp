@@ -76,6 +76,8 @@ export async function syncUserToSupabase(): Promise<SkillioUser | null> {
         email,
         full_name: fullName,
         avatar_url: cu.imageUrl || null,
+        // Genera token solo en INSERT (ignorado en UPDATE por onConflict)
+        referral_token: Math.random().toString(36).slice(2, 12),
       },
       { onConflict: "clerk_user_id" },
     )

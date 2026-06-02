@@ -37,15 +37,17 @@ export default async function PagarPage({ searchParams }: Props) {
       .maybeSingle();
 
     if (referrer) {
+      // ignoreSets para evitar race condition: si otra request ya lo asignó, no pisamos
       await sb
         .from("users")
         .update({ referred_by: referrer.id })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        .is("referred_by", null);
 
-      // Crear registro pendiente en tabla referrals
+      // onConflict: si ya existe la fila de referral, la dejamos como está
       await sb.from("referrals").upsert(
         { referrer_id: referrer.id, referred_id: user.id, status: "pending" },
-        { onConflict: "referred_id" },
+        { onConflict: "referred_id", ignoreDuplicates: true },
       );
 
       hasReferral = true;

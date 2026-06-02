@@ -14,10 +14,15 @@ export async function updateProfile(data: { career?: string; institution?: strin
 
   if (Object.keys(payload).length === 0) return;
 
-  await supabaseAdmin()
+  const { error } = await supabaseAdmin()
     .from("users")
     .update(payload)
     .eq("clerk_user_id", userId);
+
+  if (error) {
+    console.error("[profile.update]", error);
+    throw new Error("No se pudo guardar el perfil. Intentá de nuevo.");
+  }
 
   revalidatePath("/app");
 }

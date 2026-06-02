@@ -51,7 +51,7 @@ async function processReferrerReward(
 
     await sb
       .from("users")
-      .update({ credits: referrer.credits + 150 })
+      .update({ credits: (referrer.credits ?? 0) + 150 })
       .eq("id", referrerId);
 
     console.log(`[webhook] referrer ${referrerId} +150 créditos (${converted} referidos)`);

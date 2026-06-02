@@ -17,8 +17,7 @@ function PagoExitosoInner() {
     let attempts = 0;
 
     // MercadoPago redirige con ?preapproval_id= al volver de la suscripción.
-    const preapprovalId =
-      params.get("preapproval_id") ?? params.get("preapproval_plan_id");
+    const preapprovalId = params.get("preapproval_id");
 
     async function activateViaConfirm(): Promise<boolean> {
       if (!preapprovalId) return false;

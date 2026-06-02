@@ -91,7 +91,10 @@ export default async function AppLayout({
   const h = await headers();
   const host = h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? "http";
-  const referralUrl = `${proto}://${host}/registro?ref=${user.referral_token ?? user.clerk_user_id}`;
+  // Si no tiene token (nunca debería pasar tras la migración), no mostramos link roto
+  const referralUrl = user.referral_token
+    ? `${proto}://${host}/registro?ref=${user.referral_token}`
+    : `${proto}://${host}/registro`;
 
   return (
     <AppProviders>
