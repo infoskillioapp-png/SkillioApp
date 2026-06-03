@@ -247,8 +247,8 @@ export function Footer() {
             </div>
           </div>
           <FooterCol title="Producto" links={[["Funciones", "#funciones"], ["Cómo funciona", "#como"], ["Planes", "#planes"], ["Comunidad", "#comunidad"]]} />
-          <FooterCol title="Empresa" links={[["Sobre nosotros", "#"], ["Blog", "#"], ["Contacto", "#"]]} />
-          <FooterCol title="Legal" links={[["Términos y condiciones", "#"], ["Política de privacidad", "#"], ["Política de cookies", "#"], ["Seguridad", "#"]]} />
+          <FooterCol title="Empresa" links={[["Sobre nosotros", "#"], ["Blog", "#"], ["Contacto", "mailto:info.skillioapp@gmail.com"]]} />
+          <FooterCol title="Legal" links={[["Términos y condiciones", "/terminos"], ["Política de privacidad", "/privacidad"], ["Política de cookies", "/privacidad#cookies"], ["Seguridad", "/privacidad#seguridad"]]} />
         </div>
         <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "40px 0 24px" }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontSize: 13, color: "rgba(251,241,239,0.5)" }}>
