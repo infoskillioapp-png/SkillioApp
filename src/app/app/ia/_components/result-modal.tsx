@@ -81,43 +81,44 @@ export function ResultModal({ result, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-skillio-fade-in p-4"
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm animate-skillio-fade-in md:p-4"
       onClick={onClose}
     >
       <div
-        className={`relative w-full max-h-[92vh] rounded-3xl bg-paper border border-rule shadow-lg overflow-hidden flex flex-col ${
+        className={`relative w-full rounded-t-3xl md:rounded-3xl bg-paper border border-rule shadow-lg overflow-hidden flex flex-col ${
           result.kind === "summary" && "data" in result && result.format === "mapa"
             ? "max-w-6xl"
             : result.kind === "summary"
               ? "max-w-5xl"
               : "max-w-4xl"
         }`}
+        style={{ maxHeight: "calc(100dvh - 52px - 64px)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between px-7 py-5 border-b border-rule-soft shrink-0">
-          <div>
-            <div className="eyebrow mb-0.5">
+        <header className="flex items-center justify-between px-4 py-3 md:px-7 md:py-5 border-b border-rule-soft shrink-0">
+          <div className="min-w-0 mr-2">
+            <div className="eyebrow mb-0.5 truncate">
               {result.kind === "summary"
                 ? `Resumen · ${result.format.replace("_", " ")}`
                 : result.kind === "flashcards"
                   ? `Mazo de ${result.deck.cards.length} flashcards`
                   : `Simulacro de ${result.simulacro.questions.length} preguntas`}
             </div>
-            <h2 className="font-display font-extrabold text-xl tracking-[-0.02em]">
+            <h2 className="font-display font-extrabold text-base md:text-xl tracking-[-0.02em] truncate">
               {title}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-full border border-rule hover:border-ink-soft hover:rotate-90 transition-all duration-300 flex items-center justify-center"
+            className="w-10 h-10 md:w-9 md:h-9 rounded-full border border-rule hover:border-ink-soft hover:rotate-90 transition-all duration-300 flex items-center justify-center shrink-0 text-lg"
             aria-label="Cerrar"
           >
             ✕
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-8 py-7">
+        <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-7">
           {result.kind === "summary" && <SummaryDispatcher result={result} />}
           {result.kind === "flashcards" && <FlashcardsView deck={result.deck} />}
           {result.kind === "simulacro" && (
