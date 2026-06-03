@@ -52,6 +52,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/logo-mark.svg", type: "image/svg+xml" }],
   },
+  other: {
+    "facebook-domain-verification": "2sergbx06k8lh6609j9dyejopmc3b",
+  },
 };
 
 export default function RootLayout({
