@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
   // Solo activamos si todavía está en free (no pisar un plan ya activo)
   if (user.plan === "free") {
-    await sb
+    const { error } = await sb
       .from("users")
       .update({
         plan,
@@ -60,6 +60,13 @@ export async function POST(req: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
+    if (error) {
+      // No fallar en silencio: si el update se rechaza (p.ej. constraint),
+      // devolvemos error para que /pago-exitoso NO redirija como si hubiera
+      // activado, y quede registro en logs.
+      console.error(`[subscription/confirm] update falló (user=${user.id}, plan=${plan}):`, error);
+      return NextResponse.json({ error: "activation_failed" }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true, plan });

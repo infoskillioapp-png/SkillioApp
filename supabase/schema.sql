@@ -16,7 +16,7 @@ create table if not exists public.users (
   email           text unique not null,
   full_name       text,
   avatar_url      text,
-  plan            text not null default 'free' check (plan in ('free', 'pro')),
+  plan            text not null default 'free' check (plan in ('free', 'basico', 'pro')),
   credits         int  not null default 0,
   current_streak  int  not null default 0,
   longest_streak  int  not null default 0,

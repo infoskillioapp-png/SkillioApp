@@ -105,10 +105,14 @@ async function grantFullCredits(sb: Sb, user: MatchedUser) {
   const referralBonus = isFirstPayment ? 50 : 0;
   const credits = fullCreditsForPlan(user.plan) + referralBonus;
 
-  await sb
+  const { error } = await sb
     .from("users")
     .update({ credits, updated_at: new Date().toISOString() })
     .eq("id", user.id);
+  if (error) {
+    console.error(`[webhook] grantFullCredits update FALLÓ (user=${user.id}):`, error);
+    return;
+  }
 
   console.log(
     `[webhook] ${user.email} → ${credits} créditos (plan=${user.plan}, referralBonus=${referralBonus})`,
@@ -172,7 +176,7 @@ async function handlePreapproval(subscriptionId: string) {
       return;
     }
     if (user.plan === "free") {
-      await sb
+      const { error } = await sb
         .from("users")
         .update({
           plan,
@@ -181,6 +185,10 @@ async function handlePreapproval(subscriptionId: string) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
+      if (error) {
+        console.error(`[webhook/preapproval] update FALLÓ (user=${user.id}, plan=${plan}):`, error);
+        return;
+      }
       console.log(`[webhook/preapproval] ${user.email} activado plan=${plan} (matchedBy=${matchedBy})`);
     } else if (!user.mp_subscription_id) {
       // Ya estaba activo pero sin id guardado: lo persistimos para renovaciones.
