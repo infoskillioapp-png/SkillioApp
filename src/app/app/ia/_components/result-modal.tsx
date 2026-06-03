@@ -373,12 +373,12 @@ function FlashcardsView({
         </div>
       </button>
 
-      <div className="mt-4 flex items-center justify-between">
+      <div className="sticky bottom-0 bg-paper -mx-4 md:-mx-8 px-4 md:px-8 pt-3 pb-3 mt-4 border-t border-rule-soft flex items-center justify-between">
         <button
           type="button"
           onClick={prev}
           disabled={idx === 0}
-          className="px-4 py-2 rounded-full border border-rule text-sm font-medium hover:border-ink-soft transition disabled:opacity-40"
+          className="px-4 py-2.5 rounded-full border border-rule text-sm font-medium hover:border-ink-soft transition disabled:opacity-40"
         >
           ← Anterior
         </button>
@@ -392,7 +392,7 @@ function FlashcardsView({
           type="button"
           onClick={next}
           disabled={idx === deck.cards.length - 1}
-          className="px-4 py-2 rounded-full bg-accent text-[#FBF1EF] text-sm font-display font-semibold hover:bg-accent-hover transition disabled:opacity-40"
+          className="px-4 py-2.5 rounded-full bg-accent text-[#FBF1EF] text-sm font-display font-semibold hover:bg-accent-hover transition disabled:opacity-40"
         >
           Siguiente →
         </button>
@@ -685,12 +685,12 @@ function SimulacroView({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="sticky bottom-0 bg-paper -mx-4 md:-mx-8 px-4 md:px-8 pt-3 pb-3 mt-3 border-t border-rule-soft flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={prev}
           disabled={idx === 0}
-          className="px-4 py-2 rounded-full border border-rule text-sm font-medium hover:border-ink-soft transition disabled:opacity-40"
+          className="px-4 py-2.5 rounded-full border border-rule text-sm font-medium hover:border-ink-soft transition disabled:opacity-40"
         >
           ← Anterior
         </button>
@@ -699,7 +699,7 @@ function SimulacroView({
             type="button"
             onClick={reveal}
             disabled={userAnswer === undefined}
-            className="px-6 py-2 rounded-full bg-ink text-bg text-sm font-display font-semibold hover:bg-accent transition disabled:opacity-40"
+            className="px-5 py-2.5 rounded-full bg-ink text-bg text-sm font-display font-semibold hover:bg-accent transition disabled:opacity-40"
           >
             Revisar respuesta
           </button>
@@ -707,7 +707,7 @@ function SimulacroView({
           <button
             type="button"
             onClick={next}
-            className="px-6 py-2 rounded-full bg-accent text-[#FBF1EF] text-sm font-display font-semibold hover:bg-accent-hover transition"
+            className="px-5 py-2.5 rounded-full bg-accent text-[#FBF1EF] text-sm font-display font-semibold hover:bg-accent-hover transition"
           >
             {idx === total - 1 ? "Ver resultado →" : "Siguiente →"}
           </button>
