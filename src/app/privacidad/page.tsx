@@ -24,7 +24,7 @@ export default function PrivacidadPage() {
         <div><strong>CUIL:</strong> 20-42475841-9</div>
         <div><strong>Domicilio:</strong> Abra de Zenta 267, Córdoba, Provincia de Córdoba, Argentina</div>
         <div><strong>Correo de contacto:</strong> info.skillioapp@gmail.com</div>
-        <div><strong>Sitio:</strong> skillio-app.vercel.app</div>
+        <div><strong>Sitio:</strong> skillio.digital</div>
       </div>
       <p>
         Esta Política se rige por la <strong>Ley N° 25.326 de Protección de los Datos Personales</strong> de

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   }
 
   const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://skillio-app.vercel.app";
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://skillio.digital";
 
   const [planPro, planBasico] = await Promise.all([
     mpCreatePlan("Plan PRO Skillio", 14000, `${appUrl}/app?upgraded=1`),

@@ -45,6 +45,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://skillio.digital"),
   title: "Skillio · estudiá con ritmo",
   description:
     "App de estudio con Pomodoro, gamificación, agenda y herramientas IA para estudiantes universitarios.",
