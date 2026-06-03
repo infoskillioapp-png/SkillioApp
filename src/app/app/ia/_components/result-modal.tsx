@@ -62,6 +62,14 @@ export type AnyResult = SummaryResult | FlashcardsResult | SimulacroResult;
 type Props = { result: AnyResult; onClose: () => void };
 
 export function ResultModal({ result, onClose }: Props) {
+  const [footer, setFooter] = useState<React.ReactNode>(null);
+
+  useEffect(() => {
+    // Bloquear scroll del body mientras el modal está abierto
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", k);
@@ -81,11 +89,11 @@ export function ResultModal({ result, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm animate-skillio-fade-in md:p-4"
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm animate-skillio-fade-in pb-[calc(64px_+_env(safe-area-inset-bottom))] md:p-4 md:pb-4"
       onClick={onClose}
     >
       <div
-        className={`relative w-full rounded-t-3xl md:rounded-3xl bg-paper border border-rule shadow-lg overflow-hidden flex flex-col ${
+        className={`relative w-full rounded-t-3xl md:rounded-3xl bg-paper border border-rule shadow-lg flex flex-col ${
           result.kind === "summary" && "data" in result && result.format === "mapa"
             ? "max-w-6xl"
             : result.kind === "summary"
@@ -95,6 +103,7 @@ export function ResultModal({ result, onClose }: Props) {
         style={{ maxHeight: "calc(100dvh - 52px - 64px)" }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header — siempre visible */}
         <header className="flex items-center justify-between px-4 py-3 md:px-7 md:py-5 border-b border-rule-soft shrink-0">
           <div className="min-w-0 mr-2">
             <div className="eyebrow mb-0.5 truncate">
@@ -118,13 +127,24 @@ export function ResultModal({ result, onClose }: Props) {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-7">
+        {/* Contenido scrolleable */}
+        <div
+          className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-7"
+          style={{ overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+        >
           {result.kind === "summary" && <SummaryDispatcher result={result} />}
-          {result.kind === "flashcards" && <FlashcardsView deck={result.deck} />}
+          {result.kind === "flashcards" && <FlashcardsView deck={result.deck} onFooter={setFooter} />}
           {result.kind === "simulacro" && (
-            <SimulacroView simulacro={result.simulacro} />
+            <SimulacroView simulacro={result.simulacro} onFooter={setFooter} />
           )}
         </div>
+
+        {/* Footer de navegación — fuera del scroll, siempre visible */}
+        {footer && (
+          <div className="shrink-0 border-t border-rule-soft px-4 py-3 md:px-8 bg-paper">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -328,29 +348,43 @@ function FichaView({ data }: { data: FichaData }) {
 
 function FlashcardsView({
   deck,
+  onFooter,
 }: {
   deck: FlashcardsResult["deck"];
+  onFooter: (node: React.ReactNode) => void;
 }) {
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const card = deck.cards[idx];
-  if (!card) return null;
 
-  function next() {
-    setFlipped(false);
-    setIdx((i) => Math.min(i + 1, deck.cards.length - 1));
-  }
-  function prev() {
-    setFlipped(false);
-    setIdx((i) => Math.max(i - 1, 0));
-  }
+  function next() { setFlipped(false); setIdx((i) => Math.min(i + 1, deck.cards.length - 1)); }
+  function prev() { setFlipped(false); setIdx((i) => Math.max(i - 1, 0)); }
+
+  useEffect(() => {
+    onFooter(
+      <div className="flex items-center justify-between">
+        <button type="button" onClick={prev} disabled={idx === 0}
+          className="px-4 py-2.5 rounded-full border border-rule text-sm font-medium hover:border-ink-soft transition disabled:opacity-40">
+          ← Anterior
+        </button>
+        <div className="flex-1 mx-3 h-1 rounded-full bg-rule-soft overflow-hidden">
+          <div className="h-full bg-accent rounded-full transition-[width] duration-300"
+            style={{ width: `${((idx + 1) / deck.cards.length) * 100}%` }} />
+        </div>
+        <button type="button" onClick={next} disabled={idx === deck.cards.length - 1}
+          className="px-4 py-2.5 rounded-full bg-accent text-[#FBF1EF] text-sm font-display font-semibold hover:bg-accent-hover transition disabled:opacity-40">
+          Siguiente →
+        </button>
+      </div>
+    );
+  }, [idx, deck.cards.length]);
+
+  if (!card) return null;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3 text-[12.5px] text-ink-soft">
-        <span>
-          Tarjeta <strong className="text-ink">{idx + 1}</strong> de {deck.cards.length}
-        </span>
+        <span>Tarjeta <strong className="text-ink">{idx + 1}</strong> de {deck.cards.length}</span>
         {card.category && (
           <span className="px-2.5 py-1 rounded-full bg-accent-soft text-accent text-[11px] font-semibold">
             {card.category}
@@ -361,42 +395,15 @@ function FlashcardsView({
       <button
         type="button"
         onClick={() => setFlipped((f) => !f)}
-        className="w-full min-h-[260px] rounded-2xl border border-rule bg-paper-warm p-8 text-left transition hover:border-ink-soft flex flex-col justify-center"
+        className="w-full min-h-[200px] rounded-2xl border border-rule bg-paper-warm p-6 text-left transition hover:border-ink-soft flex flex-col justify-center"
       >
         <div className="text-[10.5px] uppercase tracking-[0.14em] text-ink-softer mb-2">
-          {flipped ? "Respuesta" : "Pregunta · click para ver respuesta"}
+          {flipped ? "Respuesta" : "Pregunta · tocá para ver respuesta"}
         </div>
-        <div
-          className={`font-display ${flipped ? "text-[18px] leading-snug" : "text-2xl font-bold"} tracking-[-0.01em]`}
-        >
+        <div className={`font-display ${flipped ? "text-[18px] leading-snug" : "text-2xl font-bold"} tracking-[-0.01em]`}>
           {flipped ? card.back : card.front}
         </div>
       </button>
-
-      <div className="sticky bottom-0 bg-paper -mx-4 md:-mx-8 px-4 md:px-8 pt-3 pb-3 mt-4 border-t border-rule-soft flex items-center justify-between">
-        <button
-          type="button"
-          onClick={prev}
-          disabled={idx === 0}
-          className="px-4 py-2.5 rounded-full border border-rule text-sm font-medium hover:border-ink-soft transition disabled:opacity-40"
-        >
-          ← Anterior
-        </button>
-        <div className="flex-1 mx-3 h-1 rounded-full bg-rule-soft overflow-hidden">
-          <div
-            className="h-full bg-accent rounded-full transition-[width] duration-300"
-            style={{ width: `${((idx + 1) / deck.cards.length) * 100}%` }}
-          />
-        </div>
-        <button
-          type="button"
-          onClick={next}
-          disabled={idx === deck.cards.length - 1}
-          className="px-4 py-2.5 rounded-full bg-accent text-[#FBF1EF] text-sm font-display font-semibold hover:bg-accent-hover transition disabled:opacity-40"
-        >
-          Siguiente →
-        </button>
-      </div>
     </div>
   );
 }
@@ -439,8 +446,10 @@ const STATE_STYLE: Record<
 
 function SimulacroView({
   simulacro,
+  onFooter,
 }: {
   simulacro: SimulacroResult["simulacro"];
+  onFooter: (node: React.ReactNode) => void;
 }) {
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<number, unknown>>({});
@@ -484,6 +493,33 @@ function SimulacroView({
     (qq) => qq.kind !== "short_answer",
   ).length;
 
+  const isRevealed = !!revealed[idx];
+  const userAnswer = answers[idx];
+
+  // Footer: botones de navegación fuera del área scrolleable
+  useEffect(() => {
+    if (finished) { onFooter(null); return; }
+    onFooter(
+      <div className="flex items-center justify-between gap-3">
+        <button type="button" onClick={prev} disabled={idx === 0}
+          className="px-4 py-2.5 rounded-full border border-rule text-sm font-medium hover:border-ink-soft transition disabled:opacity-40">
+          ← Anterior
+        </button>
+        {!isRevealed ? (
+          <button type="button" onClick={reveal} disabled={userAnswer === undefined}
+            className="px-5 py-2.5 rounded-full bg-ink text-bg text-sm font-display font-semibold hover:bg-accent transition disabled:opacity-40">
+            Revisar respuesta
+          </button>
+        ) : (
+          <button type="button" onClick={next}
+            className="px-5 py-2.5 rounded-full bg-accent text-[#FBF1EF] text-sm font-display font-semibold hover:bg-accent-hover transition">
+            {idx === total - 1 ? "Ver resultado →" : "Siguiente →"}
+          </button>
+        )}
+      </div>
+    );
+  }, [idx, isRevealed, userAnswer, finished, total]);
+
   if (finished) {
     return (
       <ScoreView
@@ -503,9 +539,6 @@ function SimulacroView({
   }
 
   if (!q) return null;
-
-  const isRevealed = !!revealed[idx];
-  const userAnswer = answers[idx];
 
   function stateFor(isSelected: boolean, isCorrect: boolean): AnswerState {
     if (!isRevealed) return isSelected ? "selected" : "empty";
@@ -685,34 +718,6 @@ function SimulacroView({
         )}
       </div>
 
-      <div className="sticky bottom-0 bg-paper -mx-4 md:-mx-8 px-4 md:px-8 pt-3 pb-3 mt-3 border-t border-rule-soft flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={prev}
-          disabled={idx === 0}
-          className="px-4 py-2.5 rounded-full border border-rule text-sm font-medium hover:border-ink-soft transition disabled:opacity-40"
-        >
-          ← Anterior
-        </button>
-        {!isRevealed ? (
-          <button
-            type="button"
-            onClick={reveal}
-            disabled={userAnswer === undefined}
-            className="px-5 py-2.5 rounded-full bg-ink text-bg text-sm font-display font-semibold hover:bg-accent transition disabled:opacity-40"
-          >
-            Revisar respuesta
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={next}
-            className="px-5 py-2.5 rounded-full bg-accent text-[#FBF1EF] text-sm font-display font-semibold hover:bg-accent-hover transition"
-          >
-            {idx === total - 1 ? "Ver resultado →" : "Siguiente →"}
-          </button>
-        )}
-      </div>
     </div>
   );
 }
