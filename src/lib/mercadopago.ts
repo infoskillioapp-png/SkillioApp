@@ -105,3 +105,17 @@ export interface MpPayment {
 export function mpGetPayment(id: string): Promise<MpPayment> {
   return mpFetch<MpPayment>(`/v1/payments/${id}`);
 }
+
+// Pago recurrente de una suscripción. MP lo notifica con
+// type: "subscription_authorized_payment" y data.id = id de este recurso.
+export interface MpAuthorizedPayment {
+  id: number;
+  preapproval_id: string | null;
+  status: string; // "processed" | "scheduled" | "recycling" | ...
+  payment: { id: number; status: string } | null;
+  transaction_amount: number | null;
+}
+
+export function mpGetAuthorizedPayment(id: string): Promise<MpAuthorizedPayment> {
+  return mpFetch<MpAuthorizedPayment>(`/authorized_payments/${id}`);
+}

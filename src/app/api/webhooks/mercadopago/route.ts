@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { mpGetSubscription, mpGetPayment } from "@/lib/mercadopago";
+import {
+  mpGetSubscription,
+  mpGetPayment,
+  mpGetAuthorizedPayment,
+} from "@/lib/mercadopago";
 
 function verifySignature(req: NextRequest, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -27,107 +31,69 @@ function fullCreditsForPlan(plan: "pro" | "basico"): number {
   return plan === "pro" ? 500 : 30;
 }
 
-// Procesa recompensa al referrer: 150 créditos cada 2 referidos convertidos
-async function processReferrerReward(
-  sb: ReturnType<typeof supabaseAdmin>,
-  referrerId: string,
-) {
-  const { count } = await sb
-    .from("referrals")
-    .select("*", { count: "exact", head: true })
-    .eq("referrer_id", referrerId)
-    .eq("status", "converted");
+// Los external_reference que setea nuestra app son IDs de Clerk (user_...).
+// MP a veces trae basura en ese campo (ej "PLANBASICO", el default del plan),
+// así que solo confiamos en él si tiene la forma de un Clerk ID.
+function looksLikeClerkId(s: string | null | undefined): s is string {
+  return typeof s === "string" && s.startsWith("user_");
+}
 
-  const converted = count ?? 0;
+type Sb = ReturnType<typeof supabaseAdmin>;
 
-  if (converted > 0 && converted % 2 === 0) {
-    const { data: referrer } = await sb
+type MatchedUser = {
+  id: string;
+  email: string;
+  plan: "free" | "basico" | "pro";
+  credits: number;
+  referred_by: string | null;
+  mp_subscription_id: string | null;
+};
+
+const USER_COLS = "id, email, plan, credits, referred_by, mp_subscription_id";
+
+// Búsqueda robusta del usuario, por orden de confiabilidad:
+//   1) mp_subscription_id (lo guarda /pago-exitoso al activar — el más fiable)
+//   2) external_reference, solo si parece un Clerk ID
+//   3) payer_email
+async function findUser(
+  sb: Sb,
+  opts: { preapprovalId?: string | null; externalRef?: string | null; payerEmail?: string | null },
+): Promise<{ user: MatchedUser | null; matchedBy: string | null }> {
+  if (opts.preapprovalId) {
+    const { data } = await sb
       .from("users")
-      .select("credits")
-      .eq("id", referrerId)
+      .select(USER_COLS)
+      .eq("mp_subscription_id", opts.preapprovalId)
       .maybeSingle();
-
-    if (!referrer) return;
-
-    await sb
-      .from("users")
-      .update({ credits: (referrer.credits ?? 0) + 150 })
-      .eq("id", referrerId);
-
-    console.log(`[webhook] referrer ${referrerId} +150 créditos (${converted} referidos)`);
+    if (data) return { user: data as MatchedUser, matchedBy: "mp_subscription_id" };
   }
+  if (looksLikeClerkId(opts.externalRef)) {
+    const { data } = await sb
+      .from("users")
+      .select(USER_COLS)
+      .eq("clerk_user_id", opts.externalRef)
+      .maybeSingle();
+    if (data) return { user: data as MatchedUser, matchedBy: "external_reference" };
+  }
+  if (opts.payerEmail) {
+    const { data } = await sb
+      .from("users")
+      .select(USER_COLS)
+      .eq("email", opts.payerEmail)
+      .maybeSingle();
+    if (data) return { user: data as MatchedUser, matchedBy: "email" };
+  }
+  return { user: null, matchedBy: null };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HANDLER PREAPPROVAL: cambios de estado de la suscripción
-// "authorized" → activar plan con 30 créditos de trial (no completos aún)
-// "cancelled" / "paused" → bajar a free
-// ─────────────────────────────────────────────────────────────────────────────
-async function handlePreapproval(subscriptionId: string) {
-  const subscription = await mpGetSubscription(subscriptionId);
-  const sb = supabaseAdmin();
-
-  const clerkUserId = subscription.external_reference;
-  const payerEmail = subscription.payer_email;
-  const matchField = clerkUserId ? "clerk_user_id" : "email";
-  const matchValue = clerkUserId ?? payerEmail;
-
-  if (subscription.status === "authorized") {
-    const plan = planForId(subscription.preapproval_plan_id);
-    await sb
-      .from("users")
-      .update({
-        plan,
-        mp_subscription_id: subscription.id,
-        credits: 30, // créditos de trial: 30 para todos hasta el primer cobro real
-        updated_at: new Date().toISOString(),
-      })
-      .eq(matchField, matchValue);
-
-    console.log(`[webhook/preapproval] ${matchValue} activado plan=${plan} (30 créditos trial)`);
-  } else if (
-    subscription.status === "cancelled" ||
-    subscription.status === "paused"
-  ) {
-    await sb
-      .from("users")
-      .update({
-        plan: "free",
-        mp_subscription_id: null,
-        credits: 0,
-        updated_at: new Date().toISOString(),
-      })
-      .eq(matchField, matchValue);
-
-    console.log(`[webhook/preapproval] ${matchValue} bajado a free`);
+// Otorga los créditos completos del plan (post-trial / renovación) y procesa
+// el referido si es el primer pago. Idempotente: SETEA créditos, no acumula.
+async function grantFullCredits(sb: Sb, user: MatchedUser) {
+  if (user.plan === "free") {
+    console.warn(`[webhook] grantFullCredits: ${user.email} está en free, no se otorgan créditos`);
+    return;
   }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HANDLER PAYMENT: pago real procesado (primer cobro o renovación mensual)
-// - Dar créditos completos del plan
-// - Si tiene referido pendiente: +50 créditos + marcar convertido + reward referrer
-// ─────────────────────────────────────────────────────────────────────────────
-async function handlePayment(paymentId: string) {
-  const payment = await mpGetPayment(paymentId);
-
-  if (payment.status !== "approved") return;
-
-  const sb = supabaseAdmin();
-
-  // Buscar usuario por email del pagador
-  const payerEmail = payment.payer?.email;
-  if (!payerEmail) return;
-
-  const { data: user } = await sb
-    .from("users")
-    .select("id, plan, credits, referred_by")
-    .eq("email", payerEmail)
-    .maybeSingle();
-
-  if (!user || user.plan === "free") return;
-
-  // Verificar si hay referral pendiente (primer pago)
   const { data: pendingReferral } = await sb
     .from("referrals")
     .select("id, referrer_id")
@@ -137,32 +103,161 @@ async function handlePayment(paymentId: string) {
 
   const isFirstPayment = !!pendingReferral;
   const referralBonus = isFirstPayment ? 50 : 0;
-  const fullCredits = fullCreditsForPlan(user.plan) + referralBonus;
+  const credits = fullCreditsForPlan(user.plan) + referralBonus;
 
   await sb
     .from("users")
-    .update({
-      credits: fullCredits,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ credits, updated_at: new Date().toISOString() })
     .eq("id", user.id);
 
   console.log(
-    `[webhook/payment] ${payerEmail} → ${fullCredits} créditos (plan=${user.plan}, referralBonus=${referralBonus})`,
+    `[webhook] ${user.email} → ${credits} créditos (plan=${user.plan}, referralBonus=${referralBonus})`,
   );
 
-  // Procesar referral si es el primer pago
   if (isFirstPayment && pendingReferral) {
     await sb
       .from("referrals")
-      .update({
-        status: "converted",
-        converted_at: new Date().toISOString(),
-      })
+      .update({ status: "converted", converted_at: new Date().toISOString() })
       .eq("id", pendingReferral.id);
-
     await processReferrerReward(sb, pendingReferral.referrer_id);
   }
+}
+
+// Recompensa al referrer: 150 créditos cada 2 referidos convertidos.
+async function processReferrerReward(sb: Sb, referrerId: string) {
+  const { count } = await sb
+    .from("referrals")
+    .select("*", { count: "exact", head: true })
+    .eq("referrer_id", referrerId)
+    .eq("status", "converted");
+
+  const converted = count ?? 0;
+  if (converted > 0 && converted % 2 === 0) {
+    const { data: referrer } = await sb
+      .from("users")
+      .select("credits")
+      .eq("id", referrerId)
+      .maybeSingle();
+    if (!referrer) return;
+    await sb
+      .from("users")
+      .update({ credits: (referrer.credits ?? 0) + 150 })
+      .eq("id", referrerId);
+    console.log(`[webhook] referrer ${referrerId} +150 créditos (${converted} referidos)`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PREAPPROVAL: alta / baja de la suscripción.
+// "authorized" → activar con 30 créditos de trial (el cobro real es a las 24h).
+//   En la práctica /pago-exitoso ya activa al volver el usuario; esto es respaldo.
+// "cancelled" / "paused" → bajar a free.
+// ─────────────────────────────────────────────────────────────────────────────
+async function handlePreapproval(subscriptionId: string) {
+  const subscription = await mpGetSubscription(subscriptionId);
+  const sb = supabaseAdmin();
+  const lookup = {
+    preapprovalId: subscription.id,
+    externalRef: subscription.external_reference,
+    payerEmail: subscription.payer_email,
+  };
+
+  if (subscription.status === "authorized") {
+    const plan = planForId(subscription.preapproval_plan_id);
+    const { user, matchedBy } = await findUser(sb, lookup);
+    if (!user) {
+      console.warn(
+        `[webhook/preapproval] SIN MATCH (authorized) sub=${subscription.id} ext_ref=${subscription.external_reference} email="${subscription.payer_email}" — se activará vía /pago-exitoso`,
+      );
+      return;
+    }
+    if (user.plan === "free") {
+      await sb
+        .from("users")
+        .update({
+          plan,
+          mp_subscription_id: subscription.id,
+          credits: 30,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+      console.log(`[webhook/preapproval] ${user.email} activado plan=${plan} (matchedBy=${matchedBy})`);
+    } else if (!user.mp_subscription_id) {
+      // Ya estaba activo pero sin id guardado: lo persistimos para renovaciones.
+      await sb
+        .from("users")
+        .update({ mp_subscription_id: subscription.id })
+        .eq("id", user.id);
+    }
+  } else if (subscription.status === "cancelled" || subscription.status === "paused") {
+    const { user, matchedBy } = await findUser(sb, lookup);
+    if (!user) {
+      console.warn(
+        `[webhook/preapproval] SIN MATCH (${subscription.status}) sub=${subscription.id} — no se pudo bajar a free`,
+      );
+      return;
+    }
+    await sb
+      .from("users")
+      .update({
+        plan: "free",
+        mp_subscription_id: null,
+        credits: 0,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+    console.log(`[webhook/preapproval] ${user.email} → free (${subscription.status}, matchedBy=${matchedBy})`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUBSCRIPTION_AUTHORIZED_PAYMENT: cobro recurrente de la suscripción
+// (primer cobro tras el trial de 24h y renovaciones mensuales).
+// Es ACÁ donde el usuario PRO recibe sus 500 créditos completos.
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleAuthorizedPayment(authPaymentId: string) {
+  const ap = await mpGetAuthorizedPayment(authPaymentId);
+  const paid = ap.status === "processed" || ap.payment?.status === "approved";
+  if (!paid) {
+    console.log(`[webhook/authpay] ${authPaymentId} aún no aprobado (status=${ap.status}, payment=${ap.payment?.status ?? "-"})`);
+    return;
+  }
+  const sb = supabaseAdmin();
+  const { user, matchedBy } = await findUser(sb, { preapprovalId: ap.preapproval_id });
+  if (!user) {
+    console.warn(`[webhook/authpay] SIN MATCH preapproval=${ap.preapproval_id} (authPayment=${authPaymentId})`);
+    return;
+  }
+  if (user.plan === "free") {
+    console.warn(`[webhook/authpay] ${user.email} en free pero llegó cobro — revisar activación`);
+    return;
+  }
+  await grantFullCredits(sb, user);
+  console.log(`[webhook/authpay] ${user.email} créditos completos otorgados (matchedBy=${matchedBy})`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYMENT: pago suelto (no recurrente). Lo dejamos por compatibilidad.
+// ─────────────────────────────────────────────────────────────────────────────
+async function handlePayment(paymentId: string) {
+  const payment = await mpGetPayment(paymentId);
+  if (payment.status !== "approved") return;
+
+  const sb = supabaseAdmin();
+  const { user, matchedBy } = await findUser(sb, {
+    preapprovalId: payment.preapproval_id,
+    externalRef: payment.external_reference,
+    payerEmail: payment.payer?.email,
+  });
+  if (!user) {
+    console.warn(
+      `[webhook/payment] SIN MATCH payment=${paymentId} preapproval=${payment.preapproval_id} email="${payment.payer?.email}"`,
+    );
+    return;
+  }
+  if (user.plan === "free") return;
+  await grantFullCredits(sb, user);
+  console.log(`[webhook/payment] ${user.email} créditos completos (matchedBy=${matchedBy})`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -172,18 +267,23 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const dataId = String(body.data?.id ?? "");
+    const type = String(body.type ?? body.action ?? "");
 
     if (!dataId) return NextResponse.json({ ok: true });
 
     if (!verifySignature(req, dataId)) {
-      console.warn("[webhooks/mercadopago] firma inválida");
+      console.warn(`[webhooks/mercadopago] firma inválida (type=${type}, id=${dataId})`);
       return NextResponse.json({ error: "invalid signature" }, { status: 401 });
     }
 
-    if (body.type === "preapproval") {
+    if (type === "preapproval" || type === "subscription_preapproval") {
       await handlePreapproval(dataId);
-    } else if (body.type === "payment") {
+    } else if (type === "subscription_authorized_payment") {
+      await handleAuthorizedPayment(dataId);
+    } else if (type === "payment") {
       await handlePayment(dataId);
+    } else {
+      console.log(`[webhooks/mercadopago] tipo no manejado: ${type} (id=${dataId})`);
     }
 
     return NextResponse.json({ ok: true });
