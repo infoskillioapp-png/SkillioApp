@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SignOutButton } from "@clerk/nextjs";
 import { SkillioMark } from "@/app/_components/landing/landing-top";
 
 const PLANS = {
@@ -166,6 +167,19 @@ export function PagarClient({ plan, hasReferral = false }: { plan: "pro" | "basi
           Al continuar aceptás los{" "}
           <a href="#" className="underline">términos y condiciones</a>.
         </p>
+
+        {/* Salida: que nadie quede atrapado si no quiere pagar ahora */}
+        <div className="flex items-center justify-center gap-4 mt-6 text-xs text-ink-softer">
+          <a href="/" className="underline hover:text-ink transition-colors">
+            Volver al inicio
+          </a>
+          <span aria-hidden>·</span>
+          <SignOutButton redirectUrl="/">
+            <button type="button" className="underline hover:text-ink transition-colors">
+              Cerrar sesión / usar otra cuenta
+            </button>
+          </SignOutButton>
+        </div>
       </div>
     </div>
   );
