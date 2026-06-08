@@ -8,16 +8,11 @@ export async function POST(req: NextRequest) {
   if (!userId)
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const planType: "pro" | "basico" = body.plan === "basico" ? "basico" : "pro";
-
-  const planId =
-    planType === "pro"
-      ? process.env.MP_PLAN_ID_PRO
-      : process.env.MP_PLAN_ID_BASICO;
+  // Plan único: PRO.
+  const planId = process.env.MP_PLAN_ID_PRO;
 
   if (!planId) {
-    console.error(`[subscription/create] MP_PLAN_ID_${planType.toUpperCase()} not set`);
+    console.error("[subscription/create] MP_PLAN_ID_PRO not set");
     return NextResponse.json(
       { error: "Planes no configurados. Contactá soporte." },
       { status: 500 },

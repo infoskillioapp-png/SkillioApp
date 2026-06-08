@@ -76,7 +76,8 @@ export default async function AppLayout({
   const user = await syncUserToSupabase();
   if (!user) redirect("/login");
 
-  if (user.plan === "free") redirect("/pagar");
+  // Sin muro de pago: el free entra al dashboard. El único límite son las 3
+  // generaciones de IA gratis (se controla en las rutas /api/ai/*).
   if (user.onboarding_completed === false) redirect("/onboarding");
 
   // Eventos próximos (exámenes, parciales, TPs) para Booki

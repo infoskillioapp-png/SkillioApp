@@ -3,10 +3,12 @@ import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import {
-  MODEL,
+  FREE_GENERATION_LIMIT,
   buildUserContent,
   chargeCredits,
+  consumeFreeGeneration,
   getNoteContent,
+  modelForPlan,
   saveAiOutput,
 } from "@/lib/ai/claude";
 
@@ -40,29 +42,45 @@ export async function POST(req: Request) {
     const { note, content, userRow } = await getNoteContent(note_id);
     if (content.type === "unsupported")
       return NextResponse.json({ error: "tipo de archivo no soportado" }, { status: 415 });
-    if (userRow.credits < COST)
+
+    const isPro = userRow.plan === "pro";
+    const model = modelForPlan(userRow.plan);
+    if (isPro) {
+      if (userRow.credits < COST)
+        return NextResponse.json(
+          { error: "insufficient_credits", cost: COST, available: userRow.credits },
+          { status: 402 },
+        );
+    } else if (userRow.free_generations_used >= FREE_GENERATION_LIMIT) {
       return NextResponse.json(
-        { error: "insufficient_credits", cost: COST, available: userRow.credits },
+        { error: "limit_reached", limit: FREE_GENERATION_LIMIT },
         { status: 402 },
       );
+    }
 
     const userParts = await buildUserContent(content, USER_INSTRUCTION);
 
     const result = await generateObject({
-      model: anthropic(MODEL),
+      model: anthropic(model),
       schema: FlashcardsSchema,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userParts }],
     });
 
-    const remaining = await chargeCredits(userRow.id, COST);
+    let remaining = 0;
+    if (isPro) {
+      remaining = await chargeCredits(userRow.id, COST);
+    } else {
+      await consumeFreeGeneration(userRow.id, userRow.free_generations_used);
+    }
     const id = await saveAiOutput({
       user_id: userRow.id,
       note_id: note.id,
       kind: "flashcards",
       title: result.object.deck_title || note.title,
       content: result.object,
-      credits_used: COST,
+      credits_used: isPro ? COST : 0,
+      model,
     });
 
     return NextResponse.json({

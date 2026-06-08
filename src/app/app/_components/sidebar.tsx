@@ -146,7 +146,7 @@ export function Sidebar({ user }: { user: SkillioUser }) {
         {user.plan !== "pro" && (
           <button
             type="button"
-            onClick={upgrade.open}
+            onClick={() => upgrade.open()}
             className="group w-full text-left cursor-pointer"
           >
             <div

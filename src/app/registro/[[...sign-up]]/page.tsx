@@ -8,8 +8,7 @@ interface Props {
 
 export default async function RegistroPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const plan = sp.plan === "basico" ? "basico" : "pro";
-  const ref = sp.ref ? `&ref=${sp.ref}` : "";
+  const ref = sp.ref ? `?ref=${sp.ref}` : "";
 
   return (
     <AuthShell
@@ -19,7 +18,7 @@ export default async function RegistroPage({ searchParams }: Props) {
           Empezá tu <em className="italic text-accent">ritmo.</em>
         </>
       }
-      lead="Creá tu cuenta gratis y elegí tu plan en el siguiente paso."
+      lead="Creá tu cuenta gratis y empezá a estudiar en segundos."
       footerLink={
         <>
           ¿Ya tenés cuenta?{" "}
@@ -36,7 +35,7 @@ export default async function RegistroPage({ searchParams }: Props) {
         routing="path"
         path="/registro"
         signInUrl="/login"
-        forceRedirectUrl={`/pagar?plan=${plan}${ref}`}
+        forceRedirectUrl={`/onboarding${ref}`}
         appearance={{
           elements: {
             rootBox: "w-full",

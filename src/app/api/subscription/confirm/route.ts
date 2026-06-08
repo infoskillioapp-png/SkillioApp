@@ -6,8 +6,7 @@ import { mpGetSubscription } from "@/lib/mercadopago";
 // Confirmación post-pago: el usuario vuelve de MercadoPago con ?preapproval_id=
 // Activamos el plan directamente desde su sesión, sin depender del webhook
 // (que puede tardar o fallar por mismatch de email).
-// Solo otorga 30 créditos de trial; los créditos completos llegan con el
-// webhook de payment cuando se debita el cobro real (post 24h de trial).
+// Sin free_trial: al pagar se otorga el acceso PRO completo (500 créditos) ya.
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId)
@@ -34,10 +33,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const plan =
-    subscription.preapproval_plan_id === process.env.MP_PLAN_ID_BASICO
-      ? "basico"
-      : "pro";
+  // Plan único: toda suscripción activa es PRO.
+  const plan = "pro" as const;
 
   const sb = supabaseAdmin();
   const { data: user } = await sb
@@ -56,7 +53,7 @@ export async function POST(req: NextRequest) {
       .update({
         plan,
         mp_subscription_id: subscription.id,
-        credits: 30, // créditos de trial hasta el primer cobro real
+        credits: 500, // acceso PRO completo al instante (sin free_trial)
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);

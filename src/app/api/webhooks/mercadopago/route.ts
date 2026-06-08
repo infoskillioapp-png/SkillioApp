@@ -23,13 +23,8 @@ function verifySignature(req: NextRequest, dataId: string): boolean {
   return expected === v1;
 }
 
-function planForId(planId: string): "pro" | "basico" {
-  return planId === process.env.MP_PLAN_ID_BASICO ? "basico" : "pro";
-}
-
-function fullCreditsForPlan(plan: "pro" | "basico"): number {
-  return plan === "pro" ? 500 : 30;
-}
+// Plan único: cualquier suscripción activa es PRO.
+const PRO_FULL_CREDITS = 500;
 
 // Los external_reference que setea nuestra app son IDs de Clerk (user_...).
 // MP a veces trae basura en ese campo (ej "PLANBASICO", el default del plan),
@@ -43,7 +38,7 @@ type Sb = ReturnType<typeof supabaseAdmin>;
 type MatchedUser = {
   id: string;
   email: string;
-  plan: "free" | "basico" | "pro";
+  plan: "free" | "pro";
   credits: number;
   referred_by: string | null;
   mp_subscription_id: string | null;
@@ -103,7 +98,7 @@ async function grantFullCredits(sb: Sb, user: MatchedUser) {
 
   const isFirstPayment = !!pendingReferral;
   const referralBonus = isFirstPayment ? 50 : 0;
-  const credits = fullCreditsForPlan(user.plan) + referralBonus;
+  const credits = PRO_FULL_CREDITS + referralBonus;
 
   const { error } = await sb
     .from("users")
@@ -153,7 +148,7 @@ async function processReferrerReward(sb: Sb, referrerId: string) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PREAPPROVAL: alta / baja de la suscripción.
-// "authorized" → activar con 30 créditos de trial (el cobro real es a las 24h).
+// "authorized" → activar PRO con 500 créditos (sin free_trial: acceso completo ya).
 //   En la práctica /pago-exitoso ya activa al volver el usuario; esto es respaldo.
 // "cancelled" / "paused" → bajar a free.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -167,7 +162,7 @@ async function handlePreapproval(subscriptionId: string) {
   };
 
   if (subscription.status === "authorized") {
-    const plan = planForId(subscription.preapproval_plan_id);
+    const plan = "pro" as const;
     const { user, matchedBy } = await findUser(sb, lookup);
     if (!user) {
       console.warn(
@@ -181,7 +176,7 @@ async function handlePreapproval(subscriptionId: string) {
         .update({
           plan,
           mp_subscription_id: subscription.id,
-          credits: 30,
+          credits: PRO_FULL_CREDITS,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);

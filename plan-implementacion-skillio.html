@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan de Implementación · Skillio · build plan · 4-jun-2026</title>
+<style>
+  :root{
+    --bg:#0d1117; --card:#161b22; --card2:#1c2430; --line:#2a3340;
+    --txt:#e6edf3; --muted:#9aa7b4; --accent:#5b8cff; --good:#3fb950;
+    --warn:#d29922; --bad:#f85149; --good-bg:rgba(63,185,80,.12);
+    --warn-bg:rgba(210,153,34,.12); --bad-bg:rgba(248,81,73,.12);
+    --accent-bg:rgba(91,140,255,.12);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;font-size:16px}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 20px 80px}
+  header h1{font-size:30px;margin:0 0 6px;letter-spacing:-.5px}
+  header .sub{color:var(--muted);font-size:15px}
+  .tag{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;
+    border-radius:20px;margin-right:6px;margin-top:4px}
+  .tag.good{background:var(--good-bg);color:var(--good)}
+  .tag.warn{background:var(--warn-bg);color:var(--warn)}
+  .tag.accent{background:var(--accent-bg);color:var(--accent)}
+  section{margin-top:36px}
+  h2{font-size:21px;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  h3{font-size:16px;margin:20px 0 8px}
+  p{margin:10px 0}
+  code{background:var(--card2);padding:1px 6px;border-radius:5px;font-size:13px;color:#cdd9e5}
+  .muted{color:var(--muted)}
+  .summary{background:var(--card);border:1px solid var(--line);
+    border-left:4px solid var(--accent);border-radius:12px;padding:22px 24px;margin-top:24px}
+  .summary .big{font-size:18px;font-weight:700;margin:0 0 10px}
+  .summary ul{margin:6px 0 0;padding-left:18px}
+  .summary li{margin:5px 0;font-size:14.5px}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  .callout{border-radius:10px;padding:16px 18px;margin-top:14px;border:1px solid}
+  .callout.bad{background:var(--bad-bg);border-color:rgba(248,81,73,.4)}
+  .callout.warn{background:var(--warn-bg);border-color:rgba(210,153,34,.4)}
+  .callout.good{background:var(--good-bg);border-color:rgba(63,185,80,.4)}
+  .callout.accent{background:var(--accent-bg);border-color:rgba(91,140,255,.4)}
+  .callout .ti{font-weight:700;margin-bottom:4px}
+  /* BLOQUES en orden */
+  .block{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-top:16px;position:relative;overflow:hidden}
+  .block .ord{position:absolute;top:0;right:0;font-size:64px;font-weight:800;
+    color:rgba(91,140,255,.08);padding:0 18px;line-height:1.1;pointer-events:none}
+  .block .head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .block .step{width:34px;height:34px;border-radius:9px;background:var(--accent);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
+  .block h3{margin:0;font-size:18px}
+  .block .why{color:var(--muted);font-size:13.5px;margin:8px 0 0}
+  .block ul{margin:12px 0 0;padding-left:18px}
+  .block li{margin:7px 0;font-size:14px}
+  .block li b{color:var(--txt)}
+  .files{margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .files code{font-size:12px}
+  .pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:12px;
+    text-transform:uppercase;letter-spacing:.5px}
+  .pill.now{background:var(--bad-bg);color:var(--bad)}
+  .pill.next{background:var(--warn-bg);color:var(--warn)}
+  .pill.later{background:var(--card2);color:var(--muted)}
+  .pill.defer{background:var(--card2);color:var(--muted);border:1px dashed var(--line)}
+  .seq{margin-top:12px}
+  .seq .msg{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--good);
+    border-radius:8px;padding:12px 14px;margin-bottom:10px}
+  .seq .when{font-size:12px;color:var(--good);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  .seq .txt{font-size:14px;margin-top:4px}
+  .yn{display:inline-block;font-weight:800;font-size:13px;padding:2px 10px;border-radius:8px;margin-right:8px}
+  .yn.s{background:var(--good-bg);color:var(--good)}
+  .yn.n{background:var(--bad-bg);color:var(--bad)}
+  footer{margin-top:50px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:18px}
+  .v{font-size:12px;background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:12px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Plan de Implementación · Skillio <span class="v">build</span></h1>
+  <div class="sub">De "muro de tarjeta" → "acceso libre + 3 generaciones + popup PRO" · 4-jun-2026 · decisiones cerradas, listo para construir</div>
+  <div style="margin-top:12px">
+    <span class="tag accent">1 solo plan: PRO $16.000</span>
+    <span class="tag good">Free: 3 generaciones gratis</span>
+    <span class="tag warn">Haiku (free) / Sonnet (PRO)</span>
+  </div>
+</header>
+
+<div class="summary">
+  <p class="big">🎯 El nuevo flujo, en una línea</p>
+  <p style="margin:0 0 6px">Anuncio → Landing → Registro Clerk <span class="muted">(dispara evento Registro)</span> → Onboarding → <b>Dashboard con acceso libre</b> → usa hasta <b>3 generaciones de IA</b> (Haiku) → al intentar la 4ª salta el <b>popup PRO</b> → <code>/pagar</code> → MercadoPago → PRO con <b>500 créditos</b> (Sonnet).</p>
+  <ul>
+    <li>El free ve <b>0 créditos</b> y un contador interno invisible (3 gratis). Recién al pagar se le cargan los 500.</li>
+    <li>La venta del PRO se gana con <b>popups in-app + email (Resend)</b>, no con un muro en la puerta.</li>
+    <li>El pixel optimiza/mide <b>Registros</b>. El Purchase queda como señal secundaria.</li>
+  </ul>
+</div>
+
+<!-- DECISIONES CERRADAS -->
+<section>
+  <h2>1. Decisiones cerradas (lo que vos confirmaste)</h2>
+  <table>
+    <tr><th>Tema</th><th>Decisión</th></tr>
+    <tr><td>Planes</td><td><b>Un solo plan: PRO a $16.000 ARS</b>. Se elimina el Básico de la app.</td></tr>
+    <tr><td>Acceso</td><td>Se saca el muro. El free entra <b>directo al dashboard</b> tras registro + onboarding.</td></tr>
+    <tr><td>Límite free</td><td><b>3 generaciones totales</b> (el usuario elige cuáles: resumen, flashcards o simulacro; cada una cuenta 1).</td></tr>
+    <tr><td>Métricas</td><td><b>PRO = créditos</b> (500 al pagar). <b>Free = contador de 3 generaciones</b>, invisible. Conviven, no se unifican.</td></tr>
+    <tr><td>Free ve créditos</td><td>El free ve <b>0 créditos</b>. Los 500 aparecen solo al pagar.</td></tr>
+    <tr><td><code>/pagar</code></td><td>Se mantiene, pero <b>solo se llega desde el popup</b> "se te acabaron los créditos" → checkout.</td></tr>
+    <tr><td>Popup</td><td>Título grande: <b>"Se te acabaron los créditos en plena preparación del parcial → pasate a PRO y seguí."</b> Sin contador.</td></tr>
+    <tr><td>Modelos IA</td><td><b>Haiku en free</b> / <b>Sonnet en PRO</b>.</td></tr>
+    <tr><td>Pixel</td><td>Mide <b>Registros</b>. Purchase se <b>deja</b> (señal secundaria). CAPI: diferido.</td></tr>
+    <tr><td>Email</td><td>Proveedor <b>Resend</b>. Secuencia de 4 (registro, +2h, créditos agotados, hora 20).</td></tr>
+    <tr><td>Anti-fraude</td><td><b>Teléfono obligatorio + único</b> en el onboarding (sin OTP, costo $0) + normalización de gmail + bloqueo de mails temporales.</td></tr>
+    <tr><td>WhatsApp OTP</td><td><b>Diferido</b> (tiene costo y otro proveedor; prematuro para el volumen actual).</td></tr>
+  </table>
+</section>
+
+<!-- FACTIBILIDAD -->
+<section>
+  <h2>2. Tus 2 dudas técnicas, resueltas</h2>
+  <div class="callout good">
+    <div class="ti"><span class="yn s">SÍ</span>¿Créditos en PRO + contador en free, conviviendo?</div>
+    Es la opción más limpia. Cada ruta de IA hace: <code>if (plan === "pro") → lógica de créditos; else → contador de 3</code>. No conviene unificar: cada modelo cumple un rol distinto (free = prueba, PRO = saldo mensual).
+  </div>
+  <div class="callout good">
+    <div class="ti"><span class="yn s">SÍ</span>¿Ocultar el contador en free y que vea 0 créditos?</div>
+    Free arranca con <code>credits = 0</code> (visible) + un contador interno invisible <code>free_generations_used</code> (0→3). Al pagar se le cargan los 500. El chip de créditos muestra lo que tiene: free ve 0, PRO ve su saldo real.
+  </div>
+  <div class="callout warn">
+    <div class="ti">⚠️ Riesgo de UX que te dejo anotado</div>
+    Si el free ve "0 créditos" puede pensar "no puedo hacer nada" y ni intentar. Se implementa como pediste, pero queda la opción de mostrar "Probá gratis" en vez del 0 pelado si querés bajar ese riesgo.
+  </div>
+</section>
+
+<!-- ORDEN DE CONSTRUCCION -->
+<section>
+  <h2>3. Orden de construcción (eficiente)</h2>
+  <p class="muted">Orden recomendado: <b>D → A → B → C → E → F</b>. Primero la base de datos (un solo plan), después abrir el muro, el límite, el popup, el pixel, y email al final como bloque grande aparte.</p>
+
+  <!-- BLOQUE D -->
+  <div class="block">
+    <div class="ord">D</div>
+    <div class="head">
+      <div class="step">1</div>
+      <h3>Un solo plan PRO ($16.000)</h3>
+      <span class="pill now">base</span>
+    </div>
+    <p class="why">Es el cimiento: todo el resto se apoya sobre el modelo de datos limpio. Primero borramos el Básico para no arrastrarlo.</p>
+    <ul>
+      <li><b>Eliminar el plan Básico</b> de la UI, tipos y lógica (<code>"free" | "basico" | "pro"</code> → <code>"free" | "pro"</code>).</li>
+      <li><b>Simplificar webhook y confirm</b> para que solo manejen PRO.</li>
+      <li><b>Precio $16.000 consistente</b> en todos lados (hoy el modal dice $14.000).</li>
+      <li>Mantener: PRO sigue dando <b>500 créditos</b> al pagar.</li>
+    </ul>
+    <div class="files">📂 <code>src/lib/sync-user.ts</code> · <code>src/app/api/webhooks/mercadopago/route.ts</code> · <code>src/app/api/subscription/confirm/route.ts</code> · <code>src/components/upgrade-modal.tsx</code> · <code>src/app/pagar/_components/pagar-client.tsx</code> · migración SQL para constraint del plan</div>
+  </div>
+
+  <!-- BLOQUE A -->
+  <div class="block">
+    <div class="ord">A</div>
+    <div class="head">
+      <div class="step">2</div>
+      <h3>Desarmar el muro · acceso libre al dashboard</h3>
+      <span class="pill now">core</span>
+    </div>
+    <p class="why">El cambio más importante: hoy el free nunca llega al dashboard.</p>
+    <ul>
+      <li><b>Quitar el gate</b> <code>if (user.plan === "free") redirect("/pagar")</code> del layout. El free entra directo.</li>
+      <li><b>Confirmar que tras onboarding caiga en el dashboard</b>, no en /pagar.</li>
+      <li><code>/pagar</code> deja de ser puerta: solo se llega desde el popup del límite.</li>
+    </ul>
+    <div class="files">📂 <code>src/app/app/layout.tsx</code> (línea 79) · <code>src/app/onboarding/page.tsx</code></div>
+  </div>
+
+  <!-- BLOQUE B -->
+  <div class="block">
+    <div class="ord">B</div>
+    <div class="head">
+      <div class="step">3</div>
+      <h3>Límite de 3 generaciones (backend) + Haiku en free</h3>
+      <span class="pill now">core</span>
+    </div>
+    <p class="why">El único limitante del free. Invisible hasta que se agota.</p>
+    <ul>
+      <li><b>Migración:</b> columna <code>free_generations_used</code> (int, default 0) en <code>users</code>. Free arranca con <code>credits = 0</code>.</li>
+      <li><b>En las 3 rutas de IA:</b> si <code>plan === "pro"</code> → lógica de créditos actual; si free → permitir solo si <code>free_generations_used &lt; 3</code>, incrementar, y al llegar a 3 devolver <code>402 limit_reached</code>.</li>
+      <li><b>Modelo por plan:</b> free → <code>claude-haiku-4-5</code>; PRO → <code>claude-sonnet-4-6</code> (hoy hardcodeado a Sonnet).</li>
+      <li>PRO conserva sus 500 créditos y costos por generación (28 / 17 / 18).</li>
+    </ul>
+    <div class="files">📂 <code>src/app/api/ai/summarize|flashcards|simulacro/route.ts</code> · <code>src/lib/ai/claude.ts</code> (MODEL + chargeCredits) · migración SQL</div>
+  </div>
+
+  <!-- BLOQUE C -->
+  <div class="block">
+    <div class="ord">C</div>
+    <div class="head">
+      <div class="step">4</div>
+      <h3>El popup de venta</h3>
+      <span class="pill next">conversión</span>
+    </div>
+    <p class="why">El momento de máximo deseo: créditos agotados en plena preparación.</p>
+    <ul>
+      <li><b>Conectar el límite al modal:</b> cuando el backend devuelve <code>limit_reached</code>, abrir el <code>UpgradeModal</code> (hoy usa un estado propio <code>showNoCredits</code>).</li>
+      <li><b>Título grande:</b> "Se te acabaron los créditos en plena preparación del parcial → pasate a PRO y seguí."</li>
+      <li><b>Sin contador</b> visible en ningún lado.</li>
+      <li>Reescribir copy + precio del modal a <b>$16.000</b>, un solo plan PRO. Botón → <code>/pagar</code> → MercadoPago.</li>
+    </ul>
+    <div class="files">📂 <code>src/components/upgrade-modal.tsx</code> · <code>src/app/app/ia/_components/ia-view.tsx</code></div>
+  </div>
+
+  <!-- BLOQUE E -->
+  <div class="block">
+    <div class="ord">E</div>
+    <div class="head">
+      <div class="step">5</div>
+      <h3>Pixel de Meta = Registro</h3>
+      <span class="pill next">medición</span>
+    </div>
+    <p class="why">Que Meta optimice por Registro, no por compra (que casi no ocurre).</p>
+    <ul>
+      <li><b>Disparar evento de Registro</b> (Lead / CompleteRegistration) al completar el alta en Clerk.</li>
+      <li><b>Purchase: se deja</b> en /pago-exitoso como señal secundaria (no molesta, suma señal real de los que pagan).</li>
+      <li><span class="pill defer">diferido</span> CAPI desde backend cuando alguien paga de verdad.</li>
+    </ul>
+    <div class="files">📂 página/handler de registro Clerk · <code>src/app/pago-exitoso/page.tsx</code></div>
+  </div>
+
+  <!-- BLOQUE F -->
+  <div class="block">
+    <div class="ord">F</div>
+    <div class="head">
+      <div class="step">6</div>
+      <h3>Email marketing con Resend</h3>
+      <span class="pill later">bloque grande aparte</span>
+    </div>
+    <p class="why">Como ya no hay cobro automático, el pago lo ganás con seguimiento.</p>
+    <ul>
+      <li><b>Integrar Resend</b> (hoy no existe nada de email). API key + dominio verificado.</li>
+      <li><b>Secuencia de 4 mensajes</b> con sus triggers (abajo).</li>
+    </ul>
+    <div class="seq">
+      <div class="msg"><div class="when">1 · Minuto 0 · al registrarse</div><div class="txt">"¡Ya estás dentro! 🎉 Subí tu primer apunte y te lo resumo en segundos → [link]". Llevalo al "ahá" YA.</div></div>
+      <div class="msg"><div class="when">2 · Hora 2 · si no usó</div><div class="txt">"¿Tenés un parcial cerca? Pegá un apunte y armá tu primer resumen antes de que se te pase el día."</div></div>
+      <div class="msg"><div class="when">3 · Créditos agotados (usó las 3)</div><div class="txt">"Se te acabaron los créditos 🔥 justo cuando estabas en racha. Seguí sin límites con PRO → [checkout]". El disparador caliente.</div></div>
+      <div class="msg"><div class="when">4 · Hora 20 desde el registro</div><div class="txt">"Tu acceso PRO te espera ⏳. Activá ahora y no pierdas tus resúmenes y mazos."</div></div>
+    </div>
+    <div class="files">📂 nuevo: <code>src/lib/email/resend.ts</code> + triggers en registro / ruta de IA al agotar / cron o scheduled para hora 20</div>
+  </div>
+
+  <!-- BLOQUE G -->
+  <div class="block">
+    <div class="ord">G</div>
+    <div class="head">
+      <div class="step">7</div>
+      <h3>Onboarding con teléfono único + anti-fraude gratis</h3>
+      <span class="pill next">se hace junto con el Bloque A</span>
+    </div>
+    <p class="why">La pantalla de datos YA existe (<code>/onboarding</code>) pero el muro la tapaba: el free era expulsado a <code>/pagar</code> antes de llegar. Al sacar el muro, aparece sola. Solo hay que extenderla — no se crea una ruta nueva.</p>
+    <ul>
+      <li><b>Campos actuales (ya andan):</b> Nombre, Edad, Institución.</li>
+      <li><b>🆕 Teléfono obligatorio</b> en el onboarding. Guardado en Supabase con <code>UNIQUE constraint</code> → un número no se puede repetir en dos cuentas. Si ya existe → se rechaza.</li>
+      <li><b>🆕 Carrera</b> (campo ya existe en la DB, hoy no se pide). <span class="muted">— confirmado, entra.</span></li>
+      <li><b>Bonus anti-fraude gratis:</b> normalizar el gmail (ignorar puntos y <code>+alias</code>: <code>juan.perez+1@gmail</code> = <code>juanperez@gmail</code>) y bloquear dominios de mail temporal (10minutemail, etc.).</li>
+    </ul>
+    <div class="callout warn" style="margin-top:14px">
+      <div class="ti">⚠️ Límite honesto (sin OTP)</div>
+      La unicidad solo frena la <b>repetición exacta</b> de un número. Como nadie verifica que el teléfono sea real/propio, alguien puede tipear un número falso al azar y pasa. Sube la barrera un poco, no la cierra. Si el farmeo se vuelve serio, ahí sí se suma WhatsApp OTP (con costo).
+    </div>
+    <div class="files">📂 <code>src/app/onboarding/page.tsx</code> · <code>src/lib/api/onboarding.ts</code> · <code>src/lib/sync-user.ts</code> (normalización email) · migración SQL (columna <code>phone</code> + UNIQUE)</div>
+  </div>
+</section>
+
+<!-- WHATSAPP -->
+<section>
+  <h2>4. WhatsApp OTP — explicado (y por qué lo diferimos)</h2>
+  <table>
+    <tr><th>Pregunta</th><th>Respuesta</th></tr>
+    <tr><td>¿Cómo funciona?</td><td>El usuario pone su teléfono → le mandás un código por WhatsApp → lo escribe → queda verificado. 50 gmails truchos es fácil; 50 teléfonos no.</td></tr>
+    <tr><td>¿Por Clerk o aparte?</td><td>Clerk hace OTP por <b>SMS</b> nativo, pero <b>WhatsApp puntual NO</b>. Necesitás un proveedor: <b>Twilio Verify</b> (lo más fácil, canal WhatsApp + fallback SMS) o <b>WhatsApp Cloud API de Meta</b>.</td></tr>
+    <tr><td>¿Tu número o otro?</td><td>Ni tu celular ni manual. Se usa un <b>número de WhatsApp Business API</b> dedicado, vía el proveedor.</td></tr>
+    <tr><td>¿Riesgo de ban?</td><td>Con <b>API oficial → cero riesgo</b>. El ban solo pasa si automatizás tu WhatsApp personal con librerías truchas (whatsapp-web.js, Baileys).</td></tr>
+    <tr><td>¿Es gratis?</td><td><b>No.</b> Cada verificación cuesta centavos (Twilio ~USD 0,05; Meta cobra por conversación de "autenticación", barato en Argentina pero no $0).</td></tr>
+  </table>
+  <div class="callout accent">
+    <div class="ti">Recomendación</div>
+    Con 2 registros/día, el OTP de WhatsApp es <b>prematuro</b>. Arrancamos con email/Google de Clerk. Si el farmeo de las 3 gratis se vuelve un problema real, lo sumamos (Twilio Verify es el camino más corto). No tiene sentido pagar por mensaje + agregar fricción antes de tener tráfico.
+  </div>
+</section>
+
+<footer>
+  build plan · 4-jun-2026 · Decisiones cerradas con el founder. Orden: D (un plan) → A (acceso libre) + G (onboarding/teléfono) → B (límite 3 + Haiku) → C (popup) → E (pixel Registro) → F (Resend). Diferidos: CAPI y WhatsApp OTP.
+</footer>
+
+</div>
+</body>
+</html>

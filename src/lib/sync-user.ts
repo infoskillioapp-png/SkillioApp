@@ -1,16 +1,19 @@
 import "server-only";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isDisposableEmail, normalizeEmail } from "@/lib/anti-fraude";
 
 export type SkillioUser = {
   id: string;
   clerk_user_id: string;
   email: string;
+  normalized_email: string | null;
   full_name: string | null;
   avatar_url: string | null;
-  plan: "free" | "basico" | "pro";
+  plan: "free" | "pro";
   mp_subscription_id: string | null;
   credits: number;
+  free_generations_used: number;
   referral_token: string | null;
   referred_by: string | null;
   current_streak: number;
@@ -21,6 +24,7 @@ export type SkillioUser = {
   age: number | null;
   institution: string | null;
   career: string | null;
+  phone: string | null;
   onboarding_completed: boolean;
 };
 
@@ -65,6 +69,13 @@ export async function syncUserToSupabase(): Promise<SkillioUser | null> {
     return null;
   }
 
+  // Backstop anti-fraude: no creamos fila para mails temporales. El gate de UX
+  // (mensaje + cerrar sesión) vive en /onboarding; esto es defensa en profundidad.
+  if (isDisposableEmail(email)) {
+    console.warn("[sync-user] email descartable rechazado:", email);
+    return null;
+  }
+
   const fullName =
     [cu.firstName, cu.lastName].filter(Boolean).join(" ").trim() || null;
 
@@ -74,6 +85,7 @@ export async function syncUserToSupabase(): Promise<SkillioUser | null> {
       {
         clerk_user_id: userId,
         email,
+        normalized_email: normalizeEmail(email),
         full_name: fullName,
         avatar_url: cu.imageUrl || null,
         // Genera token solo en INSERT (ignorado en UPDATE por onConflict)

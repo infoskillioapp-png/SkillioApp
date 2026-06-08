@@ -25,6 +25,7 @@ export default async function IaPage() {
           notes={notes}
           credits={user.credits}
           plan={user.plan}
+          freeGenerationsUsed={user.free_generations_used}
           history={history}
         />
       </div>

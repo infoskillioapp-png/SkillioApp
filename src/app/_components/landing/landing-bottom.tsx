@@ -72,41 +72,22 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
   const router = useRouter();
   const plans = [
     {
-      name: "Básico",
-      sub: "Para organizar tu cursada",
-      price: "$10.000",
-      period: "/ mes",
-      cta: "Empezá Básico Gratis · 24h",
-      ctaStyle: "btn-ghost",
-      planKey: "basico",
-      featured: false,
-      perks: [
-        { ok: true, t: "30 créditos mensuales" },
-        { ok: true, t: "Resúmenes de apuntes y PDFs" },
-        { ok: true, t: "Acceso a la comunidad" },
-        { ok: true, t: "Pomodoro & seguimiento de logros" },
-        { ok: true, t: "Agenda con recordatorios" },
-        { ok: true, t: "1 simulacro de parcial" },
-        { ok: true, t: "Porcentaje de avance de materias" },
-      ],
-    },
-    {
       name: "PRO",
       sub: "Para aprobar bien con ayuda de IA",
       price: "$16.000",
       period: "/ mes",
-      cta: "Empezá PRO Gratis · 24h",
+      cta: "Empezá gratis",
       ctaStyle: "btn-primary",
       planKey: "pro",
       featured: true,
       perks: [
-        { ok: true, t: "Todo lo del plan Básico" },
-        { ok: true, t: "500 créditos mensuales" },
+        { ok: true, t: "500 créditos mensuales de IA" },
         { ok: true, t: "Resúmenes y procesamiento prioritario" },
         { ok: true, t: "Simulacros de parciales ilimitados" },
         { ok: true, t: "Flashcards inteligentes + repetición espaciada" },
-        { ok: true, t: "Modelos avanzados (Claude Sonnet / Opus)" },
+        { ok: true, t: "Modelos avanzados de IA" },
         { ok: true, t: "Subir a Comunidad y ganar XP" },
+        { ok: true, t: "Pomodoro, agenda y logros" },
       ],
     },
   ];
@@ -116,9 +97,9 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
         <SectionHeader
           eyebrow="Planes"
           title={<>Simple, claro, sin <span className="gradient-text">letra chica</span></>}
-          sub="Probá PRO 24 horas gratis. Si no te enamora, te quedás con Básico."
+          sub="Entrá gratis y probá la IA. Cuando quieras más, pasás a PRO."
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18, marginTop: 42, maxWidth: 880, marginLeft: "auto", marginRight: "auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 18, marginTop: 42, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
           {plans.map((p, i) => (
             <div key={i} style={{ background: p.featured ? "var(--accent)" : "var(--paper)", color: p.featured ? "#ffffff" : "var(--ink)", borderRadius: 24, padding: 32, border: p.featured ? "1.5px solid var(--accent)" : "1px solid rgba(53,56,49,0.08)", position: "relative", boxShadow: p.featured ? "0 20px 40px -20px rgba(165,64,45,0.45)" : "0 1px 0 rgba(53,56,49,0.04)" }}>
               {p.featured && (
@@ -130,7 +111,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
                 <span style={{ fontFamily: "var(--font-serif)", fontSize: 54, letterSpacing: "-0.025em", lineHeight: 1 }}>{p.price}</span>
                 <span style={{ fontSize: 14, opacity: 0.7 }}>{p.period}</span>
               </div>
-              <button className={"btn " + p.ctaStyle} style={{ width: "100%", marginTop: 20, ...(p.featured ? { background: "white", color: "var(--accent)" } : { background: "var(--paper-warm)", color: "var(--ink)" }) }} onClick={() => router.push(`/registro?plan=${p.planKey}`)}>
+              <button className={"btn " + p.ctaStyle} style={{ width: "100%", marginTop: 20, ...(p.featured ? { background: "white", color: "var(--accent)" } : { background: "var(--paper-warm)", color: "var(--ink)" }) }} onClick={() => router.push("/registro")}>
                 {p.cta}
               </button>
               <div style={{ height: 1, background: p.featured ? "rgba(255,255,255,0.25)" : "rgba(53,56,49,0.08)", margin: "24px 0" }} />

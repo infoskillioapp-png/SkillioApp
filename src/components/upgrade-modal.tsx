@@ -10,8 +10,10 @@ import {
 } from "react";
 import { useToast } from "./toast";
 
+type UpgradeVariant = "generic" | "credits";
+
 type UpgradeCtx = {
-  open: () => void;
+  open: (variant?: UpgradeVariant) => void;
   close: () => void;
   isOpen: boolean;
 };
@@ -29,8 +31,8 @@ type Feature = { icon: string; title: string; description: string };
 const FEATURES: Feature[] = [
   {
     icon: "⚡",
-    title: "1.000 créditos de IA",
-    description: "Generá resúmenes, flashcards y simulacros con 1.000 créditos mensuales.",
+    title: "500 créditos de IA",
+    description: "Generá resúmenes, flashcards y simulacros con 500 créditos mensuales.",
   },
   {
     icon: "🧠",
@@ -56,7 +58,11 @@ const FEATURES: Feature[] = [
 
 export function UpgradeModalProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const open = useCallback(() => setIsOpen(true), []);
+  const [variant, setVariant] = useState<UpgradeVariant>("generic");
+  const open = useCallback((v: UpgradeVariant = "generic") => {
+    setVariant(v);
+    setIsOpen(true);
+  }, []);
   const close = useCallback(() => setIsOpen(false), []);
 
   const value = useMemo<UpgradeCtx>(() => ({ open, close, isOpen }), [open, close, isOpen]);
@@ -64,12 +70,12 @@ export function UpgradeModalProvider({ children }: { children: React.ReactNode }
   return (
     <Ctx.Provider value={value}>
       {children}
-      {isOpen && <UpgradeModal onClose={close} />}
+      {isOpen && <UpgradeModal onClose={close} variant={variant} />}
     </Ctx.Provider>
   );
 }
 
-function UpgradeModal({ onClose }: { onClose: () => void }) {
+function UpgradeModal({ onClose, variant }: { onClose: () => void; variant: UpgradeVariant }) {
   const toast = useToast();
 
   useEffect(() => {
@@ -146,14 +152,28 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
               </svg>
               SKILLIO PRO
             </div>
-            <h2 className="font-display font-extrabold text-[28px] tracking-[-0.03em] leading-tight mb-2">
-              Estudiá <span className="italic text-accent">sin límites.</span><br />
-              Aprobá <span className="italic text-accent">más fácil.</span>
-            </h2>
-            <p className="text-[13px] text-ink-soft max-w-sm mx-auto leading-snug">
-              Desbloqueá toda la potencia de Skillio y convertí cada apunte en
-              material listo para rendir.
-            </p>
+            {variant === "credits" ? (
+              <>
+                <h2 className="font-display font-extrabold text-[25px] tracking-[-0.03em] leading-tight mb-2">
+                  Se te acabaron los créditos en plena preparación del parcial{" "}
+                  <span className="italic text-accent">→ pasate a PRO y seguí.</span>
+                </h2>
+                <p className="text-[13px] text-ink-soft max-w-sm mx-auto leading-snug">
+                  Seguí generando resúmenes, flashcards y simulacros sin frenar el envión.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="font-display font-extrabold text-[28px] tracking-[-0.03em] leading-tight mb-2">
+                  Estudiá <span className="italic text-accent">sin límites.</span><br />
+                  Aprobá <span className="italic text-accent">más fácil.</span>
+                </h2>
+                <p className="text-[13px] text-ink-soft max-w-sm mx-auto leading-snug">
+                  Desbloqueá toda la potencia de Skillio y convertí cada apunte en
+                  material listo para rendir.
+                </p>
+              </>
+            )}
           </div>
 
           {/* Features grid */}
@@ -184,7 +204,7 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="font-display font-extrabold text-3xl tracking-[-0.03em] text-accent num">
-                  $14.000
+                  $16.000
                 </span>
                 <span className="text-[12px] text-ink-soft">/ mes</span>
               </div>

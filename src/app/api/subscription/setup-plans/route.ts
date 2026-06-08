@@ -13,16 +13,16 @@ export async function GET(req: NextRequest) {
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ?? "https://skillio.digital";
 
-  const [planPro, planBasico] = await Promise.all([
-    mpCreatePlan("Plan PRO Skillio", 14000, `${appUrl}/app?upgraded=1`),
-    mpCreatePlan("Plan Básico Skillio", 9000, `${appUrl}/app?upgraded=1`),
-  ]);
+  const planPro = await mpCreatePlan(
+    "Plan PRO Skillio",
+    16000,
+    `${appUrl}/app?upgraded=1`,
+  );
 
   return NextResponse.json({
     ok: true,
     message:
-      "Planes creados. Copiá los IDs a las variables de entorno en Vercel.",
+      "Plan creado. Copiá el ID a la variable de entorno en Vercel.",
     MP_PLAN_ID_PRO: planPro.id,
-    MP_PLAN_ID_BASICO: planBasico.id,
   });
 }

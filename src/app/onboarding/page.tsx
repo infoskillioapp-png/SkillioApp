@@ -1,16 +1,45 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
-import { getCurrentSkillioUser } from "@/lib/db";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { syncUserToSupabase } from "@/lib/sync-user";
+import { checkEmailAllowed } from "@/lib/anti-fraude";
+import { applyReferral } from "@/lib/api/referrals";
 import { completeOnboarding } from "@/lib/api/onboarding";
 
-export default async function OnboardingPage() {
+interface Props {
+  searchParams: Promise<{ ref?: string; error?: string }>;
+}
+
+const ERROR_MESSAGES: Record<string, string> = {
+  phone_taken: "Ese teléfono ya está registrado en otra cuenta.",
+  invalid: "Revisá los datos: hay algún campo incompleto o inválido.",
+};
+
+export default async function OnboardingPage({ searchParams }: Props) {
+  const sp = await searchParams;
+
   const { userId } = await auth();
   if (!userId) redirect("/login");
 
-  const user = await getCurrentSkillioUser();
+  // Gate anti-fraude ANTES de crear la fila: mail temporal o Gmail duplicado
+  // (puntos / +alias). Si no pasa, a /bloqueado (mensaje + cerrar sesión).
+  const cu = await currentUser();
+  const email = cu?.primaryEmailAddress?.emailAddress ?? null;
+  if (email) {
+    const verdict = await checkEmailAllowed(userId, email);
+    if (verdict !== "ok") redirect(`/bloqueado?reason=${verdict}`);
+  }
+
+  // syncUserToSupabase (no getCurrentSkillioUser): crea la fila si todavía no
+  // existe. El registro ahora cae directo acá, antes de pasar por /app.
+  const user = await syncUserToSupabase();
   if (!user) redirect("/login");
   if (user.onboarding_completed) redirect("/app");
+
+  // Captura del referido si llegó con ?ref= (antes el flujo pasaba por /pagar).
+  await applyReferral(user, sp.ref);
+
+  const errorMsg = sp.error ? ERROR_MESSAGES[sp.error] : null;
 
   return (
     <div className="fixed inset-0 bg-bg flex items-center justify-center px-4">
@@ -44,6 +73,12 @@ export default async function OnboardingPage() {
             Antes de empezar, contame un poco sobre vos para personalizar tu experiencia.
           </p>
 
+          {errorMsg && (
+            <div className="mb-5 px-4 py-3 rounded-2xl text-sm" style={{ background: "var(--bad-bg, rgba(248,81,73,.1))", border: "1px solid rgba(248,81,73,.4)", color: "#c0392b" }}>
+              {errorMsg}
+            </div>
+          )}
+
           <form action={completeOnboarding} className="flex flex-col gap-5">
             {/* Nombre y apellido */}
             <div>
@@ -54,6 +89,19 @@ export default async function OnboardingPage() {
                 required
                 placeholder="Ej: Martín García"
                 defaultValue={user.full_name ?? ""}
+                className="w-full bg-transparent border-0 border-b border-rule py-2 focus:border-accent focus:outline-none text-base text-ink placeholder:text-ink-softer transition"
+              />
+            </div>
+
+            {/* Teléfono */}
+            <div>
+              <label className="eyebrow block mb-1.5">Teléfono (WhatsApp)</label>
+              <input
+                name="phone"
+                type="tel"
+                required
+                inputMode="tel"
+                placeholder="Ej: 11 2345 6789"
                 className="w-full bg-transparent border-0 border-b border-rule py-2 focus:border-accent focus:outline-none text-base text-ink placeholder:text-ink-softer transition"
               />
             </div>
@@ -80,6 +128,18 @@ export default async function OnboardingPage() {
                 type="text"
                 required
                 placeholder="Ej: UBA, UTN, UADE…"
+                className="w-full bg-transparent border-0 border-b border-rule py-2 focus:border-accent focus:outline-none text-base text-ink placeholder:text-ink-softer transition"
+              />
+            </div>
+
+            {/* Carrera */}
+            <div>
+              <label className="eyebrow block mb-1.5">Carrera</label>
+              <input
+                name="career"
+                type="text"
+                required
+                placeholder="Ej: Medicina, Abogacía, Ingeniería…"
                 className="w-full bg-transparent border-0 border-b border-rule py-2 focus:border-accent focus:outline-none text-base text-ink placeholder:text-ink-softer transition"
               />
             </div>

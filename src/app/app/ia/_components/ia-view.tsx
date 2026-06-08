@@ -7,6 +7,7 @@ import type { Note } from "@/lib/types";
 import type { AiOutputRow } from "@/lib/api/ai-outputs";
 import { ResultModal, type AnyResult } from "./result-modal";
 import { useToast } from "@/components/toast";
+import { useUpgradeModal } from "@/components/upgrade-modal";
 import { GlowButton } from "@/components/cult/glow-button";
 import { AnimatedNumber } from "@/components/cult/animated-number";
 
@@ -19,7 +20,8 @@ const SUMMARY_FORMATS = [
 type Props = {
   notes: Note[];
   credits: number;
-  plan: "free" | "basico" | "pro";
+  plan: "free" | "pro";
+  freeGenerationsUsed: number;
   history: AiOutputRow[];
 };
 
@@ -56,16 +58,30 @@ function asResult(o: AiOutputRow): AnyResult | null {
 
 const COSTS = { summary: 28, flashcards: 17, simulacro: 18 } as const;
 const MAX_CREDITS = 500;
+const FREE_LIMIT = 3;
 
-export function IaView({ notes, credits, plan, history }: Props) {
+export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: Props) {
   const router = useRouter();
   const toast = useToast();
+  const upgrade = useUpgradeModal();
+  const isPro = plan === "pro";
   const [pending, startTransition] = useTransition();
   const [noteId, setNoteId] = useState<string>(notes[0]?.id ?? "");
   const [format, setFormat] = useState("puntos_clave");
   const [result, setResult] = useState<AnyResult | null>(null);
   const [localCredits, setLocalCredits] = useState(credits);
+  // Free: generaciones gratis restantes (contador interno, no se muestra).
+  const [freeGenLeft, setFreeGenLeft] = useState(
+    Math.max(0, FREE_LIMIT - freeGenerationsUsed),
+  );
   const [showNoCredits, setShowNoCredits] = useState(false);
+
+  // PRO se mide por créditos; free por generaciones restantes.
+  const canAfford = (cost: number) => (isPro ? localCredits >= cost : freeGenLeft > 0);
+
+  // Free agotó las 3 gratis → popup PRO (a MercadoPago). PRO sin créditos →
+  // modal de créditos (espera renovación / pack próximamente).
+  const showPaywall = () => (isPro ? setShowNoCredits(true) : upgrade.open("credits"));
 
   function call(kind: "summary" | "flashcards" | "simulacro") {
     if (!noteId) {
@@ -73,8 +89,8 @@ export function IaView({ notes, credits, plan, history }: Props) {
       return;
     }
     const cost = COSTS[kind];
-    if (localCredits < cost) {
-      setShowNoCredits(true);
+    if (!canAfford(cost)) {
+      showPaywall();
       return;
     }
     startTransition(async () => {
@@ -91,13 +107,17 @@ export function IaView({ notes, credits, plan, history }: Props) {
         const data = await res.json();
         if (!res.ok) {
           if (res.status === 402) {
-            setShowNoCredits(true);
+            showPaywall();
           } else {
             toast.error("Algo salió mal", data.error || `HTTP ${res.status}`);
           }
           return;
         }
-        if (typeof data.credits_remaining === "number") setLocalCredits(data.credits_remaining);
+        if (isPro) {
+          if (typeof data.credits_remaining === "number") setLocalCredits(data.credits_remaining);
+        } else {
+          setFreeGenLeft((n) => Math.max(0, n - 1));
+        }
         if (kind === "summary") {
           if (data.format === "resumen") {
             setResult({ kind: "summary", format: "resumen", text: data.data.text } as AnyResult);
@@ -109,7 +129,7 @@ export function IaView({ notes, credits, plan, history }: Props) {
         else setResult({ kind: "simulacro", simulacro: data.simulacro });
         toast.success(
           kind === "summary" ? "Resumen listo" : kind === "flashcards" ? "Flashcards generadas" : "Simulacro listo",
-          `Quedaron ${data.credits_remaining} créditos.`
+          isPro ? `Quedaron ${data.credits_remaining} créditos.` : "Tu material está listo.",
         );
         router.refresh();
       } catch (e) {
@@ -193,7 +213,9 @@ export function IaView({ notes, credits, plan, history }: Props) {
                 }}
               />
             </div>
-            <div className="text-[10.5px] text-ink-softer mt-1.5">Se recargan el 1 de cada mes</div>
+            {isPro && (
+              <div className="text-[10.5px] text-ink-softer mt-1.5">Se recargan el 1 de cada mes</div>
+            )}
           </div>
         </div>
       </header>
@@ -243,7 +265,7 @@ export function IaView({ notes, credits, plan, history }: Props) {
           cost={COSTS.summary}
           accentColor="var(--accent)"
           glowColor="rgba(165,64,45,0.35)"
-          disabled={noNotes || pending || localCredits < COSTS.summary}
+          disabled={noNotes || pending || !canAfford(COSTS.summary)}
           extra={
             <div className="flex flex-wrap gap-1.5 mt-1 mb-4">
               {SUMMARY_FORMATS.map((f) => {
@@ -275,7 +297,7 @@ export function IaView({ notes, credits, plan, history }: Props) {
           cost={COSTS.flashcards}
           accentColor="var(--success)"
           glowColor="rgba(74,124,89,0.35)"
-          disabled={noNotes || pending || localCredits < COSTS.flashcards}
+          disabled={noNotes || pending || !canAfford(COSTS.flashcards)}
           onClick={() => call("flashcards")}
         />
         <PremiumToolCard
@@ -285,7 +307,7 @@ export function IaView({ notes, credits, plan, history }: Props) {
           cost={COSTS.simulacro}
           accentColor="var(--warning)"
           glowColor="rgba(196,123,43,0.35)"
-          disabled={noNotes || pending || localCredits < COSTS.simulacro}
+          disabled={noNotes || pending || !canAfford(COSTS.simulacro)}
           onClick={() => call("simulacro")}
         />
       </div>

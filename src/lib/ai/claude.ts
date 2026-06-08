@@ -4,11 +4,19 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import type { Note } from "@/lib/types";
+import { sendCreditsExhaustedEmail } from "@/lib/email/resend";
 
 const BUCKET = "notes-uploads";
 
-export const MODEL = "claude-sonnet-4-6";
-const MAP_MODEL = "claude-haiku-4-5-20251001"; // modelo barato para el paso de mapeo
+export const MODEL = "claude-sonnet-4-6";              // PRO
+export const MODEL_FREE = "claude-haiku-4-5-20251001"; // free trial (3 gen): barato
+export const FREE_GENERATION_LIMIT = 3;
+const MAP_MODEL = MODEL_FREE; // modelo barato para el paso de mapeo
+
+/** Modelo a usar según el plan: PRO = Sonnet, free = Haiku. */
+export function modelForPlan(plan: string): string {
+  return plan === "pro" ? MODEL : MODEL_FREE;
+}
 
 // Umbral: si el texto supera esto, activamos map-reduce
 const MAP_REDUCE_THRESHOLD = 15_000; // ~4k tokens
@@ -23,7 +31,7 @@ export type NoteContent =
 export async function getNoteContent(noteId: string): Promise<{
   note: Note;
   content: NoteContent;
-  userRow: { id: string; credits: number; plan: string };
+  userRow: { id: string; credits: number; plan: string; free_generations_used: number };
 }> {
   const { userId } = await auth();
   if (!userId) throw new Error("unauthenticated");
@@ -32,7 +40,7 @@ export async function getNoteContent(noteId: string): Promise<{
 
   const { data: u } = await sb
     .from("users")
-    .select("id, credits, plan")
+    .select("id, credits, plan, free_generations_used")
     .eq("clerk_user_id", userId)
     .single();
   if (!u) throw new Error("user_not_found");
@@ -94,6 +102,32 @@ export async function chargeCredits(
   return remaining;
 }
 
+/**
+ * Consume una de las generaciones gratis del free (trial sin tarjeta).
+ * `current` es el valor leído al inicio del request (de getNoteContent).
+ */
+export async function consumeFreeGeneration(
+  userId: string,
+  current: number,
+): Promise<void> {
+  const sb = supabaseAdmin();
+  const next = current + 1;
+  await sb
+    .from("users")
+    .update({ free_generations_used: next })
+    .eq("id", userId);
+
+  // Al consumir la última generación gratis → mail "se te acabaron los créditos".
+  if (next === FREE_GENERATION_LIMIT) {
+    const { data } = await sb
+      .from("users")
+      .select("email, full_name")
+      .eq("id", userId)
+      .maybeSingle();
+    if (data?.email) await sendCreditsExhaustedEmail(data.email, data.full_name);
+  }
+}
+
 export async function saveAiOutput(opts: {
   user_id: string;
   note_id: string | null;
@@ -102,6 +136,7 @@ export async function saveAiOutput(opts: {
   title?: string | null;
   content: unknown;
   credits_used: number;
+  model?: string;
 }) {
   const sb = supabaseAdmin();
   const { data, error } = await sb
@@ -114,7 +149,7 @@ export async function saveAiOutput(opts: {
       title: opts.title ?? null,
       content: opts.content as object,
       credits_used: opts.credits_used,
-      model: MODEL,
+      model: opts.model ?? MODEL,
     })
     .select("id")
     .single();

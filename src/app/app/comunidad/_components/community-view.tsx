@@ -7,7 +7,7 @@ type Props = {
   notes: PublicNote[];
   referralUrl: string;
   myReferrals: number;
-  userPlan: "free" | "basico" | "pro";
+  userPlan: "free" | "pro";
 };
 
 function initialsOf(name: string | null, email: string) {

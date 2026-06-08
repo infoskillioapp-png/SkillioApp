@@ -1,45 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { SignOutButton } from "@clerk/nextjs";
 import { SkillioMark } from "@/app/_components/landing/landing-top";
 
-const PLANS = {
-  pro: {
-    name: "PRO",
-    price: "$16.000",
-    period: "/ mes",
-    credits: 500,
-    perks: [
-      "500 créditos mensuales de IA",
-      "Resúmenes y procesamiento prioritario",
-      "Simulacros de parciales ilimitados",
-      "Flashcards inteligentes + repetición espaciada",
-      "Acceso completo a la comunidad",
-      "Pomodoro, agenda y logros",
-    ],
-  },
-  basico: {
-    name: "Básico",
-    price: "$10.000",
-    period: "/ mes",
-    credits: 30,
-    perks: [
-      "30 créditos mensuales de IA",
-      "Resúmenes de apuntes y PDFs",
-      "1 simulacro de parcial",
-      "Acceso a la comunidad",
-      "Pomodoro, agenda y logros",
-    ],
-  },
+const PRO = {
+  name: "PRO",
+  price: "$16.000",
+  period: "/ mes",
+  perks: [
+    "500 créditos mensuales de IA",
+    "Resúmenes y procesamiento prioritario",
+    "Simulacros de parciales ilimitados",
+    "Flashcards inteligentes + repetición espaciada",
+    "Acceso completo a la comunidad",
+    "Pomodoro, agenda y logros",
+  ],
 } as const;
 
-export function PagarClient({ plan, hasReferral = false }: { plan: "pro" | "basico"; hasReferral?: boolean }) {
-  const [selected, setSelected] = useState<"pro" | "basico">(plan);
+export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const current = PLANS[selected];
+  const current = PRO;
 
   async function handlePay() {
     setLoading(true);
@@ -48,7 +32,7 @@ export function PagarClient({ plan, hasReferral = false }: { plan: "pro" | "basi
       const res = await fetch("/api/subscription/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: selected }),
+        body: JSON.stringify({ plan: "pro" }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -80,7 +64,7 @@ export function PagarClient({ plan, hasReferral = false }: { plan: "pro" | "basi
       <div className="relative w-full max-w-lg animate-skillio-fade-in">
         <div className="flex items-center justify-between mb-8">
           <SkillioMark size={28} />
-          <span className="text-xs text-ink-softer">Paso final · Elegí tu plan</span>
+          <span className="text-xs text-ink-softer">Paso final · Activá tu PRO</span>
         </div>
 
         {/* Badge de referido */}
@@ -93,39 +77,16 @@ export function PagarClient({ plan, hasReferral = false }: { plan: "pro" | "basi
           </div>
         )}
 
-        {/* Selector de plan */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {(["pro", "basico"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setSelected(p)}
-              className="rounded-2xl border-2 p-4 text-left transition-all"
-              style={{
-                borderColor: selected === p ? "var(--accent)" : "var(--rule)",
-                background: selected === p ? "rgba(165,64,45,0.06)" : "var(--paper)",
-              }}
-            >
-              <div className="font-display font-bold text-lg" style={{ color: selected === p ? "var(--accent)" : "var(--ink)" }}>
-                {PLANS[p].name}
-              </div>
-              <div className="text-sm font-semibold mt-0.5" style={{ color: "var(--ink)" }}>
-                {PLANS[p].price}
-                <span className="font-normal text-xs ml-1 opacity-60">{PLANS[p].period}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Detalle del plan seleccionado */}
+        {/* Detalle del plan PRO */}
         <div className="rounded-3xl bg-paper border border-rule-soft p-7 shadow-lg">
           <div className="flex items-baseline gap-2 mb-5">
-            <span className="font-display font-extrabold text-3xl tracking-tight" style={{ color: "var(--accent)" }}>
+            <span className="font-display font-bold text-lg" style={{ color: "var(--accent)" }}>
+              {current.name}
+            </span>
+            <span className="font-display font-extrabold text-3xl tracking-tight ml-1" style={{ color: "var(--accent)" }}>
               {current.price}
             </span>
             <span className="text-sm text-ink-soft">{current.period}</span>
-            <span className="ml-auto text-xs font-semibold px-2 py-1 rounded-full" style={{ background: "rgba(165,64,45,0.10)", color: "var(--accent)" }}>
-              24h gratis
-            </span>
           </div>
 
           <ul className="flex flex-col gap-2.5 mb-6">
@@ -155,7 +116,7 @@ export function PagarClient({ plan, hasReferral = false }: { plan: "pro" | "basi
               boxShadow: "0 8px 24px var(--accent-glow)",
             }}
           >
-            {loading ? "Redirigiendo a MercadoPago…" : `Empezar con ${current.name} · 24h gratis`}
+            {loading ? "Redirigiendo a MercadoPago…" : `Activar ${current.name} →`}
           </button>
 
           <p className="text-center text-[11px] text-ink-softer mt-3">
@@ -170,9 +131,9 @@ export function PagarClient({ plan, hasReferral = false }: { plan: "pro" | "basi
 
         {/* Salida: que nadie quede atrapado si no quiere pagar ahora */}
         <div className="flex items-center justify-center gap-4 mt-6 text-xs text-ink-softer">
-          <a href="/" className="underline hover:text-ink transition-colors">
+          <Link href="/" className="underline hover:text-ink transition-colors">
             Volver al inicio
-          </a>
+          </Link>
           <span aria-hidden>·</span>
           <SignOutButton redirectUrl="/">
             <button type="button" className="underline hover:text-ink transition-colors">

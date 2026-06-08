@@ -40,9 +40,8 @@ function PagoExitosoInner() {
     function firePixelPurchase(plan: string) {
       const fbq = (window as Window & { fbq?: Function }).fbq;
       if (!fbq) return;
-      const value = plan === "basico" ? 10000 : 16000;
+      const value = 16000;
       fbq("track", "Purchase", { value, currency: "ARS", content_name: `Plan ${plan.toUpperCase()} Skillio` });
-      fbq("track", "CompleteRegistration", { value, currency: "ARS" });
     }
 
     async function checkPlan(): Promise<boolean> {
