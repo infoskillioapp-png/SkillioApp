@@ -83,10 +83,6 @@ export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: P
   // modal de créditos (espera renovación / pack próximamente).
   const showPaywall = () => (isPro ? setShowNoCredits(true) : upgrade.open("credits"));
 
-  // Texto del botón cuando ya no puede generar (el botón sigue clickeable y
-  // abre el paywall en vez de quedar deshabilitado y sin salida).
-  const lockedLabel = isPro ? "Sin créditos" : "Pasate a PRO →";
-
   function call(kind: "summary" | "flashcards" | "simulacro") {
     if (!noteId) {
       toast.info("Subí un apunte primero", "Necesitás cargar un PDF, imagen o nota en Apuntes.");
@@ -270,8 +266,6 @@ export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: P
           accentColor="var(--accent)"
           glowColor="rgba(165,64,45,0.35)"
           disabled={noNotes || pending}
-          locked={!canAfford(COSTS.summary)}
-          lockedLabel={lockedLabel}
           extra={
             <div className="flex flex-wrap gap-1.5 mt-1 mb-4">
               {SUMMARY_FORMATS.map((f) => {
@@ -304,8 +298,6 @@ export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: P
           accentColor="var(--success)"
           glowColor="rgba(74,124,89,0.35)"
           disabled={noNotes || pending}
-          locked={!canAfford(COSTS.flashcards)}
-          lockedLabel={lockedLabel}
           onClick={() => call("flashcards")}
         />
         <PremiumToolCard
@@ -316,8 +308,6 @@ export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: P
           accentColor="var(--warning)"
           glowColor="rgba(196,123,43,0.35)"
           disabled={noNotes || pending}
-          locked={!canAfford(COSTS.simulacro)}
-          lockedLabel={lockedLabel}
           onClick={() => call("simulacro")}
         />
       </div>
@@ -442,7 +432,7 @@ function NoCreditsModal({ onClose }: { onClose: () => void }) {
 }
 
 function PremiumToolCard({
-  icon, title, description, cost, accentColor, glowColor, extra, disabled, locked = false, lockedLabel = "Pasate a PRO →", onClick,
+  icon, title, description, cost, accentColor, glowColor, extra, disabled, onClick,
 }: {
   icon: string;
   title: string;
@@ -452,8 +442,6 @@ function PremiumToolCard({
   glowColor: string;
   extra?: React.ReactNode;
   disabled: boolean;
-  locked?: boolean;
-  lockedLabel?: string;
   onClick: () => void;
 }) {
   return (
@@ -498,7 +486,7 @@ function PremiumToolCard({
             padding: "8px 20px",
           }}
         >
-          {locked ? lockedLabel : "Generar"}
+          Generar
         </GlowButton>
       </div>
     </div>
