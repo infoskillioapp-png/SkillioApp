@@ -269,7 +269,7 @@ export function Sidebar({ user }: { user: SkillioUser }) {
                 {user.full_name ?? user.email.split("@")[0]}
               </div>
               <div className="truncate text-[10.5px] text-ink-soft">
-                {user.plan === "pro" ? "Pro" : "Básico"} · 🔥 {user.current_streak}d
+                {user.plan === "pro" ? "Pro" : "Gratis"} · 🔥 {user.current_streak}d
               </div>
             </div>
             <svg
@@ -294,7 +294,7 @@ export function Sidebar({ user }: { user: SkillioUser }) {
               <div className="mb-3 flex flex-col gap-1.5">
                 {(
                   [
-                    ["Plan", user.plan === "pro" ? "Pro ✦" : "Básico", user.plan === "pro"],
+                    ["Plan", user.plan === "pro" ? "Pro ✦" : "Gratis", user.plan === "pro"],
                     ["Créditos IA", user.credits.toLocaleString("es-AR"), false],
                     ["Racha actual", `🔥 ${user.current_streak} días`, false],
                     ["Miembro desde", memberSince, false],
