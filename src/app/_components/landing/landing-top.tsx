@@ -151,7 +151,6 @@ export const SkillioMark = ({ color = "var(--ink)", size = 26 }: { color?: strin
 // NAVBAR
 // ============================================================
 export function Navbar({ onCTA }: { onCTA: () => void }) {
-  const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -160,151 +159,130 @@ export function Navbar({ onCTA }: { onCTA: () => void }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const go = (id: string) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    setOpen(false);
-    const delay = open ? 380 : 0;
-    setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, delay);
-  };
-
+  // Nav minimal: logo + "Iniciar sesión" (link discreto) + 1 único CTA primario.
+  // Sin menú de secciones para no competir con la meta de conversión.
   return (
-    <>
-      <header style={{
-        position: "sticky", top: 0, zIndex: 50,
-        background: scrolled ? "rgba(251,241,239,0.92)" : "transparent",
-        backdropFilter: scrolled ? "saturate(140%) blur(10px)" : "none",
-        borderBottom: scrolled ? "1px solid rgba(53,56,49,0.06)" : "1px solid transparent",
-        transition: "background .2s, border-color .2s",
-      }}>
-        <div className="container-x" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 68 }}>
-          <a href="#top" onClick={go("top")} style={{ textDecoration: "none" }}>
-            <SkillioMark />
-          </a>
-          <nav style={{ display: "flex", gap: 28 }} className="hide-lp-mobile">
-            <a className="nav-link" href="#funciones" onClick={go("funciones")}>Funciones</a>
-            <a className="nav-link" href="#como" onClick={go("como")}>Cómo funciona</a>
-            <a className="nav-link" href="#comunidad" onClick={go("comunidad")}>Comunidad</a>
-            <a className="nav-link" href="#planes" onClick={go("planes")}>Planes</a>
-            <a className="nav-link" href="#faq" onClick={go("faq")}>FAQ</a>
-          </nav>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Link href="/login" className="hide-lp-mobile" style={{ color: "var(--ink)", fontSize: 15, fontWeight: 500, textDecoration: "none" }}>
-              Iniciar sesión
-            </Link>
-            <button className="btn btn-primary hide-lp-mobile" onClick={onCTA}>
-              Empezá PRO Gratis · 24h
-            </button>
-            <button className="show-lp-mobile btn btn-ghost" style={{ padding: 10 }} onClick={() => setOpen(true)} aria-label="Abrir menú">
-              <IconMenu />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 60, overflowY: "auto", transform: open ? "translateY(0)" : "translateY(-100%)", transition: "transform .35s cubic-bezier(.7,0,.2,1)" }}>
-        <div style={{ padding: "22px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <header style={{
+      position: "sticky", top: 0, zIndex: 50,
+      background: scrolled ? "rgba(251,241,239,0.92)" : "transparent",
+      backdropFilter: scrolled ? "saturate(140%) blur(10px)" : "none",
+      borderBottom: scrolled ? "1px solid rgba(53,56,49,0.06)" : "1px solid transparent",
+      transition: "background .2s, border-color .2s",
+    }}>
+      <div className="container-x" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
+        <a href="#top" style={{ textDecoration: "none" }}>
           <SkillioMark />
-          <button className="btn btn-ghost" style={{ padding: 10 }} onClick={() => setOpen(false)}><IconClose /></button>
-        </div>
-        <div style={{ padding: "8px 24px 24px", display: "flex", flexDirection: "column", gap: 4 }}>
-          {[["Funciones", "funciones"], ["Cómo funciona", "como"], ["Comunidad", "comunidad"], ["Planes", "planes"], ["FAQ", "faq"]].map(([label, id]) => (
-            <a key={id} href={"#" + id} onClick={go(id)} style={{ fontFamily: "var(--font-roboto)", fontWeight: 700, fontSize: 36, color: "var(--ink)", textDecoration: "none", padding: "12px 0", borderBottom: "1px solid rgba(53,56,49,.08)", letterSpacing: "-0.025em", display: "block" }}>
-              {label}
-            </a>
-          ))}
-          <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 10 }}>
-            <button className="btn btn-primary btn-lg" onClick={() => { setOpen(false); onCTA(); }}>Empezá PRO Gratis · 24h</button>
-            <Link href="/login" className="btn btn-ghost btn-lg" style={{ textAlign: "center" }}>Iniciar sesión</Link>
-          </div>
+        </a>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <Link href="/login" style={{ color: "var(--ink-soft)", fontSize: 14.5, fontWeight: 500, textDecoration: "none" }}>
+            Iniciar sesión
+          </Link>
+          <button className="btn btn-primary" onClick={onCTA}>
+            Empezá gratis
+          </button>
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 880px) { .hide-lp-mobile { display: none !important; } }
-        @media (min-width: 881px) { .show-lp-mobile { display: none !important; } }
-      `}</style>
-    </>
+    </header>
   );
 }
 
+
+// ============================================================
+// CTA MICROCOPY — reversión de riesgo, va debajo de CADA CTA primario
+// ============================================================
+export function CTAMicro({ light = false, center = true }: { light?: boolean; center?: boolean }) {
+  const color = light ? "rgba(255,255,255,0.85)" : "var(--ink-softer)";
+  return (
+    <div style={{ display: "flex", justifyContent: center ? "center" : "flex-start", alignItems: "center", gap: 14, marginTop: 12, flexWrap: "wrap" }}>
+      {["Sin tarjeta", "Probá PRO", "Cancelás cuando quieras"].map((t) => (
+        <span key={t} style={{ fontSize: 13, color, display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 500 }}>
+          <IconCheck size={13} /> {t}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// MEDIA SLOT — espacio para el video en loop del usuario.
+// Si existe /public/landing/<src> (.mp4/.webm), se reproduce en loop.
+// Si no, se ve un marcador con la ruta (no rompe la landing).
+// ============================================================
+export function MediaSlot({ src, label, ratio = "16 / 10" }: { src: string; label: string; ratio?: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div style={{ position: "relative", width: "100%", aspectRatio: ratio, borderRadius: 22, overflow: "hidden", background: "var(--paper-warm)", border: "1px solid rgba(53,56,49,0.08)", boxShadow: "0 24px 52px -24px rgba(165,64,45,.25)" }}>
+      {!failed ? (
+        <video
+          src={"/landing/" + src}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          onError={() => setFailed(true)}
+          aria-label={label}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+      ) : (
+        <div className="grid-bg fade" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, textAlign: "center", padding: 24 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(165,64,45,0.10)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+            <IconSparkles size={26} />
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>{label}</div>
+          <code className="mono" style={{ fontSize: 12, color: "var(--ink-softer)", background: "var(--bg-2)", padding: "4px 10px", borderRadius: 8 }}>public/landing/{src}</code>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ============================================================
 // HERO TEXT (seccion 1)
 // ============================================================
 export function HeroText({ onCTA }: { onCTA: () => void }) {
   return (
-    <section id="top" className="section" style={{ position: "relative", paddingTop: "clamp(40px, 6vw, 80px)", paddingBottom: "clamp(40px, 5vw, 60px)" }}>
+    <section id="top" className="section" style={{ position: "relative", paddingTop: "clamp(32px, 5vw, 64px)", paddingBottom: "clamp(40px, 5vw, 56px)" }}>
       <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none" }} className="grid-bg fade" />
       <div className="container-x" style={{ position: "relative", zIndex: 2 }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
           <span className="badge">
             <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--accent)", display: "inline-block" }} className="dot-pulse" />
-            Nuevo · IA con Claude Opus 4.7
+            Gratis y sin tarjeta · 3 generaciones para probar
           </span>
         </div>
 
-        <h1 className="h-display" style={{ textAlign: "center", margin: "0 auto", maxWidth: 980 }}>
-          Tus materias <span className="gradient-text">resumidas</span> y<br />
-          explicadas en segundos
+        <h1 className="h-display" style={{ textAlign: "center", margin: "0 auto", maxWidth: 920 }}>
+          Estudiá la mitad.<br /><span className="gradient-text">Aprobá</span> igual.
         </h1>
 
-        <p style={{ textAlign: "center", margin: "24px auto 0", fontSize: "clamp(16px, 1.6vw, 19px)", lineHeight: 1.55, color: "#4A2418", maxWidth: 580 }}>
-          Ahorrá el 80% de tu tiempo de lectura: subí tus apuntes,
-          generá resúmenes, flashcards y simulacros. Aprobá más fácil, estudiá más rápido.
+        <p style={{ textAlign: "center", margin: "22px auto 0", fontSize: "clamp(16px, 1.7vw, 20px)", lineHeight: 1.55, color: "#4A2418", maxWidth: 600 }}>
+          Subí tu apunte, PDF o una foto y en segundos tenés el resumen, las flashcards
+          y el simulacro de tu parcial. Listo para estudiar.
         </p>
 
-        <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
-          <button className="btn btn-primary btn-lg" onClick={onCTA}>
-            Empezá PRO Gratis · 24h <IconArrow size={16} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 28 }}>
+          <button className="btn btn-primary btn-lg btn-pulse" onClick={onCTA} style={{ fontSize: 17 }}>
+            Empezá gratis <IconArrow size={18} />
           </button>
-          <a href="#como" className="btn btn-ghost btn-lg">Ver cómo funciona</a>
+          <CTAMicro />
         </div>
 
-        <div style={{ display: "flex", justifyContent: "center", marginTop: 16, gap: 20, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: "var(--ink-softer)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <IconCheck size={14} /> 24h gratis de PRO
-          </span>
-          <span style={{ fontSize: 13, color: "var(--ink-softer)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <IconHeart size={14} /> +1.200 estudiantes activos
-          </span>
+        {/* Visual: video/GIF en loop apunte → resumen + flashcards + simulacro */}
+        <div style={{ maxWidth: 880, margin: "40px auto 0" }} className="reveal">
+          <MediaSlot src="hero.mp4" label="Video del hero · apunte → resumen + flashcards + simulacro (10-15s en loop)" />
         </div>
-      </div>
-    </section>
-  );
-}
 
-
-// ============================================================
-// LOGO STRIP (seccion 3 — universidades)
-// ============================================================
-function FakeLogo({ label, sub, highlight }: { label: string; sub: string; highlight?: boolean }) {
-  return (
-    <div className="logo-strip" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "12px 8px", opacity: highlight ? 0.85 : undefined, filter: highlight ? "grayscale(0)" : undefined }}>
-      <div style={{ width: 28, height: 28, borderRadius: 6, background: highlight ? "var(--accent)" : "var(--ink)", display: "grid", placeItems: "center", color: "white", fontWeight: 700, fontSize: 13 }}>{label[0]}</div>
-      <div style={{ lineHeight: 1.1 }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, color: "var(--ink-softer)" }}>{sub}</div>}
-      </div>
-    </div>
-  );
-}
-
-export function LogoStrip() {
-  return (
-    <section style={{ padding: "32px 0 20px", borderTop: "1px solid rgba(53,56,49,0.08)", borderBottom: "1px solid rgba(53,56,49,0.08)", background: "var(--paper-warm)" }}>
-      <div className="container-x">
-        <p style={{ textAlign: "center", margin: 0, marginBottom: 20, fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--ink-softer)", fontWeight: 600 }}>
-          Pagás seguro · Estudiantes de toda Argentina
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", alignItems: "center", gap: 24, color: "var(--ink-soft)" }}>
-          <FakeLogo label="MercadoPago" sub="Partner oficial" highlight />
-          <FakeLogo label="UNC" sub="Universidad Nacional" />
-          <FakeLogo label="UTN" sub="Tec. Nacional" />
-          <FakeLogo label="Siglo 21" sub="" />
-          <FakeLogo label="UCC" sub="" />
-          <FakeLogo label="UBA" sub="" />
+        {/* Trust strip */}
+        <div style={{ marginTop: 28 }}>
+          <p style={{ textAlign: "center", margin: 0, fontSize: 14, color: "var(--ink-soft)" }}>
+            <b style={{ color: "var(--ink)" }}>+1.200 estudiantes</b> ya estudian con Skillio
+          </p>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px 22px", marginTop: 14, flexWrap: "wrap", opacity: 0.7 }}>
+            {["UBA", "UNC", "UTN", "Siglo 21", "UCC"].map((u) => (
+              <span key={u} style={{ fontFamily: "var(--font-roboto)", fontWeight: 800, fontSize: 16, color: "var(--ink-soft)", letterSpacing: "-0.02em" }}>{u}</span>
+            ))}
+          </div>
         </div>
       </div>
     </section>

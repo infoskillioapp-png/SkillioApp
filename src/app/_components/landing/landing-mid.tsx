@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import { IconDoc, IconExam, IconFlash, IconChat, IconUpload, IconBolt, IconTrophy, IconSparkles, IconArrow, IconCheck, IconX } from "./landing-top";
+import { IconDoc, IconExam, IconFlash, IconUpload, IconBolt, IconTrophy, IconSparkles, IconX, MediaSlot } from "./landing-top";
 
 // ============================================================
 // SHARED: SECTION HEADER
@@ -18,35 +18,66 @@ export function SectionHeader({ eyebrow, title, sub }: { eyebrow: string; title:
 }
 
 // ============================================================
-// FEATURES
+// PROBLEMA / AGITACIÓN — conexión emocional
+// ============================================================
+export function Problema() {
+  const dolores = [
+    "Parcial en 2 días y 200 páginas sin abrir.",
+    "Apuntes tan desordenados que ni vos los entendés.",
+    "Releés lo mismo 5 veces y no te queda nada.",
+    "No sabés ni por dónde empezar.",
+  ];
+  return (
+    <section className="section" style={{ background: "var(--bg-2)" }}>
+      <div className="container-x" style={{ maxWidth: 820 }}>
+        <h2 className="h-section reveal" style={{ textAlign: "center", margin: "0 auto", maxWidth: 640 }}>
+          Si estás así, Skillio es <span className="gradient-text">para vos</span>:
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14, marginTop: 38 }}>
+          {dolores.map((d, i) => (
+            <div key={i} className="card reveal" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+              <span style={{ flex: "0 0 30px", height: 30, borderRadius: 999, background: "rgba(165,64,45,0.10)", color: "var(--accent)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <IconX size={14} stroke={2.5} />
+              </span>
+              <span style={{ fontSize: 15.5, lineHeight: 1.4, color: "var(--ink)", fontWeight: 500 }}>{d}</span>
+            </div>
+          ))}
+        </div>
+        <p className="reveal" style={{ textAlign: "center", margin: "32px auto 0", maxWidth: 600, fontSize: "clamp(18px, 2vw, 22px)", lineHeight: 1.5, color: "var(--ink)", fontWeight: 600 }}>
+          Respirá. Skillio convierte ese caos en un plan de estudio <span className="gradient-text">en segundos</span>.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// BENEFICIOS — las 3 features core, contadas como RESULTADO
 // ============================================================
 export function Features() {
   const items = [
-    { Icon: IconDoc, title: "Resúmenes IA", body: "Subí PDF, foto del pizarrón o tu apunte garabateado. Te lo convertimos en puntos clave, resumen académico o ficha de estudio." },
-    { Icon: IconExam, title: "Simulacros de parciales", body: "Generá exámenes de 5 a 20 preguntas: opción múltiple, V/F y desarrollo corto. Con corrección y explicación." },
-    { Icon: IconFlash, title: "Flashcards inteligentes", body: "Mazos generados de tus apuntes con repetición espaciada. Te avisamos qué repasar antes del parcial." },
+    { Icon: IconDoc, title: "Resúmenes que de verdad se entienden", body: "No un copy-paste: la IA te lo explica en tu idioma, con los puntos que entran al parcial. De PDF, foto del pizarrón o tu apunte garabateado." },
+    { Icon: IconFlash, title: "Flashcards con repaso espaciado", body: "Para que lo estudiado no se te borre. Te avisamos qué repasar y cuándo, así llegás al parcial con todo fresco." },
+    { Icon: IconExam, title: "Simulacros del parcial", body: "Practicá con el formato real: opción múltiple, V/F y desarrollo, con corrección y explicación. Llegás sin sorpresas." },
   ];
   return (
     <section id="funciones" className="section">
       <div className="container-x">
         <SectionHeader
-          eyebrow="Funciones principales"
-          title={<>Tres herramientas que <span className="gradient-text">reemplazan</span> tu noche de estudio</>}
+          eyebrow="Lo que vas a lograr"
+          title={<>Menos horas de lectura.<br /><span className="gradient-text">Mejores</span> notas.</>}
           sub="Todo en un solo lugar. Sin abrir 17 pestañas, sin pegar texto en otra IA, sin perderte."
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18, marginTop: 42 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18, marginTop: 42 }}>
           {items.map((it, i) => (
-            <div key={i} className="card lift" style={{ padding: 26, display: "flex", flexDirection: "column", gap: 18 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(165,64,45,0.10)", color: "var(--accent)" }}>
-                <it.Icon size={24} />
+            <div key={i} className="card lift reveal" style={{ padding: 28, display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 13, display: "grid", placeItems: "center", background: "rgba(165,64,45,0.10)", color: "var(--accent)" }}>
+                <it.Icon size={26} />
               </div>
               <div>
-                <h3 className="h-card" style={{ margin: 0, marginBottom: 8 }}>{it.title}</h3>
+                <h3 className="h-card" style={{ margin: 0, marginBottom: 10, fontSize: 19, lineHeight: 1.25 }}>{it.title}</h3>
                 <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.55, color: "var(--ink-soft)" }}>{it.body}</p>
               </div>
-              <a href="#como" style={{ marginTop: "auto", color: "var(--accent)", fontSize: 13, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                Ver demo <IconArrow size={14} />
-              </a>
             </div>
           ))}
         </div>
@@ -60,21 +91,21 @@ export function Features() {
 // ============================================================
 export function HowItWorks() {
   const steps = [
-    { n: "01", title: "Subí tu apunte", body: "Tirá un PDF, foto del pizarrón, una hoja escaneada o el PowerPoint del profe.", Icon: IconUpload },
-    { n: "02", title: "Generá lo que necesites", body: "Resumen ejecutivo, flashcards, simulacro de parcial o una explicación más simple.", Icon: IconBolt },
-    { n: "03", title: "Estudiá y aprobá", body: "Repasá con repetición espaciada, hacé el simulacro y entrá al parcial con todo.", Icon: IconTrophy },
+    { n: "01", title: "Subí tu material", body: "PDF, foto del pizarrón, una hoja escaneada o texto. Si lo podés leer vos, lo lee Skillio.", Icon: IconUpload },
+    { n: "02", title: "La IA lo convierte", body: "En resumen, flashcards y simulacro de parcial. En segundos, no en horas.", Icon: IconBolt },
+    { n: "03", title: "Estudiás y llegás listo", body: "Repasás con repetición espaciada, hacés el simulacro y entrás al parcial con todo.", Icon: IconTrophy },
   ];
   return (
     <section id="como" className="section" style={{ background: "var(--bg-2)" }}>
       <div className="container-x">
         <SectionHeader
           eyebrow="Cómo funciona"
-          title={<>De 200 páginas a parcial aprobado<br />en tres pasos</>}
+          title={<>De 200 páginas a parcial aprobado<br />en <span className="gradient-text">tres pasos</span></>}
           sub="Sin curva de aprendizaje. Si sabés usar WhatsApp, sabés usar Skillio."
         />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 50 }}>
           {steps.map((s, i) => (
-            <div key={i} style={{ background: "var(--paper)", borderRadius: 22, padding: 28, position: "relative", border: "1px solid rgba(53,56,49,0.06)" }}>
+            <div key={i} className="reveal" style={{ background: "var(--paper)", borderRadius: 22, padding: 28, position: "relative", border: "1px solid rgba(53,56,49,0.06)" }}>
               <div style={{ position: "absolute", top: 22, right: 22, fontFamily: "var(--font-serif)", fontSize: 48, color: "var(--bg-2)", lineHeight: 0.8 }}>{s.n}</div>
               <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--accent)", color: "white", display: "grid", placeItems: "center", marginBottom: 22 }}>
                 <s.Icon size={24} />
@@ -83,6 +114,10 @@ export function HowItWorks() {
               <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--ink-soft)" }}>{s.body}</p>
             </div>
           ))}
+        </div>
+        {/* GIF antes/después: apunte desordenado → material de estudio ordenado */}
+        <div style={{ maxWidth: 900, margin: "44px auto 0" }} className="reveal">
+          <MediaSlot src="antes-despues.mp4" label="Video antes / después · apunte caótico → resumen + flashcards ordenados" ratio="16 / 9" />
         </div>
       </div>
     </section>

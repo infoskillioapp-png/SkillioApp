@@ -63,6 +63,20 @@ type Props = { result: AnyResult; onClose: () => void };
 
 export function ResultModal({ result, onClose }: Props) {
   const [footer, setFooter] = useState<React.ReactNode>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownloadPdf() {
+    if (result.kind !== "summary" || downloading) return;
+    setDownloading(true);
+    try {
+      const mod = await import("./summary-pdf");
+      await mod.downloadSummaryPdf(result, title);
+    } catch (e) {
+      console.error("PDF export failed", e);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   useEffect(() => {
     // Bloquear scroll del body mientras el modal está abierto
@@ -117,14 +131,43 @@ export function ResultModal({ result, onClose }: Props) {
               {title}
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-10 h-10 md:w-9 md:h-9 rounded-full border border-rule hover:border-ink-soft hover:rotate-90 transition-all duration-300 flex items-center justify-center shrink-0 text-lg"
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {result.kind === "summary" && (
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={downloading}
+                className="flex items-center gap-1.5 px-3 py-2 md:py-2 rounded-full bg-accent text-[#FBF1EF] text-[12.5px] font-display font-semibold hover:bg-accent-hover transition disabled:opacity-60 disabled:cursor-wait"
+                aria-label="Descargar resumen en PDF"
+              >
+                {downloading ? (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-3.5 h-3.5 animate-spin">
+                      <path d="M21 12a9 9 0 1 1-6.2-8.5" strokeLinecap="round" />
+                    </svg>
+                    <span className="hidden sm:inline">Generando…</span>
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} className="w-3.5 h-3.5">
+                      <path d="M12 3v12m0 0l-4-4m4 4l4-4" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" />
+                    </svg>
+                    <span className="hidden sm:inline">Descargar PDF</span>
+                    <span className="sm:hidden">PDF</span>
+                  </>
+                )}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-10 h-10 md:w-9 md:h-9 rounded-full border border-rule hover:border-ink-soft hover:rotate-90 transition-all duration-300 flex items-center justify-center shrink-0 text-lg"
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          </div>
         </header>
 
         {/* Contenido scrolleable */}

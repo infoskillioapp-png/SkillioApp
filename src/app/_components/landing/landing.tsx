@@ -3,10 +3,9 @@
 import "./landing.css";
 import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Navbar, HeroText, LogoStrip } from "./landing-top";
-import { IconArrow } from "./landing-top";
-import { Features, HowItWorks, Demo, Toolkit } from "./landing-mid";
-import { Community, Pricing, FAQ, FinalCTA, Footer } from "./landing-bottom";
+import { Navbar, HeroText, IconArrow, CTAMicro } from "./landing-top";
+import { Features, HowItWorks, Demo, Toolkit, Problema } from "./landing-mid";
+import { Community, Pricing, FAQ, FinalCTA, Footer, Testimonios, Transformacion } from "./landing-bottom";
 import MeshBackground from "./MeshBackground";
 
 function useReveal() {
@@ -23,10 +22,33 @@ function useReveal() {
 
 function CTAPost({ onCTA }: { onCTA: () => void }) {
   return (
-    <div style={{ textAlign: "center", padding: "8px 24px 52px" }}>
-      <button className="btn btn-primary btn-lg btn-pulse" onClick={onCTA}>
-        Empezá PRO Gratis · 24h <IconArrow size={16} />
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 24px 52px" }}>
+      <button className="btn btn-primary btn-lg btn-pulse" onClick={onCTA} style={{ fontSize: 17 }}>
+        Empezá gratis <IconArrow size={18} />
       </button>
+      <CTAMicro />
+    </div>
+  );
+}
+
+// Barra CTA fija en mobile — siempre visible mientras scrollea
+function StickyMobileCTA({ onCTA }: { onCTA: () => void }) {
+  return (
+    <div
+      id="sticky-cta"
+      style={{
+        position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 90,
+        background: "rgba(251,241,239,0.94)", backdropFilter: "saturate(140%) blur(10px)",
+        borderTop: "1px solid rgba(53,56,49,0.08)", padding: "10px 16px calc(10px + env(safe-area-inset-bottom))",
+        boxShadow: "0 -6px 24px -12px rgba(53,56,49,0.25)",
+      }}
+    >
+      <button className="btn btn-primary" onClick={onCTA} style={{ width: "100%", fontSize: 16, padding: "14px 22px" }}>
+        Empezá gratis <IconArrow size={16} />
+      </button>
+      <p style={{ textAlign: "center", margin: "6px 0 0", fontSize: 11.5, color: "var(--ink-softer)" }}>
+        Sin tarjeta · Probá PRO · Cancelás cuando quieras
+      </p>
     </div>
   );
 }
@@ -55,21 +77,27 @@ export function LandingPage() {
       <div className="hero-content">
         <Navbar onCTA={onCTA} />
         <HeroText onCTA={onCTA} />
-        <Features />
-        <HowItWorks />
         <Demo />
         <CTAPost onCTA={onCTA} />
+        <Problema />
+        <HowItWorks />
+        <Features />
         <Toolkit />
         <Community onCTA={onCTA} />
+        <Testimonios />
+        <Transformacion />
         <Pricing onCTA={onCTA} />
         <FAQ />
         <FinalCTA onCTA={onCTA} />
-        <LogoStrip />
         <Footer />
       </div>
 
+      {/* CTA sticky solo en mobile */}
+      <StickyMobileCTA onCTA={onCTA} />
+
       {/* Botón flotante de WhatsApp */}
       <a
+        id="wa-fab"
         href="https://wa.me/5493517732460"
         target="_blank"
         rel="noopener noreferrer"
@@ -107,6 +135,16 @@ export function LandingPage() {
         </svg>
         Soporte
       </a>
+
+      <style>{`
+        /* CTA sticky: solo mobile. En desktop el hero/secciones ya tienen CTA. */
+        #sticky-cta { display: none; }
+        @media (max-width: 720px) {
+          #sticky-cta { display: block; }
+          /* Subir el botón de WhatsApp para que no choque con la barra sticky */
+          #wa-fab { bottom: 92px !important; right: 16px !important; padding: 11px 16px !important; font-size: 13px !important; }
+        }
+      `}</style>
     </div>
   );
 }
