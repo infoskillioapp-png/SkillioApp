@@ -243,7 +243,23 @@ export function MediaSlot({ src, label, ratio = "16 / 10" }: { src: string; labe
 export function HeroText({ onCTA }: { onCTA: () => void }) {
   return (
     <section id="top" className="section" style={{ position: "relative", paddingTop: "clamp(32px, 5vw, 64px)", paddingBottom: "clamp(40px, 5vw, 56px)" }}>
-      <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none" }} className="grid-bg fade" />
+      {/* Fondo del hero: imagen atmosférica (desktop 16:9 / mobile 9:16) + velo */}
+      <div aria-hidden className="hero-bg-img" />
+      <div aria-hidden className="hero-bg-veil" />
+      <style>{`
+        .hero-bg-img {
+          position: absolute; inset: 0; z-index: 0; pointer-events: none;
+          background-image: url('/landing/hero-bg-mobile.webp');
+          background-size: cover; background-position: center top; background-repeat: no-repeat;
+        }
+        @media (min-width: 768px) {
+          .hero-bg-img { background-image: url('/landing/hero-bg-desktop.webp'); }
+        }
+        .hero-bg-veil {
+          position: absolute; inset: 0; z-index: 0; pointer-events: none;
+          background: radial-gradient(ellipse 95% 65% at 50% 40%, rgba(251,239,231,0.20) 0%, rgba(251,239,231,0.48) 58%, var(--bg) 100%);
+        }
+      `}</style>
       <div className="container-x" style={{ position: "relative", zIndex: 2 }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
           <span className="badge">
