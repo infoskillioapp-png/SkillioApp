@@ -136,21 +136,62 @@ const PRESETS = [
 type DemoMode = "puntos" | "resumen" | "flashcards";
 type DemoOutput = { items?: string[] } | { resumen?: string } | { cards?: { q: string; a: string }[] } | null;
 
-function buildPrompt(mode: DemoMode, text: string) {
-  if (mode === "puntos") {
-    return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Hacé puntos clave del siguiente apunte. Devolvé SOLO un JSON con esta forma exacta, sin texto adicional:\n{"items":["punto 1","punto 2","..."]}\nEntre 4 y 6 puntos, claros y concisos. Tono amistoso y académico, sin malas palabras.\n\nApunte:\n${text}` }] };
-  }
-  if (mode === "resumen") {
-    return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Hacé un resumen académico breve (2-3 párrafos cortos) del siguiente apunte. Devolvé SOLO un JSON con esta forma: {"resumen":"texto..."}. Tono claro y académico, sin malas palabras ni tecnicismos innecesarios.\n\nApunte:\n${text}` }] };
-  }
-  return { messages: [{ role: "user" as const, content: `Sos un asistente de estudio argentino. Generá 4 flashcards del siguiente apunte. Devolvé SOLO un JSON con esta forma:\n{"cards":[{"q":"pregunta","a":"respuesta"}, ...]}\nLas preguntas deben ser cortas y útiles para repasar. Tono académico, sin malas palabras.\n\nApunte:\n${text}` }] };
-}
-
-function parseOutput(mode: DemoMode, raw: string): DemoOutput {
-  const m = raw.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error("bad json");
-  return JSON.parse(m[0]);
-}
+// Outputs pre-generados (NO llaman a la IA → cero costo de tokens y nada de abuso).
+// Un ejemplo representativo por cada apunte (índice) y cada modo.
+type DemoSet = { puntos: { items: string[] }; resumen: { resumen: string }; flashcards: { cards: { q: string; a: string }[] } };
+const CANNED: DemoSet[] = [
+  // 0 · Mitocondria
+  {
+    puntos: { items: [
+      "La mitocondria es el orgánulo que genera la mayor parte de la energía de la célula.",
+      "Esa energía se almacena en una molécula llamada ATP (adenosín trifosfato).",
+      "Aparece en las células eucariotas, es decir, las que tienen núcleo.",
+      "Tiene su propio ADN (el ADN mitocondrial), separado del núcleo celular.",
+      "El ADN mitocondrial se hereda casi siempre por vía materna.",
+    ] },
+    resumen: { resumen: "La mitocondria es un orgánulo de las células eucariotas encargado de producir la mayor parte de la energía que la célula necesita para funcionar.\n\nEsa energía se almacena en una molécula llamada ATP (adenosín trifosfato), que actúa como la 'batería' de la célula.\n\nUna particularidad clave es que la mitocondria tiene su propio ADN —el ADN mitocondrial— y, a diferencia del resto del material genético, se hereda casi siempre de la madre." },
+    flashcards: { cards: [
+      { q: "¿Qué función cumple la mitocondria?", a: "Producir la mayor parte de la energía química de la célula." },
+      { q: "¿En qué molécula se almacena esa energía?", a: "En el ATP (adenosín trifosfato)." },
+      { q: "¿Qué células tienen mitocondrias?", a: "Las células eucariotas (las que tienen núcleo)." },
+      { q: "¿Cómo se hereda el ADN mitocondrial?", a: "Generalmente por vía materna, de la madre." },
+    ] },
+  },
+  // 1 · Teorema de Pitágoras
+  {
+    puntos: { items: [
+      "En todo triángulo rectángulo, el cuadrado de la hipotenusa es igual a la suma de los cuadrados de los catetos.",
+      "Se expresa con la fórmula c² = a² + b², donde c es la hipotenusa.",
+      "La hipotenusa es el lado más largo, opuesto al ángulo de 90°.",
+      "Permite calcular un lado conociendo los otros dos.",
+      "Tiene aplicaciones en arquitectura, navegación, física y trigonometría.",
+    ] },
+    resumen: { resumen: "El teorema de Pitágoras es una de las relaciones más importantes de la geometría. Establece que, en cualquier triángulo rectángulo, el cuadrado de la hipotenusa equivale a la suma de los cuadrados de los catetos.\n\nSe expresa con la fórmula c² = a² + b², donde c es la hipotenusa (el lado más largo) y a y b son los catetos.\n\nGracias a esta relación, conociendo dos lados se puede calcular el tercero. Se usa en arquitectura, navegación, física y trigonometría." },
+    flashcards: { cards: [
+      { q: "¿Qué enuncia el teorema de Pitágoras?", a: "Que el cuadrado de la hipotenusa es igual a la suma de los cuadrados de los catetos." },
+      { q: "¿Cuál es su fórmula?", a: "c² = a² + b²." },
+      { q: "¿A qué triángulos se aplica?", a: "Solo a los triángulos rectángulos (con un ángulo de 90°)." },
+      { q: "¿Qué es la hipotenusa?", a: "El lado más largo, opuesto al ángulo recto." },
+    ] },
+  },
+  // 2 · Revolución de Mayo
+  {
+    puntos: { items: [
+      "Fue una serie de hechos políticos ocurridos del 18 al 25 de mayo de 1810 en Buenos Aires.",
+      "Terminó con la destitución del virrey Cisneros.",
+      "Dio lugar a la formación de la Primera Junta de gobierno.",
+      "Marcó el inicio del proceso de independencia del Virreinato del Río de la Plata.",
+      "Significó el primer quiebre formal con la corona española.",
+    ] },
+    resumen: { resumen: "La Revolución de Mayo fue un conjunto de acontecimientos políticos y sociales ocurridos en Buenos Aires entre el 18 y el 25 de mayo de 1810.\n\nSu resultado más importante fue la destitución del virrey Cisneros y la conformación de la Primera Junta de gobierno, integrada por representantes locales.\n\nEste proceso marcó el inicio del camino hacia la independencia del Virreinato del Río de la Plata respecto de la corona española." },
+    flashcards: { cards: [
+      { q: "¿Cuándo ocurrió la Revolución de Mayo?", a: "Entre el 18 y el 25 de mayo de 1810." },
+      { q: "¿A qué autoridad se destituyó?", a: "Al virrey Cisneros." },
+      { q: "¿Qué órgano de gobierno se formó?", a: "La Primera Junta." },
+      { q: "¿Qué proceso inició?", a: "El camino hacia la independencia del Virreinato del Río de la Plata." },
+    ] },
+  },
+];
 
 function DemoEmpty({ mode }: { mode: DemoMode }) {
   return (
@@ -229,23 +270,16 @@ export function Demo() {
   const [mode, setMode] = useState<DemoMode>("puntos");
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState<DemoOutput>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const pickPreset = (i: number) => { setActivePreset(i); setText(PRESETS[i].text); setOutput(null); setError(null); };
+  const pickPreset = (i: number) => { setActivePreset(i); setText(PRESETS[i].text); setOutput(null); };
 
-  const generate = async () => {
-    setLoading(true); setError(null); setOutput(null);
-    try {
-      const prompt = buildPrompt(mode, text);
-      const res = await fetch("/api/demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prompt) });
-      if (!res.ok) throw new Error("API error");
-      const { text: raw } = await res.json();
-      setOutput(parseOutput(mode, raw));
-    } catch {
-      setError("No pude conectar con la IA. Probá de nuevo.");
-    } finally {
+  // Demo representativa: muestra un output pre-generado (no llama a la IA → sin costo de tokens).
+  const generate = () => {
+    setLoading(true); setOutput(null);
+    setTimeout(() => {
+      setOutput(CANNED[activePreset][mode] as DemoOutput);
       setLoading(false);
-    }
+    }, 1100);
   };
 
   return (
@@ -283,11 +317,10 @@ export function Demo() {
               </div>
               <textarea
                 value={text}
-                onChange={(e) => { setText(e.target.value); setOutput(null); }}
+                readOnly
                 rows={9}
-                style={{ width: "100%", resize: "vertical", background: "var(--bg)", border: "1px solid rgba(53,56,49,0.1)", borderRadius: 14, padding: 14, fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: 1.5, color: "var(--ink)", outline: "none" }}
-                onFocus={(e) => (e.target.style.borderColor = "var(--accent)")}
-                onBlur={(e) => (e.target.style.borderColor = "rgba(53,56,49,0.1)")}
+                aria-label="Apunte de ejemplo"
+                style={{ width: "100%", resize: "none", background: "var(--bg)", border: "1px solid rgba(53,56,49,0.1)", borderRadius: 14, padding: 14, fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: 1.5, color: "var(--ink)", outline: "none", cursor: "default" }}
               />
               <div style={{ marginTop: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-softer)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>Generar como</div>
@@ -310,15 +343,14 @@ export function Demo() {
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-softer)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 14 }}>
                 Output · {mode === "puntos" ? "Puntos clave" : mode === "resumen" ? "Resumen académico" : "Flashcards"}
               </div>
-              {!output && !loading && !error && <DemoEmpty mode={mode} />}
+              {!output && !loading && <DemoEmpty mode={mode} />}
               {loading && <DemoLoading mode={mode} />}
-              {error && <div style={{ color: "var(--accent)", fontSize: 14, padding: 12, background: "rgba(165,64,45,0.08)", borderRadius: 10 }}>{error}</div>}
               {output && !loading && <DemoOutput mode={mode} output={output} />}
             </div>
           </div>
         </div>
         <p style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: "var(--ink-softer)" }}>
-          La IA puede tardar unos segundos. Tus datos no se guardan en este demo.
+          Ejemplo representativo de lo que Skillio genera en segundos. Creá tu cuenta para procesar tus propios apuntes.
         </p>
       </div>
       <style>{`@media (max-width: 820px) { .demo-grid { grid-template-columns: 1fr !important; } .demo-grid > div:first-child { border-right: none !important; border-bottom: 1px solid rgba(53,56,49,0.07); } }`}</style>
