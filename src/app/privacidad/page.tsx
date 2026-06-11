@@ -21,8 +21,8 @@ export default function PrivacidadPage() {
       </p>
       <div className="meta-box">
         <div><strong>Responsable:</strong> Emiliano Ezequiel Huerta</div>
-        <div><strong>CUIL:</strong> 20-42475841-9</div>
-        <div><strong>Domicilio:</strong> Abra de Zenta 267, Córdoba, Provincia de Córdoba, Argentina</div>
+        <div><strong>CUIL:</strong> 20-42465841-9</div>
+        <div><strong>Domicilio:</strong> Av. Colón 3590, Córdoba, Provincia de Córdoba, Argentina</div>
         <div><strong>Correo de contacto:</strong> info.skillioapp@gmail.com</div>
         <div><strong>Sitio:</strong> skillio.digital</div>
       </div>
