@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SignOutButton } from "@clerk/nextjs";
 import { ThemeToggle } from "./theme-toggle";
+import { OfferCountdownPill } from "@/components/offer-countdown";
 import type { SkillioUser } from "@/lib/sync-user";
 
 function MobileUserMenu({ user }: { user: SkillioUser }) {
@@ -53,7 +54,7 @@ function MobileUserMenu({ user }: { user: SkillioUser }) {
               </p>
               <p className="text-[11px] text-ink-softer truncate">{user.email}</p>
               <p className="text-[10.5px] text-ink-soft mt-0.5">
-                {user.plan === "pro" ? "Pro" : "Básico"} · 🔥 {user.current_streak}d
+                {user.plan === "pro" ? "Pro" : "Gratis"} · 🔥 {user.current_streak}d
               </p>
             </div>
             <div className="px-3.5 py-2.5 space-y-0.5 border-b border-rule">
@@ -111,6 +112,9 @@ export function Topbar({ user }: { user?: SkillioUser }) {
       </div>
 
       <div className="flex items-center gap-3">
+        {user && user.plan !== "pro" && (
+          <OfferCountdownPill startedAt={user.offer_started_at} />
+        )}
         <a
           href="https://wa.me/5493517732460"
           target="_blank"

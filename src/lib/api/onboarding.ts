@@ -61,6 +61,10 @@ export async function completeOnboarding(formData: FormData) {
       career,
       phone,
       onboarding_completed: true,
+      // Arranca el cronómetro de 12h de la oferta de lanzamiento. completeOnboarding
+      // corre una sola vez por usuario (la página redirige a /app si ya está hecho),
+      // así que este timestamp no se pisa.
+      offer_started_at: new Date().toISOString(),
     })
     .eq("clerk_user_id", userId)
     .select("email, full_name")

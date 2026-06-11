@@ -26,6 +26,7 @@ export type SkillioUser = {
   career: string | null;
   phone: string | null;
   onboarding_completed: boolean;
+  offer_started_at: string | null;
 };
 
 /**

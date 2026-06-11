@@ -98,7 +98,7 @@ export default async function AppLayout({
     : `${proto}://${host}/registro`;
 
   return (
-    <AppProviders>
+    <AppProviders offerStartedAt={user.offer_started_at}>
       <div className="fixed inset-0 grid grid-rows-[52px_1fr] bg-bg text-ink transition-colors">
         <Topbar user={user} />
         <div className="grid md:grid-cols-[244px_1fr] overflow-hidden min-h-0">

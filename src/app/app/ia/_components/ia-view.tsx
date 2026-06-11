@@ -75,9 +75,25 @@ export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: P
     Math.max(0, FREE_LIMIT - freeGenerationsUsed),
   );
   const [showNoCredits, setShowNoCredits] = useState(false);
+  const [showServedNudge, setShowServedNudge] = useState(false);
 
   // PRO se mide por créditos; free por generaciones restantes.
   const canAfford = (cost: number) => (isPro ? localCredits >= cost : freeGenLeft > 0);
+
+  // Al cerrar un resultado, free recibe el empujón "¿Te sirvió? Con PRO hacés
+  // ilimitados" — en el pico de deseo, justo después de ver el material. Cap de
+  // 1 vez por sesión para no spamear (sessionStorage sobrevive a la navegación).
+  function handleResultClose() {
+    setResult(null);
+    if (isPro) return;
+    try {
+      if (sessionStorage.getItem("skillio_served_nudge")) return;
+      sessionStorage.setItem("skillio_served_nudge", "1");
+    } catch {
+      // sessionStorage no disponible (modo privado raro): mostramos igual.
+    }
+    setShowServedNudge(true);
+  }
 
   // Free agotó las 3 gratis → popup PRO (a MercadoPago). PRO sin créditos →
   // modal de créditos (espera renovación / pack próximamente).
@@ -361,9 +377,61 @@ export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: P
         )}
       </section>
 
-      {result && <ResultModal result={result} onClose={() => setResult(null)} />}
+      {result && <ResultModal result={result} onClose={handleResultClose} />}
       {showNoCredits && <NoCreditsModal onClose={() => setShowNoCredits(false)} />}
+      {showServedNudge && (
+        <ServedNudge
+          onUpgrade={() => {
+            setShowServedNudge(false);
+            upgrade.open("generic");
+          }}
+          onClose={() => setShowServedNudge(false)}
+        />
+      )}
     </>
+  );
+}
+
+// Empujón liviano (no es el paywall completo) tras cerrar un resultado. Aparece
+// abajo, se va solo a los ~10s o al cerrarlo. Abre el paywall si lo clickean.
+function ServedNudge({ onUpgrade, onClose }: { onUpgrade: () => void; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 10000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[80] w-[calc(100%-2rem)] max-w-sm animate-skillio-fade-in px-2">
+      <div
+        className="relative rounded-2xl border border-accent/25 shadow-lg p-4 pr-9 flex items-center gap-3"
+        style={{ background: "linear-gradient(135deg, var(--paper) 0%, var(--accent-softer) 100%)" }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full text-ink-softer hover:text-ink hover:bg-paper-warm transition flex items-center justify-center"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
+            <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        <span className="text-2xl shrink-0">🔥</span>
+        <div className="min-w-0">
+          <p className="font-display font-bold text-[13.5px] leading-tight mb-0.5">
+            ¿Te sirvió? Con PRO hacés ilimitados.
+          </p>
+          <button
+            type="button"
+            onClick={onUpgrade}
+            className="text-[12.5px] font-bold text-accent hover:text-accent-hover transition"
+          >
+            Pasate a PRO →
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

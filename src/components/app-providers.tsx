@@ -7,10 +7,16 @@ import { UpgradeSuccess } from "./upgrade-success";
 import { RegistrationSuccess } from "./registration-success";
 import { FeedbackWidget } from "./feedback-widget";
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
+export function AppProviders({
+  children,
+  offerStartedAt = null,
+}: {
+  children: React.ReactNode;
+  offerStartedAt?: string | null;
+}) {
   return (
     <ToastProvider>
-      <UpgradeModalProvider>
+      <UpgradeModalProvider offerStartedAt={offerStartedAt}>
         <Suspense>
           <UpgradeSuccess />
           <RegistrationSuccess />
