@@ -1,5 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { buildUnsubscribeUrl } from "./unsubscribe";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -56,13 +58,27 @@ function wrap(opts: {
         <tr><td style="padding:0 32px 28px;">
           <div style="border-top:1px solid #efe8df;padding-top:16px;font-size:12px;color:#9a8f80;line-height:1.5;">
             Skillio · Tu copiloto de estudio 🇦🇷<br>
-            Si no querés más estos correos, respondé este mail y te damos de baja.
+            ¿No querés más estos correos? <a href="__UNSUB_URL__" style="color:#9a8f80;text-decoration:underline;">Cancelar suscripción</a>.
           </div>
         </td></tr>
       </table>
     </td></tr>
   </table>
 </body></html>`;
+}
+
+// ¿El usuario se dio de baja? Ante error de DB no bloqueamos (devolvemos false).
+async function isOptedOut(email: string): Promise<boolean> {
+  try {
+    const { data } = await supabaseAdmin()
+      .from("users")
+      .select("email_opt_out")
+      .eq("email", email)
+      .maybeSingle();
+    return Boolean(data?.email_opt_out);
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -79,14 +95,28 @@ async function send(opts: {
     console.warn("[email] RESEND_API_KEY no configurada — mail no enviado:", opts.subject);
     return;
   }
+
+  // Respetar la baja. (En los mails programados a +2h/+20h, el chequeo corre al
+  // programar; una baja posterior no cancela el envío ya en cola en Resend.)
+  if (await isOptedOut(opts.to)) {
+    console.log("[email] baja activa, no se envía:", opts.to, "·", opts.subject);
+    return;
+  }
+
+  const unsubUrl = buildUnsubscribeUrl(APP_URL, opts.to);
+  const html = opts.html.replaceAll("__UNSUB_URL__", unsubUrl);
+
   try {
     const { error } = await resend.emails.send({
       from: FROM,
       to: opts.to,
       replyTo: REPLY_TO,
       subject: opts.subject,
-      html: opts.html,
-      headers: { "List-Unsubscribe": UNSUBSCRIBE_MAILTO },
+      html,
+      headers: {
+        "List-Unsubscribe": `<${unsubUrl}>, ${UNSUBSCRIBE_MAILTO}`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
       ...(opts.scheduledAt ? { scheduledAt: opts.scheduledAt } : {}),
     });
     if (error) console.error("[email] Resend error:", error, "·", opts.subject);
