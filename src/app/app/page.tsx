@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentSkillioUser, getDashboardStats } from "@/lib/db";
 import { listEvents } from "@/lib/api/events";
+import { OfferBanner } from "@/components/offer-countdown";
 import { Greeting } from "./_components/dashboard/greeting";
 import { MetricChips } from "./_components/dashboard/metric-chips";
 import { Pomodoro } from "./_components/dashboard/pomodoro";
@@ -23,6 +24,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto">
+      {user.plan !== "pro" && <OfferBanner startedAt={user.offer_started_at} />}
       <Greeting user={user} />
       <MetricChips stats={stats} />
 

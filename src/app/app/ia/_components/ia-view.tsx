@@ -392,42 +392,72 @@ export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: P
   );
 }
 
-// Empujón liviano (no es el paywall completo) tras cerrar un resultado. Aparece
-// abajo, se va solo a los ~10s o al cerrarlo. Abre el paywall si lo clickean.
+// Empujón tras cerrar un resultado: modal centrado que interrumpe (en el pico
+// de deseo). Cierra con la cruz, Escape, click afuera o "Seguir gratis".
 function ServedNudge({ onUpgrade, onClose }: { onUpgrade: () => void; onClose: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onClose, 10000);
-    return () => clearTimeout(t);
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", k);
+      document.body.style.overflow = prev;
+    };
   }, [onClose]);
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[80] w-[calc(100%-2rem)] max-w-sm animate-skillio-fade-in px-2">
+    <div
+      className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-skillio-fade-in"
+      onClick={onClose}
+    >
       <div
-        className="relative rounded-2xl border border-accent/25 shadow-lg p-4 pr-9 flex items-center gap-3"
-        style={{ background: "linear-gradient(135deg, var(--paper) 0%, var(--accent-softer) 100%)" }}
+        className="relative w-full max-w-sm rounded-3xl bg-paper border border-rule shadow-lg overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        style={{ animation: "skillio-modal-pop .4s cubic-bezier(.34,1.56,.64,1) both" }}
       >
+        {/* halo */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-44 rounded-full blur-3xl opacity-50"
+          style={{ background: "radial-gradient(circle, var(--accent-glow), transparent 60%)" }}
+        />
+
         <button
           type="button"
           onClick={onClose}
           aria-label="Cerrar"
-          className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full text-ink-softer hover:text-ink hover:bg-paper-warm transition flex items-center justify-center"
+          className="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-paper-warm text-ink-soft hover:text-ink hover:bg-bg-2 transition flex items-center justify-center z-10"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
             <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" />
           </svg>
         </button>
 
-        <span className="text-2xl shrink-0">🔥</span>
-        <div className="min-w-0">
-          <p className="font-display font-bold text-[13.5px] leading-tight mb-0.5">
-            ¿Te sirvió? Con PRO hacés ilimitados.
+        <div className="relative px-7 pt-9 pb-7 text-center">
+          <div className="text-5xl mb-4">🔥</div>
+          <h2 className="font-display font-extrabold text-[26px] tracking-[-0.03em] leading-tight mb-2">
+            ¿Te sirvió? Con PRO hacés{" "}
+            <span className="italic text-accent">ilimitados.</span>
+          </h2>
+          <p className="text-[13px] text-ink-soft max-w-xs mx-auto leading-snug mb-7">
+            Estás en racha — no la cortes. Seguí generando resúmenes, flashcards y
+            simulacros sin frenar hasta el parcial.
           </p>
+
           <button
             type="button"
             onClick={onUpgrade}
-            className="text-[12.5px] font-bold text-accent hover:text-accent-hover transition"
+            className="w-full px-6 py-3.5 rounded-full bg-accent text-[#FBF1EF] font-display font-bold text-[14.5px] shadow-[0_10px_24px_var(--accent-glow)] hover:bg-accent-hover transition active:translate-y-[1px]"
           >
             Pasate a PRO →
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="block mx-auto mt-3 text-[12.5px] text-ink-softer hover:text-ink-soft transition"
+          >
+            Seguir gratis
           </button>
         </div>
       </div>
