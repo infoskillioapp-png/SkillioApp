@@ -8,6 +8,11 @@ const FROM = process.env.RESEND_FROM ?? "Skillio <hola@skillio.digital>";
 const REPLY_TO = "info.skillioapp@gmail.com";
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://skillio.digital").replace(/\/$/, "");
 
+// List-Unsubscribe: requisito anti-spam de Gmail/Yahoo para remitentes masivos.
+// Fase 1: baja por mail (al mismo buzón real del reply-to). El one-click HTTPS
+// (List-Unsubscribe-Post) se agrega en fase 2 con un endpoint /api/unsubscribe.
+const UNSUBSCRIBE_MAILTO = `<mailto:${REPLY_TO}?subject=${encodeURIComponent("Baja Skillio")}>`;
+
 // Cliente perezoso: si no hay API key (ej. local sin configurar), devolvemos
 // null y los envíos se vuelven no-op (no rompen el flujo principal).
 function client(): Resend | null {
@@ -81,6 +86,7 @@ async function send(opts: {
       replyTo: REPLY_TO,
       subject: opts.subject,
       html: opts.html,
+      headers: { "List-Unsubscribe": UNSUBSCRIBE_MAILTO },
       ...(opts.scheduledAt ? { scheduledAt: opts.scheduledAt } : {}),
     });
     if (error) console.error("[email] Resend error:", error, "·", opts.subject);
