@@ -29,7 +29,7 @@ function PagoExitosoInner() {
         });
         if (res.ok) {
           const data = await res.json();
-          firePixelPurchase(data.plan ?? "pro");
+          fireStartTrial(data.plan ?? "pro", preapprovalId);
         }
         return res.ok;
       } catch {
@@ -37,11 +37,19 @@ function PagoExitosoInner() {
       }
     }
 
-    function firePixelPurchase(plan: string) {
-      const fbq = (window as Window & { fbq?: Function }).fbq;
+    // Activación = inicio del trial (la plata real entra 24h después y la
+    // reporta el servidor por CAPI como Purchase). Acá marcamos StartTrial para
+    // no contar dos veces la misma conversión.
+    function fireStartTrial(plan: string, preapproval: string | null) {
+      const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
       if (!fbq) return;
       const value = 16000;
-      fbq("track", "Purchase", { value, currency: "ARS", content_name: `Plan ${plan.toUpperCase()} Skillio` });
+      fbq(
+        "track",
+        "StartTrial",
+        { value, currency: "ARS", content_name: `Plan ${plan.toUpperCase()} Skillio` },
+        preapproval ? { eventID: `starttrial_${preapproval}` } : undefined,
+      );
     }
 
     async function checkPlan(): Promise<boolean> {

@@ -6,6 +6,7 @@ import {
   mpGetPayment,
   mpGetAuthorizedPayment,
 } from "@/lib/mercadopago";
+import { sendMetaPurchase } from "@/lib/meta-capi";
 
 function verifySignature(req: NextRequest, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -25,6 +26,8 @@ function verifySignature(req: NextRequest, dataId: string): boolean {
 
 // Plan único: cualquier suscripción activa es PRO.
 const PRO_FULL_CREDITS = 500;
+// Precio del plan PRO (ARS) — el valor que reportamos a Meta como compra.
+const PRO_PRICE_ARS = 16000;
 
 // Los external_reference que setea nuestra app son IDs de Clerk (user_...).
 // MP a veces trae basura en ese campo (ej "PLANBASICO", el default del plan),
@@ -237,6 +240,14 @@ async function handleAuthorizedPayment(authPaymentId: string) {
   }
   await grantFullCredits(sb, user);
   console.log(`[webhook/authpay] ${user.email} créditos completos otorgados (matchedBy=${matchedBy})`);
+
+  // CAPI: este es el cobro real (post-trial / renovación) → Purchase a Meta.
+  await sendMetaPurchase({
+    email: user.email,
+    value: PRO_PRICE_ARS,
+    currency: "ARS",
+    eventId: `purchase_${authPaymentId}`,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -261,6 +272,14 @@ async function handlePayment(paymentId: string) {
   if (user.plan === "free") return;
   await grantFullCredits(sb, user);
   console.log(`[webhook/payment] ${user.email} créditos completos (matchedBy=${matchedBy})`);
+
+  // CAPI: pago suelto aprobado → Purchase a Meta.
+  await sendMetaPurchase({
+    email: user.email,
+    value: PRO_PRICE_ARS,
+    currency: "ARS",
+    eventId: `purchase_${paymentId}`,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
