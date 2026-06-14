@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { completeDemo } from "@/lib/api/demo";
+import { ResultModal, type AnyResult, type PuntosClaveData } from "@/app/app/ia/_components/result-modal";
 
 // ===========================================================================
 // Tipos
@@ -142,32 +141,35 @@ export function DemoFlow({ firstName, demo }: DemoProps) {
 // ===========================================================================
 // PASO 1 · El resumen
 // ===========================================================================
+const LOADING_MESSAGES = [
+  "Booki está leyendo el apunte… 📖",
+  "Detectando los conceptos clave… 🔍",
+  "Separando lo importante de lo accesorio… ✂️",
+  "Armando tus puntos clave… ✨",
+  "Dándole los toques finales… 🎨",
+];
+
 function StepResumen({ demo, onNext }: { demo: DemoProps["demo"]; onNext: () => void }) {
-  const [state, setState] = useState<GenState>("idle");
-  const [summary, setSummary] = useState("");
+  const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [result, setResult] = useState<AnyResult | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [seen, setSeen] = useState(false);
   const [showDoc, setShowDoc] = useState(false);
 
   const generate = useCallback(async () => {
     setState("loading");
-    setSummary("");
     track("demo_generate", "demo_1", { kind: "summary" });
     try {
       const res = await fetch("/api/demo/summary", { method: "POST" });
-      if (!res.ok || !res.body) {
+      const data = await res.json();
+      if (!res.ok || !data?.data) {
         setState("error");
         return;
       }
-      setState("streaming");
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let acc = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        acc += dec.decode(value, { stream: true });
-        setSummary(acc);
-      }
-      setState("done");
+      setResult({ kind: "summary", format: "puntos_clave", data: data.data as PuntosClaveData });
+      setState("ready");
+      setModalOpen(true);
+      setSeen(true);
       track("demo_generate_done", "demo_1", { kind: "summary" });
     } catch {
       setState("error");
@@ -207,48 +209,131 @@ function StepResumen({ demo, onNext }: { demo: DemoProps["demo"]; onNext: () => 
       </button>
 
       {state === "idle" && (
-        <>
-          <p className="text-[13.5px] text-ink-soft mb-4">
-            Generá los puntos clave de este material. La IA lo lee y te lo resume en segundos.
+        <div className="animate-demo-fade-up">
+          <p className="text-[14px] text-ink-soft mb-4 text-center">
+            Tocá el botón y mirá cómo la IA convierte este apunte en{" "}
+            <strong className="text-ink">puntos clave</strong> en segundos.
           </p>
-          <PrimaryButton onClick={generate}>✨ Generar resumen</PrimaryButton>
-        </>
+          <GenerateCta onClick={generate} />
+        </div>
       )}
 
-      {(state === "loading" || state === "streaming" || state === "done" || state === "error") && (
-        <div className="rounded-2xl border border-rule-soft bg-paper p-5 sm:p-6 relative overflow-hidden">
-          {state === "loading" && (
-            <div className="flex items-center gap-3 py-6">
-              <Spinner />
-              <div>
-                <div className="font-display font-semibold text-sm">Booki está leyendo el apunte…</div>
-                <div className="text-[11.5px] text-ink-soft">Generando los puntos clave</div>
+      {state === "loading" && <GeneratingPanel />}
+
+      {state === "error" && (
+        <div className="rounded-2xl border border-rule-soft bg-paper p-6 text-center">
+          <p className="text-[13px] text-ink-soft mb-3">Uy, algo falló. Probá de nuevo.</p>
+          <GenerateCta onClick={generate} label="Reintentar" />
+        </div>
+      )}
+
+      {state === "ready" && seen && (
+        <div className="animate-demo-fade-up">
+          <div className="rounded-2xl border border-success/40 bg-success-soft p-4 flex items-center gap-3 mb-4">
+            <span className="text-2xl">✅</span>
+            <div>
+              <div className="font-display font-bold text-[14px]">¡Tu resumen está listo!</div>
+              <div className="text-[12px] text-ink-soft">
+                Así de fácil. Lo podés ver de nuevo o descargarlo en PDF.
               </div>
             </div>
-          )}
-
-          {(state === "streaming" || state === "done") && (
-            <MarkdownBody text={summary} streaming={state === "streaming"} />
-          )}
-
-          {state === "error" && (
-            <div className="text-center py-4">
-              <p className="text-[13px] text-ink-soft mb-3">Uy, algo falló. Probá de nuevo.</p>
-              <PrimaryButton onClick={generate}>Reintentar</PrimaryButton>
-            </div>
-          )}
+          </div>
+          <div className="flex gap-2.5">
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="flex-1 py-3 rounded-full border border-rule font-display font-semibold text-[14px] text-ink hover:border-accent hover:text-accent transition"
+            >
+              Ver de nuevo
+            </button>
+            <button
+              type="button"
+              onClick={onNext}
+              className="flex-1 py-3 rounded-full bg-ink text-bg font-display font-bold text-[14px] hover:bg-accent transition active:translate-y-[1px]"
+            >
+              Sigamos →
+            </button>
+          </div>
         </div>
       )}
 
-      {state === "done" && (
-        <div className="mt-5">
-          <ContinueButton onClick={onNext}>Genial, sigamos →</ContinueButton>
-        </div>
-      )}
+      {/* Resultado idéntico a la app paga (mismo modal + PDF brandeado) */}
+      {modalOpen && result && <ResultModal result={result} onClose={() => setModalOpen(false)} />}
 
       {showDoc && (
         <DocViewerModal title={demo.title} subject={demo.subject} text={demo.text} onClose={() => setShowDoc(false)} />
       )}
+    </div>
+  );
+}
+
+// CTA grande, atractivo y con efectos (shine + pulse + sparkles).
+function GenerateCta({ onClick, label = "Generar resumen" }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative w-full overflow-hidden rounded-2xl py-5 text-[#FBF1EF] font-display font-extrabold text-[18px] tracking-[-0.01em] animate-demo-cta-pulse active:translate-y-[1px] transition-transform"
+      style={{
+        background: "linear-gradient(110deg, var(--accent) 0%, var(--accent-2) 55%, #c47b2b 100%)",
+      }}
+    >
+      {/* Shine que barre */}
+      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+        <span
+          className="absolute top-0 left-0 h-full w-1/3 animate-demo-shine"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)" }}
+        />
+      </span>
+      <span className="relative flex items-center justify-center gap-2.5">
+        <span className="text-2xl animate-demo-sparkle">✨</span>
+        {label}
+        <span className="text-2xl animate-demo-sparkle" style={{ animationDelay: ".5s" }}>
+          ✨
+        </span>
+      </span>
+      <span className="relative block text-[11.5px] font-semibold opacity-90 mt-1">
+        Gratis · no usás ninguna de tus generaciones
+      </span>
+    </button>
+  );
+}
+
+// Panel de generación entretenido: Booki + barra indeterminada + mensajes que rotan.
+function GeneratingPanel() {
+  const [msgIdx, setMsgIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setMsgIdx((i) => (i + 1) % LOADING_MESSAGES.length), 1500);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="rounded-2xl border border-accent/20 bg-paper p-6 text-center animate-demo-fade-up relative overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 w-56 h-40 rounded-full blur-3xl opacity-40"
+        style={{ background: "radial-gradient(circle, var(--accent-glow), transparent 65%)" }}
+      />
+      <div className="relative">
+        <Image
+          src="/booki.png"
+          alt="Booki"
+          width={72}
+          height={72}
+          className="object-contain mx-auto mb-3 animate-skillio-bob"
+        />
+        <div key={msgIdx} className="font-display font-bold text-[15px] mb-4 animate-demo-fade-up min-h-[22px]">
+          {LOADING_MESSAGES[msgIdx]}
+        </div>
+        {/* Barra indeterminada */}
+        <div className="h-2 rounded-full bg-rule-soft overflow-hidden relative max-w-[260px] mx-auto">
+          <div
+            className="absolute top-0 left-0 h-full w-1/3 rounded-full animate-demo-bar"
+            style={{ background: "linear-gradient(90deg, var(--accent), var(--accent-2))" }}
+          />
+        </div>
+        <div className="text-[11px] text-ink-softer mt-3">Tarda unos segundos…</div>
+      </div>
     </div>
   );
 }
@@ -554,26 +639,6 @@ function DocViewerModal({
           <div className="whitespace-pre-wrap font-sans text-[13.5px] leading-[1.7] text-ink">{text}</div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ===========================================================================
-// Markdown del resumen (con cursor mientras escribe)
-// ===========================================================================
-function MarkdownBody({ text, streaming }: { text: string; streaming: boolean }) {
-  return (
-    <div className="prose prose-sm max-w-none
-      prose-headings:font-display prose-headings:tracking-tight prose-headings:text-ink
-      prose-h1:text-xl prose-h1:font-extrabold prose-h1:mt-0 prose-h1:mb-3
-      prose-p:text-[14px] prose-p:leading-[1.7] prose-p:text-ink
-      prose-strong:text-ink prose-strong:font-bold
-      prose-li:text-[14px] prose-li:text-ink prose-li:leading-[1.65] prose-li:my-1.5
-      prose-ul:my-2">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-      {streaming && (
-        <span className="inline-block w-1.5 h-4 align-middle bg-accent ml-0.5 animate-skillio-blink rounded-sm" />
-      )}
     </div>
   );
 }

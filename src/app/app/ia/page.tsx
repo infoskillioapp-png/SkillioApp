@@ -25,7 +25,7 @@ export default async function IaPage() {
           background: "radial-gradient(ellipse at 20% 20%, rgba(165,64,45,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(74,107,138,0.07) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(244,201,105,0.04) 0%, transparent 60%)",
         }}
       />
-      <div className="relative z-10 px-6 sm:px-10 py-10 max-w-6xl mx-auto">
+      <div className="relative z-10 px-5 sm:px-10 py-6 sm:py-10 max-w-6xl mx-auto">
         <IaView
           notes={notes}
           subjects={subjects}

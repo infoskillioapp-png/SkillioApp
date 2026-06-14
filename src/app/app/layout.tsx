@@ -109,8 +109,11 @@ export default async function AppLayout({
           <div className="hidden md:block h-full overflow-hidden">
             <Sidebar user={user} />
           </div>
-          {/* pb-16 en mobile para que el contenido no quede bajo la bottom nav */}
-          <main className="overflow-y-auto pb-16 md:pb-0">{children}</main>
+          {/* Padding inferior en mobile = alto de la bottom-nav + safe-area del
+              dispositivo, para que el contenido NUNCA quede tapado por la nav. */}
+          <main className="overflow-y-auto pb-[calc(78px+env(safe-area-inset-bottom))] md:pb-0">
+            {children}
+          </main>
         </div>
       </div>
       {/* Booki fuera del main para que position:fixed funcione correctamente */}

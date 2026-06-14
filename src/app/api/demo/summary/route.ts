@@ -1,39 +1,50 @@
-import { streamText } from "ai";
+import { NextResponse } from "next/server";
+import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { z } from "zod";
 import { DEMO } from "@/lib/demo/demo-source";
 
-// Demo del onboarding: genera el resumen REAL del apunte base con Haiku y lo
-// devuelve como stream de texto, para que el usuario VEA cómo se escribe en vivo
-// (el momento dopamina). No descuenta créditos ni generaciones gratis: es guiado.
+// Demo del onboarding: genera el resumen REAL del apunte base en formato
+// "puntos clave" ESTRUCTURADO — el mismo shape que /api/ai/summarize — para que
+// el resultado se muestre en el ResultModal idéntico a la app paga (tarjetas con
+// colores + descarga a PDF brandeado). Haiku real, sin créditos ni free_gens.
 export const runtime = "nodejs";
 
-const SYSTEM = `Sos 'Booki', la IA de estudio de Skillio. Transformás un apunte en los PUNTOS CLAVE más importantes para repasar antes de un parcial.
-Reglas:
-- Español rioplatense, cercano pero claro.
-- Devolvé SOLO Markdown (sin bloque de código, sin explicar qué vas a hacer).
-- Empezá con un "# " y un título corto del tema.
-- Luego 5 a 7 puntos clave. Cada punto es una línea que empieza con un emoji representativo + un **título corto en negrita** + " — " + una explicación de 1 oración.
-- No inventes nada que no esté en el apunte. Sé conciso y escaneable.`;
+const KeyPoint = z.object({
+  emoji: z.string().describe("Un emoji que represente bien el concepto"),
+  title: z.string().describe("Concepto o idea principal en 3-8 palabras"),
+  description: z.string().describe("Explicación clara en 1-2 oraciones, autocontenida"),
+  category: z
+    .string()
+    .optional()
+    .describe("Subtema dentro del apunte (mismo string para puntos del mismo subtema)"),
+});
+
+const Schema = z.object({
+  title: z.string().describe("Título corto descriptivo basado en el apunte"),
+  intro: z.string().optional().describe("Una oración de contexto al inicio (opcional)"),
+  points: z.array(KeyPoint).min(5).max(8),
+});
+
+const SYSTEM =
+  "Sos un asistente de estudio en español rioplatense. Extraés los puntos clave de un apunte para que un estudiante los repase. Cada punto es autocontenido, con un emoji, un título corto y una descripción de 1-2 oraciones. Agrupá por subtema con `category` cuando tenga sentido. Nunca inventes información que no esté en el apunte.";
 
 export async function POST() {
   try {
-    const result = streamText({
+    const r = await generateObject({
       model: anthropic("claude-haiku-4-5-20251001"),
+      schema: Schema,
       system: SYSTEM,
       messages: [
         {
           role: "user",
-          content: `Apunte: "${DEMO.title}"\n\n---\n${DEMO.text}\n---\n\nGenerá los puntos clave de este material.`,
+          content: `Apunte: "${DEMO.title}"\n\n---\n${DEMO.text}\n---\n\nExtraé entre 5 y 8 puntos clave de este material.`,
         },
       ],
-      maxOutputTokens: 900,
     });
-    return result.toTextStreamResponse();
+    return NextResponse.json({ ok: true, format: "puntos_clave", data: r.object });
   } catch (e) {
     console.error("[api/demo/summary]", e);
-    return new Response(JSON.stringify({ error: "demo_summary_failed" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json({ error: "demo_summary_failed" }, { status: 500 });
   }
 }
