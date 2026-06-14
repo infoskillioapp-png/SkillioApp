@@ -358,7 +358,7 @@ export function IaView({ notes, subjects, credits, plan, freeGenerationsUsed, hi
           </div>
           <div>
             <div className="font-display font-semibold text-sm text-ink">Claude está leyendo tu apunte…</div>
-            <div className="text-[11.5px] text-ink-soft">Puede tardar 10-30 segundos</div>
+            <div className="text-[11.5px] text-ink-soft">Si es un PDF largo lo procesamos por partes — puede tardar un poco más.</div>
           </div>
         </div>
       )}

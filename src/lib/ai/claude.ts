@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { PDFDocument } from "pdf-lib";
 import type { Note } from "@/lib/types";
 import { sendCreditsExhaustedEmail } from "@/lib/email/resend";
 import { sendMetaEvent } from "@/lib/meta-capi";
@@ -235,6 +236,87 @@ async function mapReduceText(text: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Auto-split de PDFs grandes
+// Anthropic procesa PDFs nativos hasta cierto límite. Si el PDF es largo, lo
+// troceamos automáticamente en el servidor (pdf-lib, por rango de páginas),
+// condensamos cada parte con Haiku en paralelo (map) y combinamos (reduce). El
+// usuario no divide nada a mano. Devuelve el texto condensado, o null si el PDF
+// es chico (→ se manda nativo) o no se pudo parsear.
+// ---------------------------------------------------------------------------
+const PDF_NATIVE_PAGE_LIMIT = 30; // <= esto: PDF nativo directo a Anthropic
+const PDF_CHUNK_PAGES = 25; // tamaño de cada trozo cuando hay que partir
+const PDF_MAX_PAGES = 400; // tope de seguridad (evita abusos / latencia extrema)
+
+const PDF_MAP_SYSTEM =
+  "Sos un asistente académico. Resumí de forma EXHAUSTIVA los conceptos clave de esta parte de un apunte, preservando definiciones técnicas, fórmulas, nombres, fechas y datos exactos. No omitas nada importante. No agregues introducciones ni cierres: solo el contenido condensado.";
+
+async function condensePdfChunk(
+  bytes: Uint8Array,
+  idx: number,
+  total: number,
+): Promise<string> {
+  const r = await generateText({
+    model: anthropic(MAP_MODEL),
+    system: PDF_MAP_SYSTEM,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "file" as const,
+            mediaType: "application/pdf" as const,
+            data: bytes,
+            filename: `parte-${idx + 1}.pdf`,
+          },
+          {
+            type: "text" as const,
+            text: `[Parte ${idx + 1} de ${total}] Condensá exhaustivamente esta parte del apunte.`,
+          },
+        ],
+      },
+    ],
+  });
+  return `[Sección ${idx + 1} de ${total}]\n${r.text}`;
+}
+
+/**
+ * Si el PDF supera el límite nativo, lo trocea y condensa a texto. Devuelve el
+ * texto combinado listo para el modelo final, o null si conviene mandarlo nativo.
+ */
+async function maybeCondensePdf(bytes: Uint8Array): Promise<string | null> {
+  let doc: PDFDocument;
+  try {
+    doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  } catch (e) {
+    // No se pudo parsear (raro/encriptado) → que lo intente Anthropic nativo.
+    console.warn("[pdf-split] no se pudo cargar el PDF, se manda nativo:", e);
+    return null;
+  }
+
+  const total = doc.getPageCount();
+  if (total <= PDF_NATIVE_PAGE_LIMIT) return null; // chico → nativo
+
+  const pageCount = Math.min(total, PDF_MAX_PAGES);
+
+  // Partir en sub-PDFs por rango de páginas.
+  const chunks: Uint8Array[] = [];
+  for (let start = 0; start < pageCount; start += PDF_CHUNK_PAGES) {
+    const end = Math.min(start + PDF_CHUNK_PAGES, pageCount);
+    const sub = await PDFDocument.create();
+    const indices = Array.from({ length: end - start }, (_, k) => start + k);
+    const pages = await sub.copyPages(doc, indices);
+    pages.forEach((p) => sub.addPage(p));
+    chunks.push(await sub.save());
+  }
+
+  // Map (paralelo) + reduce.
+  const parts = await Promise.all(
+    chunks.map((c, i) => condensePdfChunk(c, i, chunks.length)),
+  );
+  return parts.join("\n\n");
+}
+
+// ---------------------------------------------------------------------------
 // buildUserContent — construye el content para el mensaje de usuario.
 // Para PDFs e imágenes: pasa el binario directo con cache control.
 // Para texto largo: aplica map-reduce antes de mandarlo al modelo final.
@@ -244,7 +326,17 @@ export async function buildUserContent(
   instruction: string,
 ) {
   if (content.type === "pdf") {
-    // PDF nativo — Anthropic lo procesa directamente.
+    // PDF largo → auto-split: lo troceamos y condensamos a texto (el usuario no
+    // divide nada). PDF chico → nativo (Anthropic lo procesa directo).
+    const condensed = await maybeCondensePdf(content.data);
+    if (condensed) {
+      const finalText =
+        condensed.length > 80_000
+          ? condensed.slice(0, 80_000) + "\n\n[...truncado]"
+          : condensed;
+      return `Apunte: "${content.fileName}" (procesado por partes)\n\n---\n${finalText}\n---\n\n${instruction}`;
+    }
+
     // Cache control: si el mismo usuario genera resumen + flashcards del mismo
     // apunte, la segunda llamada reutiliza el PDF del cache (~90% más barata).
     return [

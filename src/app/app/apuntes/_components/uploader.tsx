@@ -4,7 +4,9 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Subject } from "@/lib/types";
 
-const MAX_PDF_PAGES = 50;
+// Los PDFs largos se trocean y procesan solos en el servidor (auto-split), así
+// que ya no pedimos dividir a mano. Solo bloqueamos archivos absurdamente grandes.
+const MAX_PDF_PAGES = 400;
 
 // Lee el binario del PDF y cuenta páginas sin librerías externas.
 // Funciona para PDFs estándar (cross-reference table). Devuelve null si
@@ -117,7 +119,7 @@ export function Uploader({ subjects }: Props) {
               {pending ? "Subiendo…" : "Arrastrá tu archivo o hacé click"}
             </div>
             <div className="text-[12.5px] text-ink-soft">
-              PDF, imágenes, Word o texto · hasta 25MB · máximo {MAX_PDF_PAGES} páginas (PDF)
+              PDF, imágenes, Word o texto · hasta 25MB · los PDFs largos se procesan solos
             </div>
           </div>
         </div>
@@ -150,11 +152,12 @@ export function Uploader({ subjects }: Props) {
           <span className="text-xl shrink-0 mt-0.5">⚠️</span>
           <div>
             <div className="font-display font-semibold text-[13.5px] text-warning mb-0.5">
-              El archivo es demasiado largo
+              El archivo es enorme
             </div>
             <p className="text-[12.5px] text-ink-soft leading-snug">
-              Para darte el mejor resumen posible, subí los apuntes por capítulos
-              <strong className="text-ink"> (máximo {MAX_PDF_PAGES} páginas por archivo)</strong>.
+              Este PDF supera las
+              <strong className="text-ink"> {MAX_PDF_PAGES} páginas</strong>. Subí uno
+              más chico (los PDFs largos igual se procesan solos, pero este es demasiado).
             </p>
           </div>
         </div>
