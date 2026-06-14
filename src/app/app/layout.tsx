@@ -103,15 +103,16 @@ export default async function AppLayout({
 
   return (
     <AppProviders offerStartedAt={user.offer_started_at}>
-      <div className="fixed inset-0 grid grid-rows-[52px_1fr] bg-bg text-ink transition-colors">
+      <div className="fixed inset-0 grid grid-rows-[52px_1fr] bg-bg text-ink transition-colors overflow-x-hidden">
         <Topbar user={user} />
-        <div className="grid md:grid-cols-[244px_1fr] overflow-hidden min-h-0">
+        <div className="grid md:grid-cols-[244px_1fr] overflow-hidden min-h-0 min-w-0">
           <div className="hidden md:block h-full overflow-hidden">
             <Sidebar user={user} />
           </div>
-          {/* Padding inferior en mobile = alto de la bottom-nav + safe-area del
-              dispositivo, para que el contenido NUNCA quede tapado por la nav. */}
-          <main className="overflow-y-auto pb-[calc(78px+env(safe-area-inset-bottom))] md:pb-0">
+          {/* min-w-0: evita el "grid blowout" (un hijo ancho estiraría el main
+              más que la pantalla y cortaría el contenido a la derecha en mobile).
+              pb inferior = alto de la bottom-nav + safe-area del dispositivo. */}
+          <main className="min-w-0 overflow-x-hidden overflow-y-auto pb-[calc(78px+env(safe-area-inset-bottom))] md:pb-0">
             {children}
           </main>
         </div>

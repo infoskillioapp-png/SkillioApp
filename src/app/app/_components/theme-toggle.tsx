@@ -69,7 +69,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
         </span>
       </span>
       {!compact && (
-        <span className="text-[11.5px] text-ink-soft">
+        <span className="hidden sm:inline text-[11.5px] text-ink-soft">
           Modo {theme === "dark" ? "oscuro" : "claro"}
         </span>
       )}
