@@ -1,7 +1,21 @@
 import "server-only";
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isDisposableEmail, normalizeEmail } from "@/lib/anti-fraude";
+
+// Lee la cookie de UTMs (first-touch, seteada por <UtmCapture/>) para guardar de
+// dónde vino el usuario al crear su fila. Nunca lanza.
+async function readAcquisition(): Promise<Record<string, string> | null> {
+  try {
+    const raw = (await cookies()).get("skillio_utm")?.value;
+    if (!raw) return null;
+    const parsed = JSON.parse(decodeURIComponent(raw));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 export type SkillioUser = {
   id: string;
@@ -27,6 +41,9 @@ export type SkillioUser = {
   phone: string | null;
   onboarding_completed: boolean;
   offer_started_at: string | null;
+  demo_completed: boolean;
+  activated_at: string | null;
+  acquisition: Record<string, string> | null;
 };
 
 /**
@@ -80,6 +97,8 @@ export async function syncUserToSupabase(): Promise<SkillioUser | null> {
   const fullName =
     [cu.firstName, cu.lastName].filter(Boolean).join(" ").trim() || null;
 
+  const acquisition = await readAcquisition();
+
   const { data, error } = await sb
     .from("users")
     .upsert(
@@ -91,6 +110,9 @@ export async function syncUserToSupabase(): Promise<SkillioUser | null> {
         avatar_url: cu.imageUrl || null,
         // Genera token solo en INSERT (ignorado en UPDATE por onConflict)
         referral_token: Math.random().toString(36).slice(2, 12),
+        // De dónde vino (UTMs). Solo si hay cookie de first-touch; en re-sync de
+        // un usuario ya existente esto se vuelve a setear al mismo valor.
+        ...(acquisition ? { acquisition } : {}),
       },
       { onConflict: "clerk_user_id" },
     )

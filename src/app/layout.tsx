@@ -9,6 +9,7 @@ import {
 } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { esES } from "@clerk/localizations";
+import { UtmCapture } from "@/components/utm-capture";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -80,6 +81,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <body className="min-h-full flex flex-col bg-bg text-ink font-sans">
+          <UtmCapture />
           {children}
 
           {/* Meta Pixel — init + PageView en la carga inicial. Purchase se dispara en /pago-exitoso */}

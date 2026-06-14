@@ -1,10 +1,12 @@
 import "server-only";
+import { randomUUID } from "crypto";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import type { Note } from "@/lib/types";
 import { sendCreditsExhaustedEmail } from "@/lib/email/resend";
+import { sendMetaEvent } from "@/lib/meta-capi";
 
 const BUCKET = "notes-uploads";
 
@@ -126,6 +128,43 @@ export async function consumeFreeGeneration(
       .maybeSingle();
     if (data?.email) await sendCreditsExhaustedEmail(data.email, data.full_name);
   }
+}
+
+/**
+ * Marca la ACTIVACIÓN del usuario: su primera generación con material PROPIO
+ * (cualquier ruta /api/ai/*; el demo guiado NO cuenta). El evento "Activacion"
+ * representa intención real (no curiosidad) y es el que conviene optimizar en
+ * Meta. Idempotente y a prueba de carreras: el UPDATE condicional
+ * `activated_at IS NULL` garantiza que solo una generación gane.
+ *
+ * Devuelve el event_id si esta fue la activación (para que el cliente dispare el
+ * píxel con el mismo id y Meta deduplique pixel + CAPI), o null si ya estaba
+ * activado.
+ */
+export async function markActivationIfFirst(userId: string): Promise<string | null> {
+  const sb = supabaseAdmin();
+  const { data, error } = await sb
+    .from("users")
+    .update({ activated_at: new Date().toISOString() })
+    .eq("id", userId)
+    .is("activated_at", null)
+    .select("id, email, phone")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[activation] update error:", error);
+    return null;
+  }
+  if (!data) return null; // ya estaba activado
+
+  const eventId = randomUUID();
+  await sendMetaEvent({
+    eventName: "Activacion",
+    email: data.email,
+    phone: data.phone,
+    eventId,
+  });
+  return eventId;
 }
 
 export async function saveAiOutput(opts: {

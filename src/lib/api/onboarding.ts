@@ -87,6 +87,8 @@ export async function completeOnboarding(formData: FormData) {
     await scheduleNudgeEmails(updated.email, updated.full_name);
   }
 
-  // ?registered=1 → RegistrationSuccess dispara el evento de Registro al Pixel.
-  redirect("/app?registered=1");
+  // El alta NO cae en el dashboard: va directo al demo guiado de 3 pasos, que
+  // fuerza la experiencia real (generación con IA) antes de soltar al usuario.
+  // El píxel CompleteRegistration se dispara al montar el demo.
+  redirect("/demo");
 }

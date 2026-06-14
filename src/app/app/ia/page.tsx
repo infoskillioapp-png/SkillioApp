@@ -2,13 +2,18 @@ import { redirect } from "next/navigation";
 import { getCurrentSkillioUser } from "@/lib/db";
 import { listNotes } from "@/lib/api/notes";
 import { listAiOutputs } from "@/lib/api/ai-outputs";
+import { listSubjects } from "@/lib/api/subjects";
 import { IaView } from "./_components/ia-view";
 
 export default async function IaPage() {
   const user = await getCurrentSkillioUser();
   if (!user) redirect("/login");
 
-  const [notes, history] = await Promise.all([listNotes(), listAiOutputs(10)]);
+  const [notes, history, subjects] = await Promise.all([
+    listNotes(),
+    listAiOutputs(10),
+    listSubjects(),
+  ]);
 
   return (
     <div className="relative min-h-screen">
@@ -23,6 +28,7 @@ export default async function IaPage() {
       <div className="relative z-10 px-6 sm:px-10 py-10 max-w-6xl mx-auto">
         <IaView
           notes={notes}
+          subjects={subjects}
           credits={user.credits}
           plan={user.plan}
           freeGenerationsUsed={user.free_generations_used}

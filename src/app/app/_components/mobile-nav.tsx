@@ -54,8 +54,7 @@ const NAV = [
   },
   {
     href: "/app/ia",
-    label: "IA",
-    pro: true,
+    label: "Aprobá IA",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
         <path d="M12 3.5l2 4.5 4.5 2-4.5 2-2 4.5-2-4.5L5.5 10l4.5-2z" />
@@ -94,9 +93,6 @@ export function MobileNav() {
               <span className="text-[9.5px] font-semibold leading-none">
                 {item.label}
               </span>
-              {item.pro && (
-                <span className="text-[7px] font-bold text-accent leading-none">PRO</span>
-              )}
             </Link>
           );
         })}

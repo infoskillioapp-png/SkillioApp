@@ -72,8 +72,10 @@ const PRINCIPAL: NavItem[] = [
 ];
 
 const HERRAMIENTAS: NavItem[] = [
+  // "Aprobá con IA" es la sección estrella (subir apunte + generar en un solo
+  // lugar). Antes "IA Premium" hacía pensar que estaba bloqueada en el trial.
+  { href: "/app/ia", label: "Aprobá con IA", icon: ICON.ia },
   { href: "/app/apuntes", label: "Mis apuntes", icon: ICON.apuntes },
-  { href: "/app/ia", label: "IA Premium", icon: ICON.ia, proPill: true },
   { href: "/app/comunidad", label: "Comunidad", icon: ICON.comunidad },
 ];
 

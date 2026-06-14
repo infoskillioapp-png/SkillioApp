@@ -181,6 +181,30 @@ export async function scheduleNudgeEmails(to: string, name?: string | null): Pro
   });
 }
 
+/**
+ * Mail de handoff a la compu — inmediato al terminar el demo guiado.
+ * El demo se vive en el celu, pero el fuerte de la app es la compu: este mail
+ * (+ el subtítulo del paso 3) convierte el "andá a la PC" en algo que de verdad
+ * pasa, con un link directo de un toque.
+ */
+export async function sendContinueOnComputerEmail(
+  to: string,
+  name?: string | null,
+): Promise<void> {
+  const n = firstName(name);
+  await send({
+    to,
+    subject: "Seguí en tu compu 💻 (tus apuntes rinden más en pantalla grande)",
+    html: wrap({
+      preview: "Un toque y seguís estudiando con Skillio en tu computadora.",
+      heading: `${n}, ¡así de fácil es aprobar con Skillio! 🎉`,
+      body: `Ya viste lo que la IA hace con un apunte. Ahora probá con los <b>tuyos</b>: sacale una foto, escribí un tema o subí el PDF y obtené resúmenes y simulacros en segundos.<br><br>📲 Lo armaste desde el celu, pero <b>en la compu rinde el doble</b>: pantalla grande para leer y estudiar cómodo. Entrá desde acá 👇`,
+      ctaText: "Seguir en mi compu →",
+      ctaPath: "/app/ia",
+    }),
+  });
+}
+
 /** Mail 3 — inmediato cuando el free agota sus 3 generaciones. */
 export async function sendCreditsExhaustedEmail(to: string, name?: string | null): Promise<void> {
   const n = firstName(name);

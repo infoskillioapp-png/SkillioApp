@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { Note } from "@/lib/types";
+import type { Note, Subject } from "@/lib/types";
 import type { AiOutputRow } from "@/lib/api/ai-outputs";
 import { ResultModal, type AnyResult } from "./result-modal";
+import { Uploader } from "@/app/app/apuntes/_components/uploader";
 import { useToast } from "@/components/toast";
 import { useUpgradeModal } from "@/components/upgrade-modal";
 import { GlowButton } from "@/components/cult/glow-button";
@@ -19,6 +19,7 @@ const SUMMARY_FORMATS = [
 
 type Props = {
   notes: Note[];
+  subjects: Subject[];
   credits: number;
   plan: "free" | "pro";
   freeGenerationsUsed: number;
@@ -60,13 +61,14 @@ const COSTS = { summary: 28, flashcards: 17, simulacro: 18 } as const;
 const MAX_CREDITS = 500;
 const FREE_LIMIT = 3;
 
-export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: Props) {
+export function IaView({ notes, subjects, credits, plan, freeGenerationsUsed, history }: Props) {
   const router = useRouter();
   const toast = useToast();
   const upgrade = useUpgradeModal();
   const isPro = plan === "pro";
   const [pending, startTransition] = useTransition();
   const [noteId, setNoteId] = useState<string>(notes[0]?.id ?? "");
+  const [showUploader, setShowUploader] = useState(false);
   const [format, setFormat] = useState("puntos_clave");
   const [result, setResult] = useState<AnyResult | null>(null);
   const [localCredits, setLocalCredits] = useState(credits);
@@ -133,6 +135,12 @@ export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: P
           if (typeof data.credits_remaining === "number") setLocalCredits(data.credits_remaining);
         } else {
           setFreeGenLeft((n) => Math.max(0, n - 1));
+        }
+        // Activación: primera generación con material propio. El server ya
+        // disparó CAPI con este id; el píxel usa el MISMO id para deduplicar.
+        if (data.activation_event_id) {
+          const f = (window as Window & { fbq?: (...a: unknown[]) => void }).fbq;
+          if (f) f("trackCustom", "Activacion", {}, { eventID: data.activation_event_id });
         }
         if (kind === "summary") {
           if (data.format === "resumen") {
@@ -236,39 +244,50 @@ export function IaView({ notes, credits, plan, freeGenerationsUsed, history }: P
         </div>
       </header>
 
-      {/* Selector de apunte */}
+      {/* Subir + elegir apunte — todo en un solo lugar (sin saltar a otra sección) */}
       {noNotes ? (
-        <div
-          className="rounded-3xl border border-dashed border-accent/30 p-10 text-center mb-8 relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg, var(--paper) 0%, var(--accent-softer) 100%)" }}
-        >
-          <div className="text-5xl mb-4">📁</div>
-          <h3 className="font-display font-bold text-xl mb-2">Subí un apunte primero</h3>
-          <p className="text-sm text-ink-soft mb-5">La IA necesita un PDF, imagen o nota para trabajar.</p>
-          <Link
-            href="/app/apuntes"
-            className="inline-block px-6 py-3 rounded-full bg-accent text-[#FBF1EF] font-display font-bold text-sm hover:bg-accent-hover transition shadow-[0_8px_24px_var(--accent-glow)]"
-          >
-            Ir a Mis Apuntes →
-          </Link>
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[10.5px] uppercase tracking-[0.14em] text-ink-soft font-semibold">
+              Paso 1 · Subí tu apunte
+            </span>
+          </div>
+          <Uploader subjects={subjects} />
+          <p className="text-center text-[12px] text-ink-softer mt-3">
+            📸 Foto · ✍️ Tema · 📁 PDF, Word o imagen — la IA lo lee y te lo resume.
+          </p>
         </div>
       ) : (
-        <div
-          className="rounded-2xl border border-rule-soft p-4 mb-7 flex items-center gap-3 flex-wrap"
-          style={{ background: "var(--paper-warm)" }}
-        >
-          <span className="text-[10.5px] uppercase tracking-[0.14em] text-ink-soft font-semibold shrink-0">
-            Apunte
-          </span>
-          <select
-            value={noteId}
-            onChange={(e) => setNoteId(e.target.value)}
-            className="flex-1 min-w-[200px] px-3 py-2 rounded-xl bg-paper border border-rule text-sm focus:outline-none focus:border-accent transition"
+        <div className="mb-7">
+          <div
+            className="rounded-2xl border border-rule-soft p-4 flex items-center gap-3 flex-wrap"
+            style={{ background: "var(--paper-warm)" }}
           >
-            {notes.map((n) => (
-              <option key={n.id} value={n.id}>{n.title}</option>
-            ))}
-          </select>
+            <span className="text-[10.5px] uppercase tracking-[0.14em] text-ink-soft font-semibold shrink-0">
+              Apunte
+            </span>
+            <select
+              value={noteId}
+              onChange={(e) => setNoteId(e.target.value)}
+              className="flex-1 min-w-[200px] px-3 py-2 rounded-xl bg-paper border border-rule text-sm focus:outline-none focus:border-accent transition"
+            >
+              {notes.map((n) => (
+                <option key={n.id} value={n.id}>{n.title}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setShowUploader((v) => !v)}
+              className="px-3.5 py-2 rounded-xl border border-rule text-[12.5px] font-semibold text-ink-soft hover:border-accent hover:text-accent transition shrink-0"
+            >
+              {showUploader ? "Cerrar" : "+ Subir otro"}
+            </button>
+          </div>
+          {showUploader && (
+            <div className="mt-3 animate-skillio-fade-in">
+              <Uploader subjects={subjects} />
+            </div>
+          )}
         </div>
       )}
 

@@ -80,6 +80,10 @@ export default async function AppLayout({
   // generaciones de IA gratis (se controla en las rutas /api/ai/*).
   if (user.onboarding_completed === false) redirect("/onboarding");
 
+  // Onboarding hecho pero demo guiado sin completar → lo forzamos. El demo es
+  // la experiencia que convierte (activación de 8% a 40%+); no se saltea.
+  if (user.demo_completed === false) redirect("/demo");
+
   // Eventos próximos (exámenes, parciales, TPs) para Booki
   const upcomingEvents = await listEvents({
     fromIso: new Date().toISOString(),

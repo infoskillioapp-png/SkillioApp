@@ -8,6 +8,7 @@ import {
   chargeCredits,
   consumeFreeGeneration,
   getNoteContent,
+  markActivationIfFirst,
   modelForPlan,
   saveAiOutput,
 } from "@/lib/ai/claude";
@@ -100,11 +101,14 @@ export async function POST(req: Request) {
       model,
     });
 
+    const activationEventId = await markActivationIfFirst(userRow.id);
+
     return NextResponse.json({
       ok: true,
       output_id: id,
       simulacro: result.object,
       credits_remaining: remaining,
+      activation_event_id: activationEventId,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";
