@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MarkmapRender } from "./markmap-render";
@@ -67,6 +68,11 @@ type Props = { result: AnyResult; onClose: () => void; chromeless?: boolean };
 export function ResultModal({ result, onClose, chromeless = false }: Props) {
   const [footer, setFooter] = useState<React.ReactNode>(null);
   const [downloading, setDownloading] = useState(false);
+  // Portal a <body>: el modal debe escapar de cualquier ancestro con `transform`
+  // (ej. wrappers con animación), que de lo contrario "atrapa" el position:fixed
+  // y lo deja sin ocupar la pantalla completa.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   async function handleDownloadPdf() {
     if (result.kind !== "summary" || downloading) return;
@@ -104,7 +110,7 @@ export function ResultModal({ result, onClose, chromeless = false }: Props) {
         ? result.deck.deck_title
         : result.simulacro.title;
 
-  return (
+  const overlay = (
     <div
       className={`fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm animate-skillio-fade-in ${
         chromeless
@@ -198,6 +204,8 @@ export function ResultModal({ result, onClose, chromeless = false }: Props) {
       </div>
     </div>
   );
+
+  return mounted ? createPortal(overlay, document.body) : null;
 }
 
 function SummaryDispatcher({ result }: { result: SummaryResult }) {
