@@ -258,7 +258,9 @@ function StepResumen({ demo, onNext }: { demo: DemoProps["demo"]; onNext: () => 
       )}
 
       {/* Resultado idéntico a la app paga (mismo modal + PDF brandeado) */}
-      {modalOpen && result && <ResultModal result={result} onClose={() => setModalOpen(false)} />}
+      {modalOpen && result && (
+        <ResultModal result={result} onClose={() => setModalOpen(false)} chromeless />
+      )}
 
       {showDoc && (
         <DocViewerModal title={demo.title} subject={demo.subject} text={demo.text} onClose={() => setShowDoc(false)} />

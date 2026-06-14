@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
-import { DEMO } from "@/lib/demo/demo-source";
+import { readDemoPdf, buildDemoContent } from "@/lib/demo/demo-pdf";
 
 // Demo del onboarding: 3 preguntas de opción múltiple REALES generadas con Haiku
 // sobre el apunte base. Sin créditos ni generaciones gratis (es guiado).
@@ -25,16 +25,16 @@ const SYSTEM =
 
 export async function POST() {
   try {
+    const pdf = await readDemoPdf();
+    const content = buildDemoContent(
+      pdf,
+      "Armá un simulacro de EXACTAMENTE 3 preguntas de opción múltiple sobre este apunte.",
+    );
     const r = await generateObject({
       model: anthropic("claude-haiku-4-5-20251001"),
       schema: Schema,
       system: SYSTEM,
-      messages: [
-        {
-          role: "user",
-          content: `Apunte: "${DEMO.title}"\n\n---\n${DEMO.text}\n---\n\nArmá un simulacro de EXACTAMENTE 3 preguntas de opción múltiple sobre este apunte.`,
-        },
-      ],
+      messages: [{ role: "user", content }],
     });
     return NextResponse.json({ ok: true, simulacro: r.object });
   } catch (e) {

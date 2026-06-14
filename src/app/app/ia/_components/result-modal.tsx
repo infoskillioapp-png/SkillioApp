@@ -59,9 +59,12 @@ export type SimulacroResult = {
 
 export type AnyResult = SummaryResult | FlashcardsResult | SimulacroResult;
 
-type Props = { result: AnyResult; onClose: () => void };
+// chromeless: para contextos SIN el chrome de la app (topbar + bottom-nav), como
+// el demo del onboarding. Ahí el modal ocupa toda la pantalla (no descuenta esos
+// 52+64px que no existen) y la hoja inferior va al ras del borde.
+type Props = { result: AnyResult; onClose: () => void; chromeless?: boolean };
 
-export function ResultModal({ result, onClose }: Props) {
+export function ResultModal({ result, onClose, chromeless = false }: Props) {
   const [footer, setFooter] = useState<React.ReactNode>(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -103,7 +106,11 @@ export function ResultModal({ result, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm animate-skillio-fade-in pb-[calc(64px_+_env(safe-area-inset-bottom))] md:p-4 md:pb-4"
+      className={`fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm animate-skillio-fade-in ${
+        chromeless
+          ? "pb-[env(safe-area-inset-bottom)] md:p-4"
+          : "pb-[calc(64px_+_env(safe-area-inset-bottom))] md:p-4 md:pb-4"
+      }`}
       onClick={onClose}
     >
       <div
@@ -114,7 +121,7 @@ export function ResultModal({ result, onClose }: Props) {
               ? "max-w-5xl"
               : "max-w-4xl"
         }`}
-        style={{ maxHeight: "calc(100dvh - 52px - 64px)" }}
+        style={{ maxHeight: chromeless ? "calc(100dvh - 32px)" : "calc(100dvh - 52px - 64px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header — siempre visible */}

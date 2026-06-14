@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
-import { DEMO } from "@/lib/demo/demo-source";
+import { readDemoPdf, buildDemoContent } from "@/lib/demo/demo-pdf";
 
 // Demo del onboarding: genera el resumen REAL del apunte base en formato
 // "puntos clave" ESTRUCTURADO — el mismo shape que /api/ai/summarize — para que
@@ -31,16 +31,13 @@ const SYSTEM =
 
 export async function POST() {
   try {
+    const pdf = await readDemoPdf();
+    const content = buildDemoContent(pdf, "Extraé entre 5 y 8 puntos clave de este apunte.");
     const r = await generateObject({
       model: anthropic("claude-haiku-4-5-20251001"),
       schema: Schema,
       system: SYSTEM,
-      messages: [
-        {
-          role: "user",
-          content: `Apunte: "${DEMO.title}"\n\n---\n${DEMO.text}\n---\n\nExtraé entre 5 y 8 puntos clave de este material.`,
-        },
-      ],
+      messages: [{ role: "user", content }],
     });
     return NextResponse.json({ ok: true, format: "puntos_clave", data: r.object });
   } catch (e) {

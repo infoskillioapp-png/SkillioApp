@@ -1,48 +1,38 @@
 // =============================================================================
 // DEMO · Apunte base del onboarding guiado
 //
-//   👉 PARA EMILIANO: para cambiar el material del demo, editá SOLO este archivo.
-//   1. Reemplazá DEMO.text por el texto del apunte que quieras usar.
-//   2. (Opcional) Subí el PDF a `public/demo/apunte-demo.pdf` y dejá
-//      `pdfUrl: "/demo/apunte-demo.pdf"`. Si no hay PDF, el botón "Ver apunte
-//      completo" muestra el texto de abajo formateado como documento.
+//   👉 PARA EMILIANO: para cambiar el material del demo:
+//   1. Subí el PDF a `public/` y poné su nombre EXACTO en `pdfPublicPath`
+//      (ojo con mayúsculas: Vercel/Linux distingue mayúsculas de minúsculas).
+//   2. Actualizá `title` y `subject` a lo que quieras mostrar.
+//   3. El demo genera resumen + simulacro REALES con Claude Haiku leyendo ese
+//      PDF directamente (igual que la app). `text` es solo un fallback por si el
+//      PDF no se pudiera leer.
 //
-// El demo genera resumen + simulacro REALES con Claude Haiku a partir de
-// `DEMO.text` (no contenido hardcodeado), pero NO descuenta créditos ni las 3
-// generaciones gratis del trial (los endpoints viven en /api/demo/*).
+// Estas generaciones NO descuentan créditos ni las 3 gratis del trial.
 // =============================================================================
 
 export const DEMO = {
-  /** Título que ve el usuario (y filename para la IA). */
-  title: "Revolución de Mayo de 1810",
-  fileName: "apunte-revolucion-de-mayo.pdf",
+  /** Título que ve el usuario. */
+  title: "Métodos de estudio · Unidad 2",
+  /** Nombre de archivo (para la IA y la descarga). */
+  fileName: "Metodos_de_Estudio_Unidad_2.pdf",
 
-  /** Ruta a un PDF real en /public. Dejar null para usar el visor de texto. */
-  pdfUrl: null as string | null,
+  /** Ruta pública del PDF (para "Ver apunte completo" → abre el PDF real). */
+  pdfUrl: "/Metodos_de_Estudio_Unidad_2.pdf" as string | null,
+  /** Nombre del archivo dentro de /public (para que el server lo lea y se lo pase a la IA). */
+  pdfPublicPath: "Metodos_de_Estudio_Unidad_2.pdf",
 
   /** Materia/etiqueta mostrada como contexto. */
-  subject: "Historia Argentina · Ingreso universitario",
+  subject: "Técnicas y hábitos de estudio",
 
   /**
-   * Texto del apunte. La IA genera el resumen y el simulacro sobre ESTE texto.
-   * Mantenelo autocontenido y factual (mejor para un simulacro de 3 preguntas).
+   * Fallback de texto SOLO si el PDF no se puede leer (no debería pasar). La
+   * generación real usa el PDF de arriba.
    */
-  text: `LA REVOLUCIÓN DE MAYO DE 1810
+  text: `MÉTODOS DE ESTUDIO
 
-CONTEXTO INTERNACIONAL
-En 1808 Napoleón Bonaparte invadió España y tomó prisionero al rey Fernando VII, colocando en el trono a su hermano José Bonaparte. Esto generó un vacío de poder en España y en todas sus colonias americanas. En el Virreinato del Río de la Plata, la noticia llegó en mayo de 1810 a través de barcos ingleses, y puso en duda la legitimidad del virrey Baltasar Hidalgo de Cisneros, ya que había sido nombrado por una autoridad española que ya no existía.
-
-LA SEMANA DE MAYO
-Entre el 18 y el 25 de mayo de 1810 se sucedieron una serie de hechos conocidos como la Semana de Mayo. Los criollos, encabezados por figuras como Cornelio Saavedra, Manuel Belgrano, Juan José Castelli y Mariano Moreno, exigieron la realización de un Cabildo Abierto para decidir el futuro del gobierno.
-
-EL CABILDO ABIERTO DEL 22 DE MAYO
-El 22 de mayo se realizó un Cabildo Abierto, una asamblea de vecinos notables. El debate central fue si el virrey Cisneros debía continuar en el poder. Castelli y Saavedra sostuvieron que, al haber caducado la autoridad que lo había nombrado, el pueblo tenía derecho a reasumir su soberanía y formar un nuevo gobierno. Esta idea se conoce como la teoría de la retroversión de la soberanía a los pueblos.
-
-LA PRIMERA JUNTA
-El 25 de mayo de 1810, tras el rechazo popular a una junta presidida por el propio Cisneros, se formó la Primera Junta de Gobierno. Estuvo presidida por Cornelio Saavedra e integrada, entre otros, por Mariano Moreno y Juan José Paso como secretarios, y vocales como Manuel Belgrano, Juan José Castelli, Domingo Matheu y Manuel Alberti. La Junta gobernó en nombre de Fernando VII (la llamada "máscara de Fernando"), una estrategia política para no declarar abiertamente la independencia.
-
-CONSECUENCIAS
-La Revolución de Mayo no declaró la independencia (eso ocurrió recién el 9 de julio de 1816), pero marcó el primer gobierno patrio y el inicio del proceso que llevaría a la emancipación. Mariano Moreno impulsó medidas revolucionarias y fundó la Gazeta de Buenos Aires para difundir las ideas del nuevo gobierno. Las tensiones entre Saavedra (más moderado) y Moreno (más radical) marcarían la política de los años siguientes.`,
+Los métodos de estudio son técnicas y estrategias que ayudan a aprender de forma más eficiente: organizar el material, comprenderlo, retenerlo y poder recuperarlo en un examen. Entre los más efectivos están la repetición espaciada (repasar en intervalos crecientes), la práctica de recuperación activa (intentar recordar sin mirar el material), los resúmenes y mapas conceptuales, la técnica Pomodoro para gestionar el tiempo y la enseñanza a otros para fijar lo aprendido.`,
 } as const;
 
 export type DemoSource = typeof DEMO;
