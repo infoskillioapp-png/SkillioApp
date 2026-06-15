@@ -84,14 +84,15 @@ async function findUser(
   return { user: null, matchedBy: null };
 }
 
-// Otorga los créditos completos del plan (post-trial / renovación) y procesa
-// el referido si es el primer pago. Idempotente: SETEA créditos, no acumula.
-async function grantFullCredits(sb: Sb, user: MatchedUser) {
-  if (user.plan === "free") {
-    console.warn(`[webhook] grantFullCredits: ${user.email} está en free, no se otorgan créditos`);
-    return;
-  }
-
+// Activa (o renueva) PRO a partir de un pago APROBADO. El webhook es la fuente
+// de verdad: no depende de que el cliente vuelva a /pago-exitoso. Setea plan=pro
+// + créditos completos, vincula el mp_subscription_id si todavía no estaba, y
+// procesa el referido si es el primer pago. Idempotente (SETEA, no acumula).
+async function activateOrRenewPro(
+  sb: Sb,
+  user: MatchedUser,
+  subscriptionId?: string | null,
+) {
   const { data: pendingReferral } = await sb
     .from("referrals")
     .select("id, referrer_id")
@@ -103,17 +104,23 @@ async function grantFullCredits(sb: Sb, user: MatchedUser) {
   const referralBonus = isFirstPayment ? 50 : 0;
   const credits = PRO_FULL_CREDITS + referralBonus;
 
-  const { error } = await sb
-    .from("users")
-    .update({ credits, updated_at: new Date().toISOString() })
-    .eq("id", user.id);
+  const patch: Record<string, unknown> = {
+    plan: "pro",
+    credits,
+    updated_at: new Date().toISOString(),
+  };
+  // Vincula la suscripción si llega y todavía no la teníamos (clave para que las
+  // renovaciones futuras matcheen por mp_subscription_id).
+  if (subscriptionId && !user.mp_subscription_id) patch.mp_subscription_id = subscriptionId;
+
+  const { error } = await sb.from("users").update(patch).eq("id", user.id);
   if (error) {
-    console.error(`[webhook] grantFullCredits update FALLÓ (user=${user.id}):`, error);
+    console.error(`[webhook] activateOrRenewPro update FALLÓ (user=${user.id}):`, error);
     return;
   }
 
   console.log(
-    `[webhook] ${user.email} → ${credits} créditos (plan=${user.plan}, referralBonus=${referralBonus})`,
+    `[webhook] ${user.email} → PRO con ${credits} créditos (era ${user.plan}, referralBonus=${referralBonus}, sub=${subscriptionId ?? user.mp_subscription_id ?? "-"})`,
   );
 
   if (isFirstPayment && pendingReferral) {
@@ -255,12 +262,10 @@ async function handleAuthorizedPayment(authPaymentId: string) {
     console.warn(`[webhook/authpay] SIN MATCH preapproval=${ap.preapproval_id} (authPayment=${authPaymentId})`);
     return;
   }
-  if (user.plan === "free") {
-    console.warn(`[webhook/authpay] ${user.email} en free pero llegó cobro — revisar activación`);
-    return;
-  }
-  await grantFullCredits(sb, user);
-  console.log(`[webhook/authpay] ${user.email} créditos completos otorgados (matchedBy=${matchedBy})`);
+  // Fuente de verdad: activa/renueva aunque el usuario esté en free (puede que
+  // /pago-exitoso nunca haya corrido).
+  await activateOrRenewPro(sb, user, ap.preapproval_id);
+  console.log(`[webhook/authpay] ${user.email} PRO + créditos (matchedBy=${matchedBy})`);
 
   await recordPayment(sb, {
     user,
@@ -297,9 +302,9 @@ async function handlePayment(paymentId: string) {
     );
     return;
   }
-  if (user.plan === "free") return;
-  await grantFullCredits(sb, user);
-  console.log(`[webhook/payment] ${user.email} créditos completos (matchedBy=${matchedBy})`);
+  // Fuente de verdad: activa/renueva aunque el usuario esté en free.
+  await activateOrRenewPro(sb, user, payment.preapproval_id);
+  console.log(`[webhook/payment] ${user.email} PRO + créditos (matchedBy=${matchedBy})`);
 
   await recordPayment(sb, {
     user,

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAdminEmail } from "@/lib/admin/auth";
+import { AutoRefresh } from "./_components/auto-refresh";
 
 // Panel privado. Guard: solo emails en la allowlist (ADMIN_EMAILS). Cualquier
 // otro usuario logueado se va a /app; sin sesión, a /login.
@@ -38,6 +39,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-5 py-6">{children}</main>
+      <AutoRefresh seconds={60} />
     </div>
   );
 }
