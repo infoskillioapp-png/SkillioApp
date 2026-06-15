@@ -149,6 +149,7 @@ export async function POST(req: Request) {
     const userParts = await buildUserContent(content, FORMAT_PROMPTS[format]);
 
     let payload: unknown;
+    let usage: { inputTokens?: number; outputTokens?: number } | undefined;
     if (format === "puntos_clave") {
       const r = await generateObject({
         model: anthropic(model),
@@ -157,6 +158,7 @@ export async function POST(req: Request) {
         messages: [{ role: "user", content: userParts }],
       });
       payload = r.object;
+      usage = r.usage;
     } else if (format === "mapa") {
       const r = await generateObject({
         model: anthropic(model),
@@ -165,6 +167,7 @@ export async function POST(req: Request) {
         messages: [{ role: "user", content: userParts }],
       });
       payload = r.object;
+      usage = r.usage;
     } else if (format === "resumen") {
       const r = await generateText({
         model: anthropic(model),
@@ -173,6 +176,7 @@ export async function POST(req: Request) {
         maxOutputTokens: 8000,
       });
       payload = { text: r.text };
+      usage = r.usage;
     } else {
       const r = await generateObject({
         model: anthropic(model),
@@ -181,6 +185,7 @@ export async function POST(req: Request) {
         messages: [{ role: "user", content: userParts }],
       });
       payload = r.object;
+      usage = r.usage;
     }
 
     let remaining = 0;
@@ -198,6 +203,8 @@ export async function POST(req: Request) {
       content: { format, data: payload },
       credits_used: isPro ? COST : 0,
       model,
+      input_tokens: usage?.inputTokens ?? null,
+      output_tokens: usage?.outputTokens ?? null,
     });
 
     // Activación: primera generación con material propio → evento Meta.

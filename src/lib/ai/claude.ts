@@ -177,6 +177,8 @@ export async function saveAiOutput(opts: {
   content: unknown;
   credits_used: number;
   model?: string;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
 }) {
   const sb = supabaseAdmin();
   const { data, error } = await sb
@@ -190,6 +192,8 @@ export async function saveAiOutput(opts: {
       content: opts.content as object,
       credits_used: opts.credits_used,
       model: opts.model ?? MODEL,
+      input_tokens: opts.input_tokens ?? null,
+      output_tokens: opts.output_tokens ?? null,
     })
     .select("id")
     .single();

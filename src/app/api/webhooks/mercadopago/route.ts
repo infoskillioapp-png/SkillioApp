@@ -125,6 +125,27 @@ async function grantFullCredits(sb: Sb, user: MatchedUser) {
   }
 }
 
+// Registra el cobro en el ledger de pagos (para el panel /admin). Idempotente:
+// onConflict mp_id evita duplicar ante reintentos del webhook.
+async function recordPayment(
+  sb: Sb,
+  opts: { user: MatchedUser; mpId: string; kind: string; amount?: number | null },
+) {
+  const { error } = await sb.from("payments").upsert(
+    {
+      user_id: opts.user.id,
+      mp_id: opts.mpId,
+      kind: opts.kind,
+      amount: opts.amount ?? PRO_PRICE_ARS,
+      currency: "ARS",
+      status: "approved",
+      email: opts.user.email,
+    },
+    { onConflict: "mp_id" },
+  );
+  if (error) console.error("[webhook] recordPayment error:", error);
+}
+
 // Recompensa al referrer: 150 créditos cada 2 referidos convertidos.
 async function processReferrerReward(sb: Sb, referrerId: string) {
   const { count } = await sb
@@ -241,6 +262,13 @@ async function handleAuthorizedPayment(authPaymentId: string) {
   await grantFullCredits(sb, user);
   console.log(`[webhook/authpay] ${user.email} créditos completos otorgados (matchedBy=${matchedBy})`);
 
+  await recordPayment(sb, {
+    user,
+    mpId: `authpay_${authPaymentId}`,
+    kind: "authorized_payment",
+    amount: ap.transaction_amount ?? PRO_PRICE_ARS,
+  });
+
   // CAPI: este es el cobro real (post-trial / renovación) → Purchase a Meta.
   await sendMetaPurchase({
     email: user.email,
@@ -272,6 +300,13 @@ async function handlePayment(paymentId: string) {
   if (user.plan === "free") return;
   await grantFullCredits(sb, user);
   console.log(`[webhook/payment] ${user.email} créditos completos (matchedBy=${matchedBy})`);
+
+  await recordPayment(sb, {
+    user,
+    mpId: `pay_${paymentId}`,
+    kind: "payment",
+    amount: PRO_PRICE_ARS,
+  });
 
   // CAPI: pago suelto aprobado → Purchase a Meta.
   await sendMetaPurchase({

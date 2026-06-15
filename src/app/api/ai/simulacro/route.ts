@@ -99,6 +99,8 @@ export async function POST(req: Request) {
       content: result.object,
       credits_used: isPro ? COST : 0,
       model,
+      input_tokens: result.usage?.inputTokens ?? null,
+      output_tokens: result.usage?.outputTokens ?? null,
     });
 
     const activationEventId = await markActivationIfFirst(userRow.id);
