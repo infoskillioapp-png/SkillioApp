@@ -103,7 +103,7 @@ export function Uploader({ subjects }: Props) {
           ref={inputRef}
           type="file"
           className="hidden"
-          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.doc,.docx"
+          accept="image/*,application/pdf,.pdf,.png,.jpg,.jpeg,.webp,.heic,.heif,.txt,.md,.doc,.docx"
           onChange={(e) => handleFiles(e.target.files)}
         />
         <div className="flex flex-col items-center gap-3">
@@ -163,10 +163,14 @@ export function Uploader({ subjects }: Props) {
         </div>
       )}
 
-      {/* Error genérico de subida */}
+      {/* Error de subida — mensaje claro según la causa */}
       {err && (
-        <div className="mt-3 px-4 py-2 rounded-xl bg-accent-soft text-accent text-[12.5px]">
-          Error: {err}
+        <div className="mt-3 px-4 py-2.5 rounded-xl bg-accent-soft text-accent text-[12.5px]">
+          {err === "file_too_big"
+            ? "El archivo supera los 25MB. Subí uno más liviano."
+            : err === "file_type_not_allowed"
+              ? "Ese tipo de archivo no se puede subir. Probá con un PDF, una foto/imagen, Word o texto."
+              : "No se pudo subir el archivo. Revisá tu conexión y probá de nuevo."}
         </div>
       )}
     </div>
