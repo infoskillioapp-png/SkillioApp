@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import * as Sentry from "@sentry/nextjs";
 import type { Subject } from "@/lib/types";
 
 // Los PDFs largos se trocean y procesan solos en el servidor (auto-split), así
@@ -75,7 +76,15 @@ export function Uploader({ subjects }: Props) {
         router.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : "upload_failed";
-        if (msg !== "too_many_pages") setErr(msg);
+        if (msg !== "too_many_pages") {
+          setErr(msg);
+          // Visible en Sentry con el detalle del archivo, para diagnosticar las
+          // fallas de carga (sobre todo desde el celular).
+          Sentry.captureException(e instanceof Error ? e : new Error(msg), {
+            extra: { fileName: f.name, fileType: f.type || "(vacío)", fileSizeKB: Math.round(f.size / 1024) },
+            tags: { area: "notes_upload" },
+          });
+        }
       }
     });
   }
