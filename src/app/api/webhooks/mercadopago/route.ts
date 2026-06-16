@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   mpGetSubscription,
@@ -333,9 +334,18 @@ export async function POST(req: NextRequest) {
 
     if (!dataId) return NextResponse.json({ ok: true });
 
+    // La firma es la PRIMERA barrera, pero si no coincide (ej. clave secreta
+    // desincronizada entre MP y Vercel) NO descartamos el evento: cada handler
+    // re-verifica el pago/suscripción pidiéndoselo a MP con NUESTRO access token
+    // (mpGetPayment/mpGetSubscription/...), que es la autorización real. Un
+    // webhook falso con un id inventado no matchea nada → no hace daño. Así una
+    // clave mal configurada nunca más pierde una venta.
     if (!verifySignature(req, dataId)) {
-      console.warn(`[webhooks/mercadopago] firma inválida (type=${type}, id=${dataId})`);
-      return NextResponse.json({ error: "invalid signature" }, { status: 401 });
+      console.warn(`[webhooks/mercadopago] firma no coincide (type=${type}, id=${dataId}) — proceso igual vía re-fetch`);
+      Sentry.captureMessage("mp_webhook_signature_mismatch", {
+        level: "warning",
+        extra: { type, dataId },
+      });
     }
 
     if (type === "preapproval" || type === "subscription_preapproval") {
