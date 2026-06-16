@@ -10,6 +10,15 @@ type Props = {
   userPlan: "free" | "pro";
 };
 
+const KIND_LABEL: Record<string, string> = {
+  resumen: "Resumen",
+  apunte: "Apunte",
+  toma_notas: "Toma de notas",
+  parcial: "Examen parcial",
+  final: "Examen final",
+  otro: "Otro",
+};
+
 function initialsOf(name: string | null, email: string) {
   const src = name ?? email.split("@")[0];
   return src
@@ -36,6 +45,23 @@ export function CommunityView({ notes, referralUrl, myReferrals, userPlan }: Pro
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
   const [sort, setSort] = useState<"recent" | "downloads">("recent");
+  const [kindF, setKindF] = useState("");
+  const [subjectF, setSubjectF] = useState("");
+  const [yearF, setYearF] = useState("");
+
+  // Opciones de filtro derivadas de lo que hay publicado.
+  const kindOptions = useMemo(
+    () => Array.from(new Set(notes.map((n) => n.comm_kind).filter(Boolean))) as string[],
+    [notes],
+  );
+  const subjectOptions = useMemo(
+    () => (Array.from(new Set(notes.map((n) => n.comm_subject).filter(Boolean))) as string[]).sort(),
+    [notes],
+  );
+  const yearOptions = useMemo(
+    () => (Array.from(new Set(notes.map((n) => n.comm_year).filter(Boolean))) as number[]).sort((a, b) => b - a),
+    [notes],
+  );
 
   const filtered = useMemo(() => {
     let list = notes;
@@ -44,15 +70,20 @@ export function CommunityView({ notes, referralUrl, myReferrals, userPlan }: Pro
       list = list.filter(
         (n) =>
           n.title.toLowerCase().includes(s) ||
+          (n.comm_subject?.toLowerCase().includes(s) ?? false) ||
+          (n.comm_university?.toLowerCase().includes(s) ?? false) ||
           n.subject?.name.toLowerCase().includes(s) ||
           n.uploader?.full_name?.toLowerCase().includes(s),
       );
     }
+    if (kindF) list = list.filter((n) => n.comm_kind === kindF);
+    if (subjectF) list = list.filter((n) => n.comm_subject === subjectF);
+    if (yearF) list = list.filter((n) => String(n.comm_year) === yearF);
     if (sort === "downloads") {
       list = [...list].sort((a, b) => b.downloads - a.downloads);
     }
     return list;
-  }, [notes, search, sort]);
+  }, [notes, search, kindF, subjectF, yearF, sort]);
 
   function toggleSave(id: string) {
     setSaved((prev) => {
@@ -151,6 +182,44 @@ export function CommunityView({ notes, referralUrl, myReferrals, userPlan }: Pro
             </button>
           ))}
         </div>
+
+        {/* Filtros por categoría */}
+        {kindOptions.length > 0 && (
+          <select
+            value={kindF}
+            onChange={(e) => setKindF(e.target.value)}
+            className="px-3 py-2 rounded-full border border-rule bg-paper text-[12.5px] focus:outline-none focus:border-accent"
+          >
+            <option value="">Todos los tipos</option>
+            {kindOptions.map((k) => (
+              <option key={k} value={k}>{KIND_LABEL[k] ?? k}</option>
+            ))}
+          </select>
+        )}
+        {subjectOptions.length > 0 && (
+          <select
+            value={subjectF}
+            onChange={(e) => setSubjectF(e.target.value)}
+            className="px-3 py-2 rounded-full border border-rule bg-paper text-[12.5px] focus:outline-none focus:border-accent max-w-[180px]"
+          >
+            <option value="">Todas las materias</option>
+            {subjectOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        )}
+        {yearOptions.length > 0 && (
+          <select
+            value={yearF}
+            onChange={(e) => setYearF(e.target.value)}
+            className="px-3 py-2 rounded-full border border-rule bg-paper text-[12.5px] focus:outline-none focus:border-accent"
+          >
+            <option value="">Todos los años</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={String(y)}>{y}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Feed */}
@@ -185,7 +254,9 @@ export function CommunityView({ notes, referralUrl, myReferrals, userPlan }: Pro
                   <div className="font-semibold text-[13px] truncate">
                     {n.uploader?.full_name ?? (n.uploader?.email.split("@")[0] ?? "Anónimo")}
                   </div>
-                  <div className="text-[11px] text-ink-soft">UBA · Ingeniería</div>
+                  <div className="text-[11px] text-ink-soft truncate">
+                    {[n.comm_university, n.comm_career].filter(Boolean).join(" · ") || "Estudiante"}
+                  </div>
                 </div>
                 {n.has_ai_content && (
                   <span className="text-[9.5px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full bg-accent-soft text-accent">
@@ -194,20 +265,30 @@ export function CommunityView({ notes, referralUrl, myReferrals, userPlan }: Pro
                 )}
               </div>
 
-              {/* Subject dot + name */}
-              {n.subject && (
-                <div className="flex items-center gap-1.5 text-[11.5px] text-ink-soft mb-1">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: n.subject.color }}
-                  />
-                  <span>{n.subject.name}</span>
-                </div>
-              )}
-
               <h3 className="font-display font-bold text-base mb-2 line-clamp-2">
                 {n.title}
               </h3>
+
+              {/* Badges de categoría */}
+              {(n.comm_kind || n.comm_subject || n.comm_year) && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {n.comm_kind && (
+                    <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-accent-soft text-accent">
+                      {KIND_LABEL[n.comm_kind] ?? n.comm_kind}
+                    </span>
+                  )}
+                  {n.comm_subject && (
+                    <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-paper-warm border border-rule-soft text-ink-soft">
+                      {n.comm_subject}
+                    </span>
+                  )}
+                  {n.comm_year && (
+                    <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-paper-warm border border-rule-soft text-ink-soft">
+                      {n.comm_year}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center justify-between mt-auto pt-3 border-t border-rule-soft">
                 <div className="flex items-center gap-3 text-[11px] text-ink-soft">

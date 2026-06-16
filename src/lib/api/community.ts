@@ -20,7 +20,7 @@ export async function listPublicNotes(opts?: {
   limit?: number;
 }): Promise<PublicNote[]> {
   const sb = supabaseAdmin();
-  const limit = opts?.limit ?? 50;
+  const limit = opts?.limit ?? 200;
 
   let q = sb
     .from("notes")

@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { listSubjects } from "@/lib/api/subjects";
 import { listNotes } from "@/lib/api/notes";
+import { getCurrentSkillioUser } from "@/lib/db";
 import { Uploader } from "./_components/uploader";
 import { NoteRow } from "./_components/note-row";
 
 export default async function ApuntesPage() {
-  const [notes, subjects] = await Promise.all([listNotes(), listSubjects()]);
+  const [notes, subjects, user] = await Promise.all([
+    listNotes(),
+    listSubjects(),
+    getCurrentSkillioUser(),
+  ]);
 
   return (
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto">
@@ -42,7 +47,13 @@ export default async function ApuntesPage() {
         ) : (
           <div className="space-y-2.5">
             {notes.map((n) => (
-              <NoteRow key={n.id} note={n} />
+              <NoteRow
+                key={n.id}
+                note={n}
+                subjects={subjects}
+                university={user?.institution ?? null}
+                career={user?.career ?? null}
+              />
             ))}
           </div>
         )}

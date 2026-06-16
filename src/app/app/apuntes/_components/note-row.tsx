@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deleteNote, toggleNotePublic } from "@/lib/api/notes";
-import type { Note } from "@/lib/types";
+import { deleteNote, unshareNote } from "@/lib/api/notes";
+import type { Note, Subject } from "@/lib/types";
+import { ShareModal } from "./share-modal";
 
 const TYPE_ICON: Record<string, { icon: string; tone: string }> = {
   pdf: { icon: "📄", tone: "bg-accent-soft text-accent" },
@@ -32,10 +33,21 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR");
 }
 
-export function NoteRow({ note }: { note: Note }) {
+export function NoteRow({
+  note,
+  subjects,
+  university,
+  career,
+}: {
+  note: Note;
+  subjects: Subject[];
+  university: string | null;
+  career: string | null;
+}) {
   const router = useRouter();
   const [pendingDel, startDel] = useTransition();
   const [pendingPub, startPub] = useTransition();
+  const [shareOpen, setShareOpen] = useState(false);
   const meta = TYPE_ICON[note.file_type ?? "file"] ?? TYPE_ICON.file;
 
   function handleDelete() {
@@ -46,11 +58,16 @@ export function NoteRow({ note }: { note: Note }) {
     });
   }
 
-  function handleTogglePublic() {
-    startPub(async () => {
-      await toggleNotePublic(note.id);
-      router.refresh();
-    });
+  // Compartir → abre el popup de categorización. Ya compartido → lo saca.
+  function handleShareClick() {
+    if (note.is_public) {
+      startPub(async () => {
+        await unshareNote(note.id);
+        router.refresh();
+      });
+    } else {
+      setShareOpen(true);
+    }
   }
 
   return (
@@ -82,13 +99,14 @@ export function NoteRow({ note }: { note: Note }) {
         </a>
         <button
           type="button"
-          onClick={handleTogglePublic}
+          onClick={handleShareClick}
           disabled={pendingPub}
           className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition ${
             note.is_public
               ? "bg-accent text-[#FBF1EF] hover:bg-accent-hover"
               : "border border-rule hover:border-accent hover:text-accent"
           }`}
+          title={note.is_public ? "Dejar de compartir" : "Compartir en la comunidad"}
         >
           {note.is_public ? "Compartido ✓" : "Compartir"}
         </button>
@@ -105,6 +123,16 @@ export function NoteRow({ note }: { note: Note }) {
           </svg>
         </button>
       </div>
+
+      {shareOpen && (
+        <ShareModal
+          note={note}
+          subjects={subjects}
+          university={university}
+          career={career}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </div>
   );
 }

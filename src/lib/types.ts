@@ -44,6 +44,13 @@ export type Note = {
   likes: number;
   has_ai_content: boolean;
   created_at: string;
+  // Metadata de Comunidad (se llena al compartir)
+  comm_kind: string | null;
+  comm_university: string | null;
+  comm_career: string | null;
+  comm_subject: string | null;
+  comm_year: number | null;
+  comm_month: number | null;
 };
 
 /** Paleta de colores para Materias y eventos */
