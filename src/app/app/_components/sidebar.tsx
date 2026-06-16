@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { SignOutButton } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { levelProgress } from "@/lib/level";
 import type { SkillioUser } from "@/lib/sync-user";
@@ -81,11 +79,8 @@ const HERRAMIENTAS: NavItem[] = [
 
 export function Sidebar({ user }: { user: SkillioUser }) {
   const pathname = usePathname();
-  const router = useRouter();
   const upgrade = useUpgradeModal();
   const level = levelProgress(user.total_xp);
-  const [showProfile, setShowProfile] = useState(false);
-  const [cancelStep, setCancelStep] = useState<"idle" | "confirm" | "loading" | "done">("idle");
 
   const initials =
     user.full_name
@@ -94,27 +89,6 @@ export function Sidebar({ user }: { user: SkillioUser }) {
       .slice(0, 2)
       .join("")
       .toUpperCase() ?? user.email.slice(0, 2).toUpperCase();
-
-  const memberSince = new Date(user.created_at).toLocaleDateString("es-AR", {
-    month: "long",
-    year: "numeric",
-  });
-
-  async function handleCancel() {
-    setCancelStep("loading");
-    try {
-      const res = await fetch("/api/subscription/cancel", { method: "POST" });
-      if (!res.ok) throw new Error();
-      setCancelStep("done");
-      setTimeout(() => {
-        router.refresh();
-        setShowProfile(false);
-        setCancelStep("idle");
-      }, 1500);
-    } catch {
-      setCancelStep("idle");
-    }
-  }
 
   return (
     <aside className="flex flex-col h-full bg-paper-warm border-r border-rule px-4 py-5 overflow-y-auto">
@@ -255,119 +229,29 @@ export function Sidebar({ user }: { user: SkillioUser }) {
           )}
         </div>
 
-        {/* User card — expandible */}
-        <div className="rounded-2xl bg-paper border border-rule-soft overflow-hidden">
-          {/* Header row */}
-          <button
-            type="button"
-            onClick={() => setShowProfile((v) => !v)}
-            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-paper-warm"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-2)] font-display text-[13px] font-bold text-[#FBF1EF]">
-              {initials}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[12.5px] font-semibold">
-                {user.full_name ?? user.email.split("@")[0]}
-              </div>
-              <div className="truncate text-[10.5px] text-ink-soft">
-                {user.plan === "pro" ? "Pro" : "Gratis"} · 🔥 {user.current_streak}d
-              </div>
-            </div>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              className={cn("h-3 w-3 shrink-0 text-ink-softer transition-transform", showProfile && "rotate-180")}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </button>
-
-          {/* Perfil expandido */}
-          {showProfile && (
-            <div className="border-t border-rule-soft px-3 pb-3 pt-2.5">
-              {/* Email */}
-              <p className="mb-3 truncate text-[11px] text-ink-softer">{user.email}</p>
-
-              {/* Datos */}
-              <div className="mb-3 flex flex-col gap-1.5">
-                {(
-                  [
-                    ["Plan", user.plan === "pro" ? "Pro ✦" : "Gratis", user.plan === "pro"],
-                    ["Créditos IA", user.credits.toLocaleString("es-AR"), false],
-                    ["Racha actual", `🔥 ${user.current_streak} días`, false],
-                    ["Miembro desde", memberSince, false],
-                  ] as [string, string, boolean][]
-                ).map(([label, value, accent]) => (
-                  <div key={label} className="flex items-center justify-between">
-                    <span className="text-[11px] text-ink-softer">{label}</span>
-                    <span className={cn("text-[11px] font-semibold", accent && "text-accent")}>{value}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Acciones */}
-              <div className="flex flex-col gap-1.5 border-t border-rule-soft pt-2.5">
-                {/* Cancelar suscripción */}
-                {(
-                  <div className="mb-0.5">
-                    {cancelStep === "idle" && (
-                      <button
-                        onClick={() => setCancelStep("confirm")}
-                        className="w-full text-left text-[11px] text-ink-softer transition hover:text-red-500"
-                      >
-                        Cancelar suscripción
-                      </button>
-                    )}
-                    {cancelStep === "confirm" && (
-                      <div className="rounded-xl border border-red-100 bg-red-50 p-2.5">
-                        <p className="mb-2 text-[11px] text-red-700">
-                          ¿Confirmar? Perdés acceso Pro al final del período actual.
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={handleCancel}
-                            className="flex-1 rounded-lg border border-red-200 py-1 text-[11px] font-semibold text-red-600 transition hover:bg-red-100"
-                          >
-                            Sí, cancelar
-                          </button>
-                          <button
-                            onClick={() => setCancelStep("idle")}
-                            className="flex-1 rounded-lg border border-rule-soft py-1 text-[11px] font-semibold text-ink transition hover:bg-paper-warm"
-                          >
-                            No, volver
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    {cancelStep === "loading" && (
-                      <p className="text-[11px] text-ink-softer">Cancelando...</p>
-                    )}
-                    {cancelStep === "done" && (
-                      <p className="text-[11px] font-semibold text-green-600">✓ Suscripción cancelada</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Cerrar sesión */}
-                <SignOutButton>
-                  <button
-                    className="flex w-full items-center gap-1.5 py-0.5 text-left text-[11.5px] text-ink-softer transition hover:text-ink"
-                    aria-label="Cerrar sesión"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-3.5 w-3.5 shrink-0">
-                      <path d="M15 4h4v16h-4M3 12h12m-3-4 4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    Cerrar sesión
-                  </button>
-                </SignOutButton>
-              </div>
-            </div>
+        {/* User card — abre /app/perfil (datos, facturación, cancelar, salir) */}
+        <Link
+          href="/app/perfil"
+          className={cn(
+            "flex w-full items-center gap-2.5 px-3 py-2.5 rounded-2xl bg-paper border border-rule-soft transition-colors hover:bg-paper-warm",
+            pathname === "/app/perfil" && "border-accent/40",
           )}
-        </div>
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-2)] font-display text-[13px] font-bold text-[#FBF1EF]">
+            {initials}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[12.5px] font-semibold">
+              {user.full_name ?? user.email.split("@")[0]}
+            </div>
+            <div className="truncate text-[10.5px] text-ink-soft">
+              {user.plan === "pro" ? "Pro" : "Gratis"} · 🔥 {user.current_streak}d
+            </div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-3.5 w-3.5 shrink-0 text-ink-softer">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </Link>
       </div>
     </aside>
   );

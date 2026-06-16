@@ -194,11 +194,11 @@ export async function sendContinueOnComputerEmail(
   const n = firstName(name);
   await send({
     to,
-    subject: "Seguí en tu compu 💻 (tus apuntes rinden más en pantalla grande)",
+    subject: "Seguí cómodo desde tu compu 🙌",
     html: wrap({
       preview: "Un toque y seguís estudiando con Skillio en tu computadora.",
-      heading: `${n}, ¡así de fácil es aprobar con Skillio! 🎉`,
-      body: `Ya viste lo que la IA hace con un apunte. Ahora probá con los <b>tuyos</b>: sacale una foto, escribí un tema o subí el PDF y obtené resúmenes y simulacros en segundos.<br><br>📲 Lo armaste desde el celu, pero <b>en la compu rinde el doble</b>: pantalla grande para leer y estudiar cómodo. Entrá desde acá 👇`,
+      heading: `${n}, ¡ya viste lo que hace Skillio! 🙌`,
+      body: `Seguí cómodo desde tu compu con todos tus apuntes 👉`,
       ctaText: "Seguir en mi compu →",
       ctaPath: "/app/ia",
     }),

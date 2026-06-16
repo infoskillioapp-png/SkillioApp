@@ -6,7 +6,9 @@ import { useUpgradeModal } from "./upgrade-modal";
 // Duración de la "oferta de lanzamiento". El reloj es urgencia psicológica:
 // cuando llega a 0 el precio NO cambia (sigue $16.000), el contador solo
 // desaparece. Single source of truth para todo el paywall.
-export const OFFER_DURATION_HOURS = 12;
+// 1h para apretar la urgencia (arranca con offer_started_at al completar
+// onboarding; aplica a usuarios nuevos — los viejos que ya pasaron 1h no la ven).
+export const OFFER_DURATION_HOURS = 1;
 const OFFER_DURATION_MS = OFFER_DURATION_HOURS * 60 * 60 * 1000;
 
 type Countdown = {

@@ -155,6 +155,15 @@ function StepResumen({ demo, onNext }: { demo: DemoProps["demo"]; onNext: () => 
   const [modalOpen, setModalOpen] = useState(false);
   const [seen, setSeen] = useState(false);
   const [showDoc, setShowDoc] = useState(false);
+  const readyRef = useRef<HTMLDivElement>(null);
+
+  // Al cerrar el modal del resumen, llevamos el foco al CTA fuerte hacia el paso 2
+  // (cero tiempo muerto entre ver el resumen y arrancar el simulacro).
+  useEffect(() => {
+    if (state === "ready" && !modalOpen) {
+      readyRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [state, modalOpen]);
 
   const generate = useCallback(async () => {
     setState("loading");
@@ -183,29 +192,26 @@ function StepResumen({ demo, onNext }: { demo: DemoProps["demo"]; onNext: () => 
         Mirá lo que Skillio hace con un apunte <span className="inline-block">🤯</span>
       </h1>
 
-      {/* Tarjeta del apunte de ejemplo */}
-      <button
-        type="button"
-        onClick={() => {
-          if (demo.pdfUrl) {
-            window.open(demo.pdfUrl, "_blank", "noopener");
-          } else {
-            setShowDoc(true);
-          }
-          track("demo_view_source", "demo_1");
-        }}
-        className="w-full text-left rounded-2xl border border-rule-soft bg-paper p-4 flex items-center gap-3.5 hover:border-accent/40 hover:-translate-y-[1px] hover:shadow-card transition-all duration-300 mb-5"
-      >
-        <span className="w-12 h-12 rounded-xl bg-accent-soft text-accent flex items-center justify-center text-xl shrink-0">
+      {/* Apunte de ejemplo — informativo. "Ver" es secundario y abre INLINE
+          (nunca pestaña nueva) para no sacar al usuario del flujo del demo. */}
+      <div className="rounded-2xl border border-rule-soft bg-paper p-4 flex items-center gap-3.5 mb-2.5">
+        <span className="w-11 h-11 rounded-xl bg-accent-soft text-accent flex items-center justify-center text-lg shrink-0">
           📄
         </span>
         <div className="min-w-0 flex-1">
-          <div className="font-display font-bold text-[14.5px] truncate">{demo.title}</div>
+          <div className="font-display font-bold text-[14px] truncate">{demo.title}</div>
           <div className="text-[11.5px] text-ink-soft truncate">{demo.subject}</div>
         </div>
-        <span className="text-[12px] text-accent font-semibold shrink-0">
-          Ver apunte completo →
-        </span>
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          setShowDoc(true);
+          track("demo_view_source", "demo_1");
+        }}
+        className="ml-1 mb-5 text-[11.5px] text-ink-soft hover:text-accent underline underline-offset-2 transition"
+      >
+        Ver apunte completo
       </button>
 
       {state === "idle" && (
@@ -228,32 +234,22 @@ function StepResumen({ demo, onNext }: { demo: DemoProps["demo"]; onNext: () => 
       )}
 
       {state === "ready" && seen && (
-        <div className="animate-demo-fade-up">
+        <div ref={readyRef} className="animate-demo-fade-up">
           <div className="rounded-2xl border border-success/40 bg-success-soft p-4 flex items-center gap-3 mb-4">
             <span className="text-2xl">✅</span>
             <div>
               <div className="font-display font-bold text-[14px]">¡Tu resumen está listo!</div>
-              <div className="text-[12px] text-ink-soft">
-                Así de fácil. Lo podés ver de nuevo o descargarlo en PDF.
-              </div>
+              <div className="text-[12px] text-ink-soft">Así de fácil. Ahora viene la mejor parte 👇</div>
             </div>
           </div>
-          <div className="flex gap-2.5">
-            <button
-              type="button"
-              onClick={() => setModalOpen(true)}
-              className="flex-1 py-3 rounded-full border border-rule font-display font-semibold text-[14px] text-ink hover:border-accent hover:text-accent transition"
-            >
-              Ver de nuevo
-            </button>
-            <button
-              type="button"
-              onClick={onNext}
-              className="flex-1 py-3 rounded-full bg-ink text-bg font-display font-bold text-[14px] hover:bg-accent transition active:translate-y-[1px]"
-            >
-              Sigamos →
-            </button>
-          </div>
+          <PrimaryButton onClick={onNext}>🔥 Ahora poné a prueba lo que acabás de leer →</PrimaryButton>
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="block mx-auto mt-3 text-[12.5px] text-ink-softer hover:text-ink transition"
+          >
+            Ver el resumen de nuevo
+          </button>
         </div>
       )}
 
@@ -263,7 +259,13 @@ function StepResumen({ demo, onNext }: { demo: DemoProps["demo"]; onNext: () => 
       )}
 
       {showDoc && (
-        <DocViewerModal title={demo.title} subject={demo.subject} text={demo.text} onClose={() => setShowDoc(false)} />
+        <DocViewerModal
+          title={demo.title}
+          subject={demo.subject}
+          text={demo.text}
+          pdfUrl={demo.pdfUrl}
+          onClose={() => setShowDoc(false)}
+        />
       )}
     </div>
   );
@@ -592,11 +594,13 @@ function DocViewerModal({
   title,
   subject,
   text,
+  pdfUrl,
   onClose,
 }: {
   title: string;
   subject: string;
   text: string;
+  pdfUrl: string | null;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -616,8 +620,8 @@ function DocViewerModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl bg-paper border border-rule shadow-lg flex flex-col"
-        style={{ maxHeight: "calc(100dvh - 60px)" }}
+        className="relative w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl bg-paper border border-rule shadow-lg flex flex-col"
+        style={{ height: pdfUrl ? "calc(100dvh - 60px)" : undefined, maxHeight: "calc(100dvh - 60px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between px-5 py-4 border-b border-rule-soft shrink-0">
@@ -637,9 +641,13 @@ function DocViewerModal({
             ✕
           </button>
         </header>
-        <div className="flex-1 overflow-y-auto px-5 py-5" style={{ overscrollBehavior: "contain" }}>
-          <div className="whitespace-pre-wrap font-sans text-[13.5px] leading-[1.7] text-ink">{text}</div>
-        </div>
+        {pdfUrl ? (
+          <iframe src={pdfUrl} title={title} className="flex-1 w-full border-0 rounded-b-3xl" />
+        ) : (
+          <div className="flex-1 overflow-y-auto px-5 py-5" style={{ overscrollBehavior: "contain" }}>
+            <div className="whitespace-pre-wrap font-sans text-[13.5px] leading-[1.7] text-ink">{text}</div>
+          </div>
+        )}
       </div>
     </div>
   );
