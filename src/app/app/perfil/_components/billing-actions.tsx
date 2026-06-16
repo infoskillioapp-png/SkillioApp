@@ -38,21 +38,25 @@ export function CancelSubscription() {
   }
 
   return (
-    <div className="rounded-xl border border-red-100 bg-red-50 p-3.5 max-w-sm">
-      <p className="mb-2.5 text-[12.5px] text-red-700">
-        ¿Confirmás? Perdés el acceso PRO al final del período que ya pagaste.
+    <div
+      className="rounded-xl border p-3.5 max-w-sm"
+      style={{ borderColor: "var(--danger)", background: "var(--accent-soft)" }}
+    >
+      <p className="mb-3 text-[12.5px] text-ink">
+        ¿Confirmás? Si cancelás podés seguir usando PRO hasta que termine el período de facturación.
       </p>
       <div className="flex gap-2">
         <button
           onClick={handleCancel}
           disabled={step === "loading"}
-          className="flex-1 rounded-lg border border-red-200 py-1.5 text-[12.5px] font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+          className="flex-1 rounded-lg py-2 text-[12.5px] font-bold text-[#FBF1EF] transition active:translate-y-[1px] disabled:opacity-50"
+          style={{ background: "var(--danger)" }}
         >
           {step === "loading" ? "Cancelando…" : "Sí, cancelar"}
         </button>
         <button
           onClick={() => setStep("idle")}
-          className="flex-1 rounded-lg border border-rule-soft py-1.5 text-[12.5px] font-semibold text-ink transition hover:bg-paper-warm"
+          className="flex-1 rounded-lg border border-rule py-2 text-[12.5px] font-semibold text-ink transition hover:bg-paper-warm"
         >
           No, volver
         </button>
