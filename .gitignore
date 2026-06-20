@@ -42,7 +42,9 @@ yarn-error.log*
 next-env.d.ts
 
 # archivos locales / herramientas
-.claude
+# Ignoramos .claude (settings locales) PERO versionamos los skills del proyecto.
+.claude/*
+!.claude/skills/
 .design-reference
 .dev.log
 landing_*.png
