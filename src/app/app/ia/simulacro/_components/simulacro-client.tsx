@@ -281,14 +281,16 @@ export function SimulacroClient({ data, isPro }: { data: SimulacroData; isPro: b
         {/* ---- resultado ---- */}
         {phase === "result" && (
           <div className="sim-result show">
-            <div className="rscene" style={{ backgroundImage: `url(/fondohome.jpeg)` }}>
+            <div className="rscene" style={{ backgroundImage: `url(${pct > 50 ? "/fondo_exito.png" : "/fondo_fracaso.png"})` }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/booki-3.png" alt="Booki" style={{ position:"absolute", right:12, bottom:0, height:130, objectFit:"contain", zIndex:2, filter:"drop-shadow(0 4px 16px rgba(0,0,0,.3))" }} />
               <div className="cap">
                 <h2>{pct > 50 ? "¡Aprobado! 🎉" : "Casi… ¡seguí practicando! 💪"}</h2>
                 <p>{pct > 50 ? "Revisá abajo qué acertaste y dónde reforzar." : "Reforzá lo que erraste y rehacé las incorrectas. 👇"}</p>
               </div>
             </div>
             <div className="scorehead">
-              <div className="ring">
+              <div className="result-ring">
                 <ScoreRing ok={ok} total={M} />
               </div>
               <div>

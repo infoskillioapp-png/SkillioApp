@@ -490,7 +490,7 @@ body.railed{padding-left:122px}
 .rscene h2{font-family:var(--po);font-weight:800;font-size:26px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
 .rscene p{opacity:.95;font-size:14px;margin-top:5px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
 .rcard2{position:relative;z-index:2;width:90%;background:#fff;border-radius:24px;box-shadow:var(--sh2);padding:24px;margin-top:-30px;display:flex;flex-direction:column;align-items:center}
-.rcard2 .ring{margin:2px 0 16px;animation:ringGlow 2.6s 1s ease-in-out infinite}
+.rcard2 .result-ring{margin:2px 0 16px;animation:ringGlow 2.6s 1s ease-in-out infinite}
 @keyframes ringGlow{0%,100%{filter:drop-shadow(0 6px 14px rgba(124,92,246,.16))}50%{filter:drop-shadow(0 6px 22px rgba(124,92,246,.4))}}
 .rstats2{display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap;justify-content:center}
 .rstat2{position:relative;background:#fff;border-radius:18px;box-shadow:var(--sh);padding:18px 22px 16px;min-width:114px;overflow:hidden;opacity:0;cursor:default;transition:transform .18s}
@@ -534,7 +534,7 @@ body.railed{padding-left:122px}
 .simnav .snbtn:disabled{opacity:.45;pointer-events:none}
 .sim-result{display:none}.sim-result.show{display:block}
 .scorehead{background:#fff;border-radius:24px;box-shadow:var(--sh);padding:24px 26px;display:flex;align-items:center;gap:24px;margin-bottom:20px}
-.scorehead .ring{flex:none;animation:ringGlow 2.6s 1s ease-in-out infinite}
+.scorehead .result-ring{flex:none;animation:ringGlow 2.6s 1s ease-in-out infinite}
 .scorehead .slead{font-family:var(--po);font-weight:700;font-size:13px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}
 .mini{display:flex;gap:22px}
 .mini div{font-size:13px;font-weight:600;color:var(--muted)}
