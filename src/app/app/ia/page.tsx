@@ -75,7 +75,8 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
 
   type Flashcard = { front?: string };
   type SimulacroPregunta = { pregunta?: string; question?: string };
-  const flashcardsContent = flashcardsOutput?.content as { flashcards?: Flashcard[] } | null;
+  // API guarda "cards" (FlashcardsSchema), soportar también "flashcards" para compat.
+  const flashcardsContent = flashcardsOutput?.content as { cards?: Flashcard[]; flashcards?: Flashcard[] } | null;
   const simulacroContent = simulacroOutput?.content as { questions?: SimulacroPregunta[] } | null;
 
   const noteData = {
@@ -83,7 +84,7 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     title: note.title,
     subjectName,
     summaryCount: points.length,
-    flashcardsCount: flashcardsContent?.flashcards?.length ?? 0,
+    flashcardsCount: (flashcardsContent?.cards ?? flashcardsContent?.flashcards)?.length ?? 0,
     simulacroCount: simulacroContent?.questions?.length ?? 0,
     sections,
   };

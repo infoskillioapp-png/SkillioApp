@@ -8,7 +8,8 @@ import type { TarjetasData } from "./_components/tarjetas-client";
 type SearchParams = Promise<{ note_id?: string }>;
 
 type FlashcardRow = { front: string; back: string; category?: string };
-type FlashcardsContent = { flashcards?: FlashcardRow[] };
+// API guarda "cards" (FlashcardsSchema.cards), soportar también "flashcards" para compat.
+type FlashcardsContent = { cards?: FlashcardRow[]; flashcards?: FlashcardRow[] };
 
 export default async function TarjetasPage({ searchParams }: { searchParams: SearchParams }) {
   const { userId } = await auth();
@@ -38,7 +39,7 @@ export default async function TarjetasPage({ searchParams }: { searchParams: Sea
     .single();
 
   const content = output?.content as FlashcardsContent | null;
-  const flashcards = content?.flashcards ?? [];
+  const flashcards = content?.cards ?? content?.flashcards ?? [];
 
   if (flashcards.length === 0) redirect(`/app/ia?note_id=${note_id}`);
 

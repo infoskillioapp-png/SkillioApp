@@ -349,6 +349,24 @@ export function EspacioClient({ note, generating, fileName }: Props) {
   const allTopics = note.sections.flatMap(s => s.topics);
   const doneCount = allTopics.filter(t => (donePcts[t.id] ?? t.pct) >= 100).length;
 
+  // Cuando un modo no tiene contenido, genera en vez de navegar
+  function ModoWrapper({ count, href, className, style, children }: {
+    count: number; href: string; className: string;
+    style?: React.CSSProperties; children: React.ReactNode;
+  }) {
+    if (count > 0) {
+      return <Link href={href} className={className} style={style}>{children}</Link>;
+    }
+    return (
+      <div
+        className={className} style={{ ...style, cursor: "pointer" }}
+        onClick={() => setIsGenerating(true)}
+      >
+        {children}
+      </div>
+    );
+  }
+
   return (
     <>
       {isGenerating && (
@@ -407,7 +425,7 @@ export function EspacioClient({ note, generating, fileName }: Props) {
           </div>
 
           <div className="modos">
-            <Link href={`/app/ia/resumen?note_id=${note.id}`} className="modo blue in" style={{ animationDelay: ".1s" }}>
+            <ModoWrapper count={note.summaryCount} href={`/app/ia/resumen?note_id=${note.id}`} className="modo blue in" style={{ animationDelay: ".1s" }}>
               <span className="deco" /><span className="deco2" /><span className="sweep" />
               <div className="top">
                 <span className="mi">
@@ -422,13 +440,13 @@ export function EspacioClient({ note, generating, fileName }: Props) {
               <div className="pwrap">
                 <div className="pbar"><i style={{ width: note.summaryCount ? "42%" : "0%" }} /></div>
                 <div className="pfoot">
-                  <span className="stat">{note.summaryCount ? "En progreso · 42%" : "Listo para generar"}</span>
+                  <span className="stat">{note.summaryCount ? "En progreso · 42%" : "Tocá para generar ⚡"}</span>
                   <span className="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
                 </div>
               </div>
-            </Link>
+            </ModoWrapper>
 
-            <Link href={`/app/ia/tarjetas?note_id=${note.id}`} className="modo violet in" style={{ animationDelay: ".17s" }}>
+            <ModoWrapper count={note.flashcardsCount} href={`/app/ia/tarjetas?note_id=${note.id}`} className="modo violet in" style={{ animationDelay: ".17s" }}>
               <span className="deco" /><span className="deco2" /><span className="sweep" />
               <div className="top">
                 <span className="mi">
@@ -441,15 +459,15 @@ export function EspacioClient({ note, generating, fileName }: Props) {
               <div className="mt po">Tarjetas</div>
               <div className="md">Memorizá los términos con repetición espaciada.</div>
               <div className="pwrap">
-                <div className="pbar"><i style={{ width: "24%" }} /></div>
+                <div className="pbar"><i style={{ width: note.flashcardsCount ? "24%" : "0%" }} /></div>
                 <div className="pfoot">
-                  <span className="stat">{note.flashcardsCount ? "12 dominadas" : "Listo para generar"}</span>
+                  <span className="stat">{note.flashcardsCount ? `${note.flashcardsCount} tarjetas` : "Tocá para generar ⚡"}</span>
                   <span className="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
                 </div>
               </div>
-            </Link>
+            </ModoWrapper>
 
-            <Link href={`/app/ia/simulacro?note_id=${note.id}`} className="modo coral in" style={{ animationDelay: ".24s" }}>
+            <ModoWrapper count={note.simulacroCount} href={`/app/ia/simulacro?note_id=${note.id}`} className="modo coral in" style={{ animationDelay: ".24s" }}>
               <span className="deco" /><span className="deco2" /><span className="sweep" />
               <div className="top">
                 <span className="mi">
@@ -464,11 +482,11 @@ export function EspacioClient({ note, generating, fileName }: Props) {
               <div className="pwrap">
                 <div className="pbar"><i style={{ width: "0%" }} /></div>
                 <div className="pfoot">
-                  <span className="stat">¡Nuevo! Sin empezar</span>
+                  <span className="stat">{note.simulacroCount ? "¡Nuevo! Sin empezar" : "Tocá para generar ⚡"}</span>
                   <span className="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
                 </div>
               </div>
-            </Link>
+            </ModoWrapper>
           </div>
 
           {/* mapa del tema */}
