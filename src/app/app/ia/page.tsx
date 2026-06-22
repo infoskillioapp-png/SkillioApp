@@ -82,6 +82,13 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
   const flashcardsContent = flashcardsOutput?.content as { cards?: Flashcard[]; flashcards?: Flashcard[] } | null;
   const simulacroContent = simulacroOutput?.content as { questions?: SimulacroPregunta[] } | null;
 
+  // Signed URL para "Ver archivo" (1 hora)
+  let fileUrl: string | null = null;
+  if (note.file_path) {
+    const { data: signed } = await sb.storage.from("notes-uploads").createSignedUrl(note.file_path, 3600);
+    fileUrl = signed?.signedUrl ?? null;
+  }
+
   const noteData = {
     id: note.id,
     title: note.title,
@@ -90,6 +97,7 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     flashcardsCount: (flashcardsContent?.cards ?? flashcardsContent?.flashcards)?.length ?? 0,
     simulacroCount: simulacroContent?.questions?.length ?? 0,
     sections,
+    fileUrl,
   };
 
   // Auto-generar si falta cualquier output (resumen, tarjetas o simulacro)

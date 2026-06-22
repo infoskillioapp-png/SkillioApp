@@ -18,6 +18,7 @@ type NoteData = {
   flashcardsCount: number;
   simulacroCount: number;
   sections: Section[];
+  fileUrl?: string | null;
 };
 
 // ---- paleta de colores ----
@@ -263,15 +264,7 @@ function SeccionRow({ sec, secIdx, donePcts, onCelebrate }: {
           const pct = donePcts[t.id] ?? t.pct;
           const done = pct >= 100;
           return (
-            <div
-              key={t.id}
-              className="etema"
-              onClick={(e) => {
-                const el = (e.currentTarget as HTMLElement);
-                const rect = el.getBoundingClientRect();
-                onCelebrate(t.id, sec.id, rect);
-              }}
-            >
+            <div key={t.id} className="etema">
               <MiniRing pct={pct} color={PAL[i % PAL.length]} done={done} />
               <div>
                 <div className="tnm">{t.name}</div>
@@ -319,12 +312,13 @@ export function EspacioClient({ note, generating, fileName }: Props) {
     setDonePcts(saved);
   }, [note]);
 
-  // Calcular dominio total
+  // Calcular dominio total y guardar en localStorage para home
   useEffect(() => {
     const allTopics = note.sections.flatMap(s => s.topics);
     if (!allTopics.length) { setDomPct(0); return; }
     const avg = Math.round(allTopics.reduce((a, t) => a + (donePcts[t.id] ?? t.pct), 0) / allTopics.length);
     setDomPct(avg);
+    localStorage.setItem(`skillio_dominio_${note.id}`, String(avg));
   }, [donePcts, note]);
 
   const handleDone = useCallback(() => {
@@ -413,13 +407,27 @@ export function EspacioClient({ note, generating, fileName }: Props) {
                 <h1 className="po">{note.title}</h1>
                 <p className="sub">{allTopics.length} temas listos para estudiar. Sumá Dominio jugando con resumen, tarjetas y simulacro.</p>
                 <div className="acts">
-                  <button className="hbtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" />
-                    </svg>
-                    Ver archivo
-                  </button>
-                  <button className="hbtn">
+                  {note.fileUrl ? (
+                    <a href={note.fileUrl} target="_blank" rel="noopener noreferrer" className="hbtn" style={{ textDecoration: "none" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" />
+                      </svg>
+                      Ver archivo
+                    </a>
+                  ) : (
+                    <button className="hbtn" disabled style={{ opacity: 0.45 }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" />
+                      </svg>
+                      Ver archivo
+                    </button>
+                  )}
+                  <button
+                    className="hbtn"
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href).catch(() => {});
+                    }}
+                  >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
                       <path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5" />

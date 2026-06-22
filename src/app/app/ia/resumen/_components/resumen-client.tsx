@@ -462,6 +462,12 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
 
         {/* reader */}
         <main className="reader-main">
+          {/* Header visible solo al imprimir */}
+          <div className="print-header">
+            <span className="phlogo">Skillio</span>
+            <span className="phtag">{data.subjectName} · {data.noteTitle}</span>
+          </div>
+
           <div className="rhead in">
             <div className="sec-eyebrow">
               {secName} · Tema {pointIdx + 1}
@@ -478,7 +484,7 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
             </div>
           </div>
 
-          <div className="ractions in">
+          <div className="ractions in" data-noprint>
             <button className="ract" onClick={() => setLeadMode("eli5")} style={leadMode === "eli5" ? { outline: "2px solid var(--violet)", outlineOffset: "1px" } : {}}>
               <span>🧒</span> Explícalo como a un niño
             </button>
@@ -488,6 +494,9 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
             {leadMode !== "normal" && (
               <button className="ract" onClick={() => setLeadMode("normal")}>Volver al original</button>
             )}
+            <button className="ract" onClick={() => window.print()} style={{ marginLeft: "auto" }}>
+              <span>⬇</span> Descargar PDF
+            </button>
           </div>
 
           <div className="rcard in">

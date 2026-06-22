@@ -6,6 +6,21 @@ import Link from "next/link";
 import { UploadModal } from "./upload-modal";
 import { MateriasAccordion } from "./materias-accordion";
 
+function useParallaxBg() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!ref.current) return;
+      const x = (e.clientX / window.innerWidth - 0.5) * 14;
+      const y = (e.clientY / window.innerHeight - 0.5) * 10;
+      ref.current.style.transform = `translate(${x}px, ${y}px)`;
+    };
+    window.addEventListener("mousemove", handler, { passive: true });
+    return () => window.removeEventListener("mousemove", handler);
+  }, []);
+  return ref;
+}
+
 function Topbar({ name, initial }: { name: string; initial: string }) {
   return (
     <div className="topbar in">
@@ -98,10 +113,18 @@ type Props = {
 
 export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false }: Props) {
   const [modalOpen, setModalOpen] = useState(autoUpload);
+  const bgRef = useParallaxBg();
+  const [localDominio, setLocalDominio] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!lastNote) return;
+    const stored = localStorage.getItem(`skillio_dominio_${lastNote.id}`);
+    if (stored !== null) setLocalDominio(parseInt(stored, 10));
+  }, [lastNote]);
 
   return (
     <>
-      <div style={{ position: "fixed", inset: "-22% 0", zIndex: -1, background: "url('/fondohome.jpeg') center center/cover no-repeat", willChange: "transform" }} />
+      <div ref={bgRef} style={{ position: "fixed", inset: "-22% 0", zIndex: -1, background: "url('/fondohome.jpeg') center center/cover no-repeat", willChange: "transform", transition: "transform 0.12s ease-out" }} />
 
       <div className="app">
         <main>
@@ -139,7 +162,7 @@ export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false
                 Continuá donde quedaste
               </div>
               <div className="body">
-                <ContinuarRing pct={lastNote?.dominio ?? 0} />
+                <ContinuarRing pct={localDominio ?? lastNote?.dominio ?? 0} />
                 <div className="info">
                   <div className="mat">{lastNote?.subjectName ?? "Sin materias aún"}</div>
                   <div className="tema">{lastNote ? `${lastNote.title} · En progreso` : "Subí tu primer apunte"}</div>
