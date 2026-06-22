@@ -615,3 +615,10 @@ button {
   .v3-tbtn { width: 42px; height: 42px; }
 }
 
+/* ===== DASHBOARD v3 hover helpers (usados desde server components vía className) ===== */
+.v3-materia-row { display: flex; align-items: center; gap: 14px; padding: 15px 14px; text-decoration: none; color: inherit; border-radius: 16px; transition: background .16s; }
+.v3-materia-row:hover { background: #f7f8fd; }
+.v3-add-materia { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-top: 16px; border: 2px dashed #d6d9ec; border-radius: 18px; color: var(--v3-muted); font-weight: 600; font-size: 13.5px; text-decoration: none; transition: .2s; }
+.v3-add-materia:hover { border-color: #8b5cf6; color: #8b5cf6; background: #fff; }
+.v3-upload-btn { transition: .2s; }
+.v3-upload-btn:hover { transform: translateY(-3px) !important; box-shadow: 0 18px 32px rgba(0,0,0,.24) !important; }
