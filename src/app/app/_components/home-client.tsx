@@ -90,13 +90,14 @@ function ContinuarRing({ pct }: { pct: number }) {
 
 type Props = {
   user: { firstName: string; initial: string };
-  lastNote: { subjectName: string; title: string; dominio: number } | null;
+  lastNote: { id: string; subjectName: string; title: string; dominio: number } | null;
   subjects: { id: string; name: string; color: string }[];
   notes: { id: string; subject_id: string | null; title: string; has_ai_content: boolean }[];
+  autoUpload?: boolean;
 };
 
-export function HomeClient({ user, lastNote, subjects, notes }: Props) {
-  const [modalOpen, setModalOpen] = useState(false);
+export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false }: Props) {
+  const [modalOpen, setModalOpen] = useState(autoUpload);
 
   return (
     <>
@@ -132,7 +133,7 @@ export function HomeClient({ user, lastNote, subjects, notes }: Props) {
               </div>
             </section>
 
-            <Link href="/app/ia" className="continue in" style={{ animationDelay: ".12s" }}>
+            <Link href={lastNote ? `/app/ia?note_id=${lastNote.id}` : "/app/ia"} className="continue in" style={{ animationDelay: ".12s" }}>
               <div className="eyebrow">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 Continuá donde quedaste

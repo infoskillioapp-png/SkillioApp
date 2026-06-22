@@ -11,6 +11,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   const [dragging, setDragging] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [ytUrl, setYtUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -22,9 +23,41 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function goEstudio() {
-    onClose();
-    router.push("/app/ia");
+  async function uploadFile(file: File) {
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("title", file.name.replace(/\.[^.]+$/, ""));
+      const res = await fetch("/api/notes/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (res.ok && data.note?.id) {
+        onClose();
+        router.push(`/app/ia?note_id=${data.note.id}&gen=1`);
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function uploadText() {
+    if (!textInput.trim()) return;
+    setUploading(true);
+    try {
+      const blob = new Blob([textInput], { type: "text/plain" });
+      const file = new File([blob], "texto.txt", { type: "text/plain" });
+      const form = new FormData();
+      form.append("file", file);
+      form.append("title", textInput.slice(0, 60));
+      const res = await fetch("/api/notes/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (res.ok && data.note?.id) {
+        onClose();
+        router.push(`/app/ia?note_id=${data.note.id}&gen=1`);
+      }
+    } finally {
+      setUploading(false);
+    }
   }
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -96,7 +129,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
               onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
               onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
               onDragLeave={(e) => { e.preventDefault(); setDragging(false); }}
-              onDrop={(e) => { e.preventDefault(); setDragging(false); goEstudio(); }}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) uploadFile(f); }}
             >
               <Image src="/bookisubirarchivocorrecto.png" alt="Booki con un documento" width={340} height={240} style={{ width: 340, height: "auto", margin: "0 auto", display: "block", filter: "drop-shadow(0 12px 18px rgba(80,40,150,.28))" }} />
               <div className="um-arrow">
@@ -106,12 +139,12 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
               </div>
               <h4>Arrastrá y soltá tus archivos acá</h4>
               <div className="types">Formatos: PDF · Word · PPT · TXT · JPG · PNG · HEIC · WebP · MP3 · WAV · M4A</div>
-              <input ref={fileRef} type="file" style={{ display: "none" }} onChange={goEstudio} accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp3,.wav,.m4a" />
-              <button className="um-pick" onClick={() => fileRef.current?.click()}>
+              <input ref={fileRef} type="file" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp3,.wav,.m4a" />
+              <button className="um-pick" onClick={() => fileRef.current?.click()} disabled={uploading}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                 </svg>
-                Seleccionar archivo
+                {uploading ? "Subiendo…" : "Seleccionar archivo"}
               </button>
               <button className="um-demo-link" onClick={() => { onClose(); router.push("/app/ia?demo=1"); }}>
                 ¿No tenés un apunte a mano? Usá el nuestro de prueba
@@ -124,7 +157,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
           <div className="um-pane on">
             <textarea className="um-ta" placeholder="Pegá acá tu texto, apuntes o lo que quieras estudiar…" value={textInput} onChange={(e) => setTextInput(e.target.value)} />
             <div className="um-row" style={{ justifyContent: "flex-end" }}>
-              <button className="um-pick" onClick={goEstudio}>Crear estudio</button>
+              <button className="um-pick" onClick={uploadText} disabled={uploading || !textInput.trim()}>{uploading ? "Subiendo…" : "Crear estudio"}</button>
             </div>
           </div>
         )}
@@ -134,7 +167,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
             <div className="um-soft" style={{ padding: "16px 0 4px" }}>Pegá el enlace de un video y Booki lo convierte en tu set de estudio.</div>
             <input className="um-input" placeholder="https://www.youtube.com/watch?v=…" value={ytUrl} onChange={(e) => setYtUrl(e.target.value)} />
             <div className="um-row" style={{ justifyContent: "flex-end" }}>
-              <button className="um-pick" onClick={goEstudio}>Crear estudio</button>
+              <button className="um-pick" disabled>{uploading ? "Subiendo…" : "Crear estudio"}</button>
             </div>
           </div>
         )}
