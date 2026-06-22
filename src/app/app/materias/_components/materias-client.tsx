@@ -60,13 +60,103 @@ function NuevaMateriaModal({ onClose, onCreated }: { onClose: () => void; onCrea
   );
 }
 
+// ---- picker de materia custom ----
+function MateriaPicker({
+  noteId, currentMateriaId, allMaterias, onMoved,
+}: {
+  noteId: string;
+  currentMateriaId: string;
+  allMaterias: { id: string; name: string; color: string }[];
+  onMoved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  async function move(subjectId: string) {
+    setMoving(true);
+    setOpen(false);
+    try {
+      await fetch(`/api/notes/${noteId}/subject`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject_id: subjectId || null }),
+      });
+      onMoved();
+    } finally {
+      setMoving(false);
+    }
+  }
+
+  const realMaterias = allMaterias.filter((m) => m.id !== "sin-materia");
+
+  return (
+    <div ref={ref} className="mpicker" onClick={(e) => e.stopPropagation()}>
+      <button
+        className={`mpicker-btn${moving ? " loading" : ""}`}
+        onClick={() => setOpen((o) => !o)}
+        title="Mover a otra materia"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+        {moving ? "Moviendo…" : "Mover a"}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="mpicker-pop">
+          <div
+            className={`mpicker-item${!currentMateriaId ? " active" : ""}`}
+            onClick={() => move("")}
+          >
+            <span className="mpicker-dot" style={{ background: "#c2c4d8" }} />
+            Sin materia
+            {!currentMateriaId && (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}>
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </div>
+          {realMaterias.map((m) => (
+            <div
+              key={m.id}
+              className={`mpicker-item${m.id === currentMateriaId ? " active" : ""}`}
+              onClick={() => move(m.id)}
+            >
+              <span className="mpicker-dot" style={{ background: m.color }} />
+              {m.name}
+              {m.id === currentMateriaId && (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}>
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- row de materia ----
 function MateriaCard({
   materia, idx, allMaterias, onRefresh,
 }: {
   materia: Materia;
   idx: number;
-  allMaterias: { id: string; name: string }[];
+  allMaterias: { id: string; name: string; color: string }[];
   onRefresh: () => void;
 }) {
   const [open, setOpen] = useState(idx === 0);
@@ -81,15 +171,6 @@ function MateriaCard({
     if (bodyRef.current)
       bodyRef.current.style.maxHeight = open ? bodyRef.current.scrollHeight + "px" : "0px";
   }, [open, materia.apuntes.length]);
-
-  async function moveNote(noteId: string, newSubjectId: string) {
-    await fetch(`/api/notes/${noteId}/subject`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subject_id: newSubjectId || null }),
-    });
-    onRefresh();
-  }
 
   return (
     <div className={`mat-card${open ? " open" : ""}`}>
@@ -128,18 +209,12 @@ function MateriaCard({
                   </svg>
                 </span>
               </Link>
-              <select
-                className="mat-mover"
-                value={materia.id === "sin-materia" ? "" : materia.id}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => moveNote(a.id, e.target.value)}
-                title="Mover a otra materia"
-              >
-                <option value="">Sin materia</option>
-                {allMaterias.filter(m => m.id !== "sin-materia").map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
+              <MateriaPicker
+                noteId={a.id}
+                currentMateriaId={materia.id === "sin-materia" ? "" : materia.id}
+                allMaterias={allMaterias}
+                onMoved={onRefresh}
+              />
             </div>
           ))
         )}
@@ -203,7 +278,7 @@ export function MateriasClient({ materias: initialMaterias, totalNotes }: Props)
                 key={m.id}
                 materia={m}
                 idx={i}
-                allMaterias={materias}
+                allMaterias={materias.map((x) => ({ id: x.id, name: x.name, color: x.color }))}
                 onRefresh={refresh}
               />
             ))}
