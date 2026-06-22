@@ -7,7 +7,6 @@ import { headers } from "next/headers";
 import { Sidebar } from "./_components/sidebar";
 import { Topbar } from "./_components/topbar";
 import { Booki } from "./_components/booki";
-import { MobileNav } from "./_components/mobile-nav";
 import { listEvents } from "@/lib/api/events";
 import type { AgendaEvent } from "@/lib/types";
 
@@ -47,44 +46,24 @@ function buildReminders(events: AgendaEvent[]): Reminder[] {
           : `${DAY_NAMES[d.getDay()]} ${d.getDate()}`;
 
       const when = isToday ? "HOY" : isTomorrow ? "MAÑANA" : `EN ${diffDays} DÍAS`;
-
       const tone: "danger" | "warning" | "info" =
         isToday ? "danger" : isTomorrow ? "warning" : "info";
-
       const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
-      return {
-        id: e.id,
-        when,
-        date: dateStr,
-        time,
-        title: e.title,
-        place: e.room ?? "",
-        tone,
-      };
+      return { id: e.id, when, date: dateStr, time, title: e.title, place: e.room ?? "", tone };
     });
 }
 
-export default async function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
   if (!userId) redirect("/login");
 
   const user = await syncUserToSupabase();
   if (!user) redirect("/login");
 
-  // Sin muro de pago: el free entra al dashboard. El único límite son las 3
-  // generaciones de IA gratis (se controla en las rutas /api/ai/*).
   if (user.onboarding_completed === false) redirect("/onboarding");
-
-  // Onboarding hecho pero demo guiado sin completar → lo forzamos. El demo es
-  // la experiencia que convierte (activación de 8% a 40%+); no se saltea.
   if (user.demo_completed === false) redirect("/demo");
 
-  // Eventos próximos (exámenes, parciales, TPs) para Booki
   const upcomingEvents = await listEvents({
     fromIso: new Date().toISOString(),
     toIso: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -96,30 +75,20 @@ export default async function AppLayout({
   const h = await headers();
   const host = h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? "http";
-  // Si no tiene token (nunca debería pasar tras la migración), no mostramos link roto
   const referralUrl = user.referral_token
     ? `${proto}://${host}/registro?ref=${user.referral_token}`
     : `${proto}://${host}/registro`;
 
   return (
     <AppProviders offerStartedAt={user.offer_started_at}>
-      <div className="fixed inset-0 grid grid-rows-[52px_1fr] bg-bg text-ink transition-colors overflow-x-hidden">
-        <Topbar user={user} />
-        <div className="grid md:grid-cols-[244px_1fr] overflow-hidden min-h-0 min-w-0">
-          <div className="hidden md:block h-full overflow-hidden">
-            <Sidebar user={user} />
-          </div>
-          {/* min-w-0: evita el "grid blowout" (un hijo ancho estiraría el main
-              más que la pantalla y cortaría el contenido a la derecha en mobile).
-              pb inferior = alto de la bottom-nav + safe-area del dispositivo. */}
-          <main className="min-w-0 overflow-x-hidden overflow-y-auto pb-[calc(78px+env(safe-area-inset-bottom))] md:pb-0">
-            {children}
-          </main>
+      <div className="v3-shell">
+        <Sidebar user={user} />
+        <div className="v3-content">
+          <Topbar user={user} />
+          <main>{children}</main>
         </div>
       </div>
-      {/* Booki fuera del main para que position:fixed funcione correctamente */}
       <Booki firstName={firstName} reminders={reminders} />
-      <MobileNav />
       <ReferralNudge referralUrl={referralUrl} />
     </AppProviders>
   );
