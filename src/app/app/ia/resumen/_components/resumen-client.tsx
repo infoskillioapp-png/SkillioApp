@@ -356,8 +356,16 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
   const visiblePoints = isPro ? allPoints : allPoints.slice(0, FREE_LIMIT);
   const lockedCount = isPro ? 0 : Math.max(0, totalPoints - FREE_LIMIT);
 
+  const DONE_KEY = `skillio_resumen_done_${data.noteId}`;
+
   const [activeIdx, setActiveIdx] = useState(0);
-  const [doneSet, setDoneSet] = useState<Set<number>>(new Set());
+  const [doneSet, setDoneSet] = useState<Set<number>>(() => {
+    if (typeof window === "undefined") return new Set<number>();
+    try {
+      const saved = localStorage.getItem(DONE_KEY);
+      return saved ? new Set<number>(JSON.parse(saved) as number[]) : new Set<number>();
+    } catch { return new Set<number>(); }
+  });
   const [leadMode, setLeadMode] = useState<"normal" | "eli5" | "more">("normal");
   const [showPaywall, setShowPaywall] = useState(false);
 
@@ -366,24 +374,37 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
 
   const doneCount = doneSet.size;
 
-  // Sync done topics to localStorage para que espacio/mapa lo refleje
+  // Persiste en localStorage (resumen progress + espacio mapa sync)
+  function persistDone(newSet: Set<number>) {
+    try {
+      localStorage.setItem(DONE_KEY, JSON.stringify([...newSet]));
+    } catch { /* noop */ }
+  }
+
   function markTopicDoneInEspacio(gIdx: number) {
     const ap = allPoints[gIdx];
     if (!ap) return;
-    const key = `${ESPACIO_KEY}topic-${ap.secIdx}-${ap.pointIdx}`;
-    localStorage.setItem(key, "100");
+    localStorage.setItem(`${ESPACIO_KEY}topic-${ap.secIdx}-${ap.pointIdx}`, "100");
   }
 
   const handleQuizDone = useCallback((correct: number, total: number, _rect: DOMRect) => {
     if (correct === total) {
-      setDoneSet((prev) => new Set([...prev, safeActiveIdx]));
+      setDoneSet((prev) => {
+        const next = new Set([...prev, safeActiveIdx]);
+        persistDone(next);
+        return next;
+      });
       markTopicDoneInEspacio(safeActiveIdx);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeActiveIdx]);
 
   function markDone() {
-    setDoneSet((prev) => new Set([...prev, safeActiveIdx]));
+    setDoneSet((prev) => {
+      const next = new Set([...prev, safeActiveIdx]);
+      persistDone(next);
+      return next;
+    });
     markTopicDoneInEspacio(safeActiveIdx);
     if (safeActiveIdx < visiblePoints.length - 1) setActiveIdx((i) => i + 1);
   }
@@ -418,33 +439,11 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
           Volver
         </Link>
         <div className="crumb-r">{data.subjectName} · <b>Resumen</b></div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Link
-            href={`/app/ia/tarjetas?note_id=${data.noteId}`}
-            style={{
-              fontSize: 12.5, fontWeight: 700, padding: "5px 12px",
-              background: "rgba(139,92,246,.12)", color: "#8b5cf6",
-              borderRadius: 20, textDecoration: "none", border: "1px solid rgba(139,92,246,.2)",
-            }}
-          >
-            🃏 Tarjetas
-          </Link>
-          <Link
-            href={`/app/ia/simulacro?note_id=${data.noteId}`}
-            style={{
-              fontSize: 12.5, fontWeight: 700, padding: "5px 12px",
-              background: "rgba(255,107,129,.12)", color: "#ff6b81",
-              borderRadius: 20, textDecoration: "none", border: "1px solid rgba(255,107,129,.2)",
-            }}
-          >
-            🎯 Simulacro
-          </Link>
-          <div className="rfiles">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-            </svg>
-            {doneCount}/{visiblePoints.length}{!isPro && lockedCount > 0 ? ` · 🔒 ${lockedCount}` : ""} dominados
-          </div>
+        <div className="rfiles">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+          </svg>
+          {doneCount}/{visiblePoints.length}{!isPro && lockedCount > 0 ? ` · 🔒 ${lockedCount}` : ""} dominados
         </div>
       </div>
 

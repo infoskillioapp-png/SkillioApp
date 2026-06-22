@@ -31,15 +31,17 @@ export default async function SimulacroPage({ searchParams }: { searchParams: Se
     ? (await sb.from("subjects").select("name").eq("id", note.subject_id).single()).data?.name ?? "Sin materia"
     : "Sin materia";
 
-  const { data: output } = await sb
+  // .limit(1) en vez de .single() para evitar error si hay múltiples registros
+  const { data: outputs } = await sb
     .from("ai_outputs")
     .select("content")
     .eq("note_id", note_id)
     .eq("user_id", userRow.id)
     .eq("kind", "simulacro")
-    .single();
+    .order("created_at", { ascending: false })
+    .limit(1);
 
-  const content = output?.content as SimulacroContent | null;
+  const content = (outputs?.[0]?.content ?? null) as SimulacroContent | null;
   const questions: SimQuestion[] = content?.questions ?? [];
 
   if (questions.length === 0) redirect(`/app/ia?note_id=${note_id}`);

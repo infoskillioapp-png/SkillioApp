@@ -1,9 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
+
+const PAGE_OPENERS: { match: string; msg: string }[] = [
+  { match: "/app/ia/resumen",   msg: "¿Qué tema del resumen no te quedó claro? Preguntame y te lo explico con una analogía 🧠" },
+  { match: "/app/ia/tarjetas",  msg: "¿Alguna tarjeta te confundió? Escribime el concepto y te lo desgloso." },
+  { match: "/app/ia/simulacro", msg: "¿Querés entender por qué fallaste alguna pregunta? Contame cuál y la resolvemos juntos 🎯" },
+  { match: "/app/ia",           msg: "¿Querés profundizar en algún tema de tu apunte? Estoy acá para ayudarte 📖" },
+  { match: "/app/materias",     msg: "¿Cómo organizo mejor mis materias? Preguntame lo que quieras 🗂️" },
+  { match: "/app/logros",       msg: "¿Querés saber cómo subir tu racha o dominar más rápido? Te cuento el secreto 🏆" },
+  { match: "/app",              msg: "¡Hola! ¿Arrancamos? Subí un apunte o retomá donde quedaste. 🚀" },
+];
+
+function getOpener(pathname: string, firstName: string): string {
+  const found = PAGE_OPENERS.find((p) => pathname.startsWith(p.match));
+  const msg = found?.msg ?? "¡Hola! ¿En qué te puedo ayudar hoy?";
+  return `¡Hola ${firstName}! 👋 ${msg}`;
+}
 
 export function BookiFab({ firstName }: { firstName: string }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const opener = getOpener(pathname, firstName);
 
   return (
     <>
@@ -29,7 +48,7 @@ export function BookiFab({ firstName }: { firstName: string }) {
           Booki
         </div>
         <div className="bcb">
-          <div className="bubble">¡Hola {firstName}! 👋 ¿Arrancamos? Subí un apunte o retomá donde quedaste.</div>
+          <div className="bubble">{opener}</div>
         </div>
         <div className="bin">
           <input placeholder="Escribí tu pregunta…" />
