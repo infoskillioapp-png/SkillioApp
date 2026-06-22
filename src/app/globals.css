@@ -582,14 +582,13 @@ body.railed{padding-left:122px}
 .mat-card.open .mat-chev{transform:rotate(90deg)}
 .mat-body{overflow:hidden;transition:max-height .4s cubic-bezier(.22,1,.36,1)}
 .mat-apunte-row{display:flex;align-items:center;border-top:1px solid var(--line);position:relative}
-.mat-apunte-row:hover .mpicker{opacity:1}
 .mat-apunte{display:flex;align-items:center;gap:14px;padding:13px 20px;transition:.16s;text-decoration:none;color:inherit;flex:1;min-width:0}
 .mat-apunte:hover{background:#f7f8fd}
 /* custom materia picker */
-.mpicker{position:relative;margin-right:14px;flex:none;opacity:0;transition:opacity .18s}
+.mpicker{position:relative;margin-right:14px;flex:none}
 .mpicker-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:20px;border:1.5px solid var(--line);background:#faf8ff;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;white-space:nowrap;font-family:inherit}
 .mpicker-btn:hover{border-color:var(--violet);color:var(--violet);background:#f0eaff}
-.mpicker-btn.loading{opacity:.6;cursor:default;pointer-events:none}
+.mpicker-btn.loading{opacity:.6;cursor:default}
 .mpicker-pop{background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(80,40,160,.18),0 1px 4px rgba(80,40,160,.09);padding:6px;min-width:180px;z-index:9999;animation:fadeUp .18s both}
 .mpicker-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:500;color:var(--ink);transition:.12s}
 .mpicker-item:hover{background:#f3f0ff;color:var(--violet)}

@@ -174,17 +174,15 @@ function MateriaPicker({
 
 // ---- row de materia ----
 function MateriaCard({
-  materia, idx, allMaterias, onRefresh,
+  materia, allMaterias, onRefresh,
 }: {
   materia: Materia;
-  idx: number;
   allMaterias: { id: string; name: string; color: string }[];
   onRefresh: () => void;
 }) {
-  const [open, setOpen] = useState(idx === 0);
+  const [open, setOpen] = useState(true);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const grad = GRADIENTS[idx % GRADIENTS.length];
-  const col = materia.color || grad[1];
+  const col = materia.color || GRADIENTS[0][1];
   const avg = materia.apuntes.length
     ? Math.round(materia.apuntes.reduce((a, n) => a + (n.has_ai_content ? 50 : 0), 0) / materia.apuntes.length)
     : 0;
@@ -251,8 +249,7 @@ type Props = {
   totalNotes: number;
 };
 
-export function MateriasClient({ materias: initialMaterias, totalNotes }: Props) {
-  const [materias, setMaterias] = useState(initialMaterias);
+export function MateriasClient({ materias, totalNotes }: Props) {
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
 
@@ -295,11 +292,10 @@ export function MateriasClient({ materias: initialMaterias, totalNotes }: Props)
           </div>
         ) : (
           <div className="mat-grid">
-            {materias.map((m, i) => (
+            {materias.map((m) => (
               <MateriaCard
                 key={m.id}
                 materia={m}
-                idx={i}
                 allMaterias={materias.map((x) => ({ id: x.id, name: x.name, color: x.color }))}
                 onRefresh={refresh}
               />
