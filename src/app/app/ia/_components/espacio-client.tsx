@@ -137,26 +137,44 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: st
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    let p = 0;
+    const startMs = Date.now();
+    // Tiempo esperado de generación: ~25s. La curva asintótica llega a ~95% a eso tiempo.
+    // Solo toca 100% cuando la API responde de verdad.
+    const HALF_LIFE = 22000;
+    let apiDone = false;
+    let apiHas402 = false;
+
+    // Arrancar llamadas a la API de inmediato
+    Promise.all([
+      fetch("/api/ai/summarize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId, format: "puntos_clave" }) }),
+      fetch("/api/ai/flashcards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId }) }),
+      fetch("/api/ai/simulacro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId }) }),
+    ]).then((responses) => {
+      apiHas402 = responses.some((r) => r.status === 402);
+      apiDone = true;
+    }).catch(() => {
+      apiDone = true;
+    });
+
+    // Animar la barra según tiempo transcurrido real (nunca llega a 100% sola)
     const iv = setInterval(() => {
-      p = Math.min(100, p + Math.floor(5 + Math.random() * 10));
-      setPct(p);
-      setStep(Math.min(Math.floor(p / 25), 3));
-      if (p >= 100) {
+      const elapsed = Date.now() - startMs;
+      // Curva asintótica: crece rápido al inicio, se frena cerca del 94%
+      const natural = Math.floor(94 * (1 - Math.exp(-elapsed / HALF_LIFE)));
+
+      if (apiDone) {
         clearInterval(iv);
-        Promise.all([
-          fetch("/api/ai/summarize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId, format: "puntos_clave" }) }),
-          fetch("/api/ai/flashcards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId }) }),
-          fetch("/api/ai/simulacro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId }) }),
-        ]).then((responses) => {
-          const has402 = responses.some((r) => r.status === 402);
-          if (has402) { onPaywall(); return; }
-          setTimeout(onDone, 900);
-        }).catch(() => {
-          setTimeout(onDone, 900);
-        });
+        if (apiHas402) { onPaywall(); return; }
+        setPct(100);
+        setStep(3);
+        setTimeout(onDone, 1100);
+        return;
       }
-    }, 400);
+
+      setPct(natural);
+      setStep(Math.min(Math.floor(natural / 25), 2));
+    }, 350);
+
     return () => clearInterval(iv);
   }, [noteId, onDone, onPaywall]);
 
