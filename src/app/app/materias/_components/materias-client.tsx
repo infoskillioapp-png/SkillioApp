@@ -61,7 +61,14 @@ function NuevaMateriaModal({ onClose, onCreated }: { onClose: () => void; onCrea
 }
 
 // ---- row de materia ----
-function MateriaCard({ materia, idx, onDeleted }: { materia: Materia; idx: number; onDeleted: () => void }) {
+function MateriaCard({
+  materia, idx, allMaterias, onRefresh,
+}: {
+  materia: Materia;
+  idx: number;
+  allMaterias: { id: string; name: string }[];
+  onRefresh: () => void;
+}) {
   const [open, setOpen] = useState(idx === 0);
   const bodyRef = useRef<HTMLDivElement>(null);
   const grad = GRADIENTS[idx % GRADIENTS.length];
@@ -74,6 +81,15 @@ function MateriaCard({ materia, idx, onDeleted }: { materia: Materia; idx: numbe
     if (bodyRef.current)
       bodyRef.current.style.maxHeight = open ? bodyRef.current.scrollHeight + "px" : "0px";
   }, [open, materia.apuntes.length]);
+
+  async function moveNote(noteId: string, newSubjectId: string) {
+    await fetch(`/api/notes/${noteId}/subject`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject_id: newSubjectId || null }),
+    });
+    onRefresh();
+  }
 
   return (
     <div className={`mat-card${open ? " open" : ""}`}>
@@ -99,18 +115,32 @@ function MateriaCard({ materia, idx, onDeleted }: { materia: Materia; idx: numbe
           <div className="mat-empty">Todavía no hay apuntes en esta materia.</div>
         ) : (
           materia.apuntes.map((a) => (
-            <Link key={a.id} href={`/app/ia?note_id=${a.id}`} className="mat-apunte">
-              <ApunteRing pct={a.has_ai_content ? 50 : 0} color={col} />
-              <div>
-                <div className="anm">{a.title}</div>
-                <div className="asub">{a.has_ai_content ? "50% dominio" : "Sin generar aún"}</div>
-              </div>
-              <span className="aarw">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-            </Link>
+            <div key={a.id} className="mat-apunte-row">
+              <Link href={`/app/ia?note_id=${a.id}`} className="mat-apunte">
+                <ApunteRing pct={a.has_ai_content ? 50 : 0} color={col} />
+                <div>
+                  <div className="anm">{a.title}</div>
+                  <div className="asub">{a.has_ai_content ? "50% dominio" : "Sin generar aún"}</div>
+                </div>
+                <span className="aarw">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m9 6 6 6-6 6" />
+                  </svg>
+                </span>
+              </Link>
+              <select
+                className="mat-mover"
+                value={materia.id === "sin-materia" ? "" : materia.id}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => moveNote(a.id, e.target.value)}
+                title="Mover a otra materia"
+              >
+                <option value="">Sin materia</option>
+                {allMaterias.filter(m => m.id !== "sin-materia").map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
           ))
         )}
       </div>
@@ -169,7 +199,13 @@ export function MateriasClient({ materias: initialMaterias, totalNotes }: Props)
         ) : (
           <div className="mat-grid">
             {materias.map((m, i) => (
-              <MateriaCard key={m.id} materia={m} idx={i} onDeleted={refresh} />
+              <MateriaCard
+                key={m.id}
+                materia={m}
+                idx={i}
+                allMaterias={materias}
+                onRefresh={refresh}
+              />
             ))}
           </div>
         )}

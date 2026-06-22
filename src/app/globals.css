@@ -211,7 +211,7 @@ body.railed{padding-left:122px}
 .um-pane{display:none}.um-pane.on{display:block;animation:umFade .25s both}
 .um-drop{border:2px dashed #d2d5ea;border-radius:22px;background:linear-gradient(180deg,#faf9ff,#f2effb);padding:24px 20px 28px;text-align:center;transition:.18s}
 .um-drop.drag{border-color:var(--violet);background:#f0eaff;transform:scale(1.01)}
-.um-arrow{color:var(--violet);margin:-6px 0 8px;animation:upBob 1.8s ease-in-out infinite}
+.um-arrow{color:var(--violet);margin:-6px 0 8px;animation:upBob 1.8s ease-in-out infinite;display:flex;justify-content:center}
 @keyframes upBob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
 .um-drop h4{font-family:var(--po);font-weight:700;font-size:17px;margin-bottom:7px}
 .um-drop .types{font-size:11.5px;color:var(--muted);margin-bottom:18px}
@@ -581,8 +581,12 @@ body.railed{padding-left:122px}
 .mat-chev{width:20px;height:20px;color:#c2c4d8;transition:.25s}
 .mat-card.open .mat-chev{transform:rotate(90deg)}
 .mat-body{overflow:hidden;transition:max-height .4s cubic-bezier(.22,1,.36,1)}
-.mat-apunte{display:flex;align-items:center;gap:14px;padding:13px 20px;border-top:1px solid var(--line);transition:.16s;text-decoration:none;color:inherit}
+.mat-apunte-row{display:flex;align-items:center;border-top:1px solid var(--line)}
+.mat-apunte-row:hover .mat-mover{opacity:1}
+.mat-apunte{display:flex;align-items:center;gap:14px;padding:13px 20px;transition:.16s;text-decoration:none;color:inherit;flex:1;min-width:0}
 .mat-apunte:hover{background:#f7f8fd}
+.mat-mover{border:1.5px solid var(--line);border-radius:10px;padding:6px 28px 6px 10px;font-size:12px;font-family:inherit;background:#fff;color:var(--muted);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238487a6' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;margin-right:14px;opacity:0;transition:opacity .18s;flex:none;max-width:130px}
+.mat-mover:focus{opacity:1;outline:none;border-color:var(--violet)}
 .mat-apunte .anm{font-weight:500;font-size:14px}
 .mat-apunte .asub{font-size:11.5px;color:var(--muted);margin-top:2px}
 .mat-apunte .aarw{margin-left:auto;width:28px;height:28px;border-radius:50%;background:#f3f4fb;display:grid;place-items:center;flex:none;transition:.18s;color:#b9bcd6}

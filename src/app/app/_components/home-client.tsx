@@ -210,7 +210,7 @@ export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false
         </main>
       </div>
 
-      <UploadModal open={modalOpen} onClose={() => setModalOpen(false)} subjects={subjects} />
+      <UploadModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </>
   );
 }
