@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Skillio · Simulacro</title>
+<link rel="stylesheet" href="theme.css" />
+<script>document.documentElement.classList.add('js')</script>
+<style>
+  .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:14px 26px;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .back{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px;padding:8px 14px;border-radius:12px;background:#fff;box-shadow:var(--sh);transition:.18s}
+  .back:hover{transform:translateX(-2px)}
+  .crumb{font-size:13.5px;color:var(--muted)} .crumb b{color:var(--ink);font-weight:700;font-family:var(--po)}
+  .timer{margin-left:auto;display:none;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--coral);background:#fff1f3;padding:7px 14px;border-radius:999px}
+  .timer.show{display:inline-flex}
+
+  .stage{max-width:680px;margin:0 auto;padding:30px 22px 70px}
+
+  /* ---- intro ---- */
+  .intro{background:#fff;border-radius:26px;box-shadow:var(--sh2);padding:34px 32px;text-align:center;animation:fadeUp .5s both}
+  .intro .ic{width:78px;height:78px;border-radius:22px;margin:0 auto 18px;display:grid;place-items:center;background:linear-gradient(155deg,#ff5d79,#e4264f);box-shadow:0 16px 30px rgba(228,38,79,.36)}
+  .intro h1{font-family:var(--po);font-weight:800;font-size:27px;margin-bottom:8px}
+  .intro p{color:var(--muted);margin-bottom:22px}
+  .specs{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:26px}
+  .spec{background:#f7f8fd;border-radius:16px;padding:14px 20px;min-width:120px}
+  .spec b{font-family:var(--po);font-size:20px;display:block;color:var(--ink)}
+  .spec span{font-size:12px;color:var(--muted);font-weight:600}
+
+  .nbtn{display:inline-flex;align-items:center;gap:9px;padding:13px 26px;border-radius:15px;font-weight:700;font-size:15px;color:#fff;background:linear-gradient(135deg,var(--coral),var(--red));box-shadow:0 12px 26px rgba(228,38,79,.34);transition:.2s}
+  .nbtn:hover{transform:translateY(-2px)}
+  .nbtn.alt{background:linear-gradient(135deg,var(--blue),var(--violet));box-shadow:0 12px 26px rgba(99,102,241,.32)}
+  .nbtn.ghost{background:#fff;color:var(--ink);box-shadow:var(--sh)}
+  .nbtn:disabled{opacity:.45;pointer-events:none}
+
+  /* ---- examen ---- */
+  .exam{display:none} .exam.show{display:block}
+  .prog{margin-bottom:20px}
+  .prog .bar{height:9px;border-radius:6px;background:#e8eaf5;overflow:hidden}
+  .prog .bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--coral),var(--red));transition:width .4s ease}
+  .prog .lab{font-size:12.5px;color:var(--muted);margin-top:8px;font-weight:600}
+
+  .qcard{background:#fff;border-radius:24px;box-shadow:var(--sh2);padding:28px 30px;animation:fadeUp .4s both}
+  .qcard .qeye{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--coral)}
+  .qcard h2{font-family:var(--po);font-weight:700;font-size:21px;line-height:1.35;margin:6px 0 20px}
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{display:flex;align-items:center;gap:13px;padding:14px 16px;border-radius:15px;border:1.5px solid var(--line);background:#fff;text-align:left;font-size:14.5px;font-weight:500;transition:.16s;cursor:pointer;width:100%}
+  .opt:hover{border-color:var(--blue2);background:#f7f9ff}
+  .opt .mk{width:26px;height:26px;border-radius:50%;flex:none;border:2px solid #d8dcec;display:grid;place-items:center;font-family:var(--po);font-weight:700;font-size:12px;color:var(--muted);transition:.18s}
+  .opt.sel{border-color:var(--violet);background:#f5f1ff}
+  .opt.sel .mk{background:var(--violet);border-color:var(--violet);color:#fff}
+
+  .nav{display:flex;gap:12px;margin-top:22px}
+  .nav .nbtn{flex:1;justify-content:center}
+
+  /* ---- resultado ---- */
+  .result{display:none} .result.show{display:block}
+  .rscene{position:relative;border-radius:28px;overflow:hidden;min-height:300px;margin-bottom:18px;display:flex;flex-direction:column;justify-content:flex-end;
+    background:#5b3aa8 center/cover no-repeat;box-shadow:var(--sh2);animation:heroIn .55s cubic-bezier(.22,1,.36,1) both}
+  @keyframes heroIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+  .rscene::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(40,22,80,.04) 40%,rgba(26,12,54,.82) 100%);pointer-events:none}
+  .rscene .cap{position:relative;z-index:1;padding:22px 28px 24px;color:#fff;text-align:center}
+  .rscene h2{font-family:var(--po);font-weight:800;font-size:25px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+  .rscene h2 .em{display:inline-block;animation:emPop .55s .35s both,emBounce 2.2s 1.1s ease-in-out infinite}
+  @keyframes emPop{0%{transform:scale(0) rotate(-35deg)}70%{transform:scale(1.3)}100%{transform:scale(1)}}
+  @keyframes emBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .rscene p{opacity:.95;font-size:14px;margin-top:5px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+
+  .scorehead{background:#fff;border-radius:24px;box-shadow:var(--sh);padding:24px 26px;display:flex;align-items:center;gap:24px;margin-bottom:20px}
+  .scorehead .ring{flex:none;animation:ringGlow 2.6s 1s ease-in-out infinite}
+  @keyframes ringGlow{0%,100%{filter:drop-shadow(0 6px 14px rgba(124,92,246,.16))}50%{filter:drop-shadow(0 6px 20px rgba(124,92,246,.38))}}
+  .scorehead .lead{font-family:var(--po);font-weight:700;font-size:13px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}
+  .mini{display:flex;gap:22px}
+  .mini div{font-size:13px;font-weight:600;color:var(--muted)}
+  .mini b{font-family:var(--po);font-size:21px;display:block}
+
+  .review h3{font-family:var(--po);font-weight:700;font-size:15px;margin:8px 4px 12px}
+  .rv{background:#fff;border-radius:18px;box-shadow:var(--sh);padding:16px 18px;margin-bottom:11px;opacity:0;transition:transform .16s,box-shadow .16s}
+  .rv.in{animation:fadeUp .45s both}
+  .rv:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+  .rv .rvq{font-weight:600;display:flex;gap:10px;align-items:flex-start;margin-bottom:9px}
+  .rv .tag{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-size:12px;margin-top:1px}
+  .rv.ok .tag{background:var(--green-d)} .rv.bad .tag{background:var(--red)}
+  .rv .ans{font-size:13px;margin-left:32px;line-height:1.6}
+  .rv .ans .yo{color:var(--red);font-weight:600} .rv .ans .yo.good{color:var(--green-d)}
+  .rv .ans .co{color:var(--green-d);font-weight:600}
+  .rv .exp{margin-left:32px;margin-top:8px;background:#f4f6ff;border-radius:11px;padding:10px 12px;font-size:12.5px;color:#43476b;line-height:1.55}
+  .rowbtns{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+</style>
+</head>
+<body class="railed">
+
+<!-- SIDEBAR FIJO (definitivo) -->
+<nav class="sidebar">
+  <a class="sbtn brand" href="home.html" data-tip="Inicio"><img src="bookilogo_t.png" alt="Inicio" /></a>
+  <a class="sbtn" href="home.html" data-tip="Subir apunte"><img src="signomas_t.png" alt="Subir apunte" /></a>
+  <a class="sbtn" href="home.html" data-tip="Mis materias"><img src="mismaterias_t.png" alt="Mis materias" /></a>
+  <a class="sbtn" href="#" data-tip="Logros"><img src="Logros_t.png" alt="Logros" /></a>
+  <a class="sbtn" href="#" data-tip="Comunidad"><img src="comunidad_t.png" alt="Comunidad" /></a>
+  <a class="sbtn me" href="#" data-tip="Tu perfil">E</a>
+</nav>
+
+<div class="topbar">
+  <a class="back" href="espacio-de-estudio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg> Volver</a>
+  <div class="crumb">Sistema cardiovascular · <b>Simulacro</b></div>
+  <div class="timer" id="timer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> <span id="time">00:00</span></div>
+</div>
+
+<div class="stage">
+  <!-- INTRO -->
+  <div class="intro" id="intro">
+    <div class="ic"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+    <h1>Simulacro · Sistema cardiovascular</h1>
+    <p>Poné a prueba lo que estudiaste con un examen tipo múltiple choice.</p>
+    <div class="specs">
+      <div class="spec"><b>5</b><span>preguntas</span></div>
+      <div class="spec"><b>~5 min</b><span>duración</span></div>
+      <div class="spec"><b>2 temas</b><span>incluidos</span></div>
+    </div>
+    <button class="nbtn" id="start"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Comenzar simulacro</button>
+  </div>
+
+  <!-- EXAMEN -->
+  <div class="exam" id="exam">
+    <div class="prog">
+      <div class="bar"><i id="pbar"></i></div>
+      <div class="lab" id="plab">Pregunta 1 de 5</div>
+    </div>
+    <div class="qcard" id="qcard"><!-- render --></div>
+    <div class="nav">
+      <button class="nbtn ghost" id="prev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Anterior</button>
+      <button class="nbtn alt" id="next">Siguiente <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="result" id="result">
+    <div class="rscene" id="rscene">
+      <div class="cap">
+        <h2 id="sTitle">¡Terminaste! <span class="em">🎯</span></h2>
+        <p id="sMsg">Revisá abajo qué acertaste y dónde reforzar.</p>
+      </div>
+    </div>
+    <div class="scorehead">
+      <div class="ring">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#eceefb" stroke-width="12"/>
+          <circle id="sRing" cx="60" cy="60" r="50" fill="none" stroke="url(#sg)" stroke-width="12" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+          <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#4f7dff"/></linearGradient></defs>
+          <text id="sScore" x="60" y="58" text-anchor="middle" font-family="Poppins" font-weight="800" font-size="24" fill="#1f2347">0</text>
+          <text id="sOf" x="60" y="76" text-anchor="middle" font-family="Inter" font-size="10" fill="#8487a6">de 5</text>
+        </svg>
+      </div>
+      <div class="txt">
+        <div class="lead">Tu resultado</div>
+        <div class="mini">
+          <div><b style="color:var(--green-d)" id="sOk">0</b>aciertos</div>
+          <div><b style="color:var(--red)" id="sBad">0</b>errores</div>
+          <div><b style="color:var(--blue)" id="sPct">0%</b>nota</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review">
+      <h3>Repaso del simulacro</h3>
+      <div id="reviewList"></div>
+    </div>
+    <div class="rowbtns">
+      <button class="nbtn" id="redoWrong" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.4 2.6L3 8"/><path d="M3 3v5h5"/></svg> Rehacer las incorrectas (<span id="wrongN">0</span>)</button>
+      <button class="nbtn ghost" id="retry"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.4 2.6L3 8"/><path d="M3 3v5h5"/></svg> Reintentar todo</button>
+      <a class="nbtn alt" href="espacio-de-estudio.html">Volver al espacio →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Booki -->
+<div class="bfab" id="bfab"><span class="bk"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/><path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-6l-3 3v-3H5a1 1 0 0 1-1-1Z" fill="none" stroke="#fff" stroke-width="1.6"/></svg></span> Preguntale a Booki</div>
+<div id="bchat">
+  <div class="bch"><span class="bk" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/></svg></span> Booki · Simulacro</div>
+  <div class="bcb"><div class="bubble">Terminá el simulacro y, si querés, te explico cualquier pregunta que hayas errado. ✍️</div></div>
+  <div class="bin"><input placeholder="Escribí tu pregunta…" /><button><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div>
+</div>
+<div id="confetti"></div>
+
+<script>
+  const PAL=["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
+  const QS=[
+    {q:"¿Cuál es la función principal de los ventrículos?", o:["Recibir la sangre que vuelve al corazón","Bombear la sangre hacia las arterias","Producir glóbulos rojos","Filtrar la sangre"], c:1,
+     e:"Los ventrículos son las cámaras de salida: se contraen (sístole) y bombean la sangre hacia la aorta y la arteria pulmonar."},
+    {q:"El primer ruido cardíaco (R1, “lub”) se produce por…", o:["El cierre de las válvulas sigmoideas","El llenado de las aurículas","El cierre de las válvulas auriculoventriculares","La contracción de las arterias"], c:2,
+     e:"R1 ocurre al inicio de la sístole por el cierre de las válvulas AV (mitral y tricúspide). R2 corresponde a las sigmoideas."},
+    {q:"¿Qué caracteriza a la diástole ventricular?", o:["Contracción y expulsión de sangre","Relajación y llenado de los ventrículos","Cierre de las válvulas AV","Presión ventricular máxima"], c:1,
+     e:"En diástole el ventrículo se relaja, baja la presión y se abren las válvulas AV permitiendo el llenado."},
+    {q:"Las arterias, en general, transportan sangre…", o:["Hacia el corazón","Que sale del corazón","Sólo desoxigenada","Únicamente a los pulmones"], c:1,
+     e:"Las arterias llevan sangre que SALE del corazón (oxigenada, salvo la arteria pulmonar que lleva sangre desoxigenada a los pulmones)."},
+    {q:"La circulación pulmonar lleva la sangre…", o:["Del corazón al resto del cuerpo","De los pulmones a las piernas","Del ventrículo derecho a los pulmones y de vuelta al corazón","Del estómago al hígado"], c:2,
+     e:"La circulación pulmonar va del ventrículo derecho a los pulmones (para oxigenar) y regresa a la aurícula izquierda."}
+  ];
+  const RC=2*Math.PI*50;
+  let order=QS.map((_,i)=>i), cur=0, ans=[], secs=0, tInt=null, lastWrong=[];
+  const $=id=>document.getElementById(id);
+
+  function countTo(el,to,dur,suf){suf=suf||'';const s=performance.now();
+    (function t(n){const p=Math.min((n-s)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(to*e)+suf;if(p<1)requestAnimationFrame(t);})(performance.now());}
+
+  function startTimer(){ clearInterval(tInt); $('timer').classList.add('show'); secs=0; $('time').textContent='00:00';
+    tInt=setInterval(()=>{secs++;const m=String(Math.floor(secs/60)).padStart(2,'0'),s=String(secs%60).padStart(2,'0');$('time').textContent=m+':'+s;},1000); }
+
+  function startExam(){
+    ans=new Array(order.length).fill(null); cur=0;
+    $('intro').style.display='none'; $('result').classList.remove('show'); $('exam').classList.add('show');
+    startTimer(); renderQ();
+  }
+
+  function renderQ(){
+    const M=order.length, q=QS[order[cur]];
+    $('plab').textContent='Pregunta '+(cur+1)+' de '+M;
+    $('pbar').style.width=(cur/M*100)+'%';
+    $('qcard').innerHTML='<div class="qeye">Pregunta '+(cur+1)+'</div><h2>'+q.q+'</h2><div class="opts">'+
+      q.o.map((t,i)=>'<button class="opt'+(ans[cur]===i?' sel':'')+'" data-i="'+i+'"><span class="mk">'+String.fromCharCode(65+i)+'</span> '+t+'</button>').join('')+'</div>';
+    $('qcard').querySelectorAll('.opt').forEach(op=>op.addEventListener('click',()=>{
+      ans[cur]=+op.dataset.i;
+      $('qcard').querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+      op.classList.add('sel'); $('next').disabled=false;
+    }));
+    $('prev').style.visibility=cur===0?'hidden':'visible';
+    $('next').innerHTML=cur===M-1
+      ? 'Finalizar <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+      : 'Siguiente <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+    $('next').disabled = ans[cur]===null;
+  }
+
+  $('start').addEventListener('click',()=>{ order=QS.map((_,i)=>i); startExam(); });
+  $('prev').addEventListener('click',()=>{ if(cur>0){cur--;renderQ();} });
+  $('next').addEventListener('click',()=>{ if(cur<order.length-1){cur++;renderQ();} else finish(); });
+
+  function confettiBurst(x,y){const lay=$('confetti');
+    for(let i=0;i<36;i++){const p=document.createElement('span');p.className='cft';
+      p.style.left=x+'px';p.style.top=y+'px';p.style.background=PAL[i%PAL.length];
+      p.style.setProperty('--dx',(Math.random()*260-130)+'px');p.style.transform='rotate('+(Math.random()*360)+'deg)';
+      p.style.animation='cftFall '+(0.8+Math.random()*0.7)+'s ease-out forwards';
+      lay.appendChild(p);setTimeout(()=>p.remove(),1700);}}
+
+  function finish(){
+    clearInterval(tInt); $('timer').classList.remove('show');
+    const M=order.length, ok=order.reduce((a,qi,pos)=>a+(ans[pos]===QS[qi].c?1:0),0), pct=Math.round(ok/M*100);
+    $('exam').classList.remove('show'); $('result').classList.add('show');
+    const exito=pct>50;
+    $('rscene').style.backgroundImage="url('"+(exito?'fondo_exito.png':'fondo_fracaso.png')+"')";
+    $('sOf').textContent='de '+M;
+    countTo($('sScore'),ok,800); $('sOk').textContent=ok; $('sBad').textContent=M-ok; $('sPct').textContent=pct+'%';
+    const ring=$('sRing'); ring.style.strokeDasharray=RC; ring.style.strokeDashoffset=RC;
+    setTimeout(()=>{ring.style.transition='stroke-dashoffset 1s cubic-bezier(.22,1,.36,1)';ring.style.strokeDashoffset=RC-(ok/M)*RC;},250);
+    if(exito){$('sTitle').innerHTML='¡Aprobado! <span class="em">🎉</span>'; $('sMsg').textContent='Revisá abajo qué acertaste y dónde reforzar.';
+      const r=$('result').getBoundingClientRect(); setTimeout(()=>confettiBurst(window.innerWidth/2,r.top+70),500);}
+    else{$('sTitle').innerHTML='Casi… ¡seguí practicando! <span class="em">💪</span>'; $('sMsg').textContent='Reforzá lo que erraste y rehacé las incorrectas. 👇';}
+    // review (numerado por orden de aparición)
+    $('reviewList').innerHTML=order.map((qi,pos)=>{
+      const q=QS[qi], my=ans[pos], good=q.c, isOk=my===good;
+      return '<div class="rv '+(isOk?'ok':'bad')+'">'+
+        '<div class="rvq"><span class="tag">'+(isOk?'✓':'✕')+'</span><div>'+(pos+1)+'. '+q.q+'</div></div>'+
+        '<div class="ans"><span class="yo'+(isOk?' good':'')+'">Tu respuesta:</span> '+(my!=null?q.o[my]:'—')+
+          (isOk?'':'<br><span class="co">Correcta:</span> '+q.o[good])+'</div>'+
+        '<div class="exp">'+q.e+'</div></div>';
+    }).join('');
+    document.querySelectorAll('#reviewList .rv').forEach((rv,i)=>setTimeout(()=>rv.classList.add('in'),150+i*90));
+    // rehacer incorrectas
+    lastWrong=order.filter((qi,pos)=>ans[pos]!==QS[qi].c);
+    if(lastWrong.length){ $('redoWrong').style.display='inline-flex'; $('wrongN').textContent=lastWrong.length; }
+    else $('redoWrong').style.display='none';
+  }
+
+  $('retry').addEventListener('click',()=>{ order=QS.map((_,i)=>i); $('result').classList.remove('show'); $('intro').style.display='block'; });
+  $('redoWrong').addEventListener('click',()=>{ if(!lastWrong.length) return; order=lastWrong.slice(); startExam(); });
+
+  $('bfab').addEventListener('click',()=>$('bchat').classList.toggle('open'));
+
+  // page transitions
+  function fadeNav(url){const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:9000;background:#eef0fb;opacity:0;transition:opacity .22s ease;pointer-events:none';document.body.appendChild(o);requestAnimationFrame(()=>{o.style.opacity='1';setTimeout(()=>location.href=url,240);});}
+  document.querySelectorAll('a[href]').forEach(a=>{const h=a.getAttribute('href');if(!h||!h.includes('.html'))return;a.addEventListener('click',e=>{e.preventDefault();fadeNav(h);});});
+</script>
+</body>
+</html>

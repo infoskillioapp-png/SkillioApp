@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Skillio · Resumen</title>
+<link rel="stylesheet" href="theme.css" />
+<script>document.documentElement.classList.add('js')</script>
+<style>
+  /* ===== layout Resumen ===== */
+  .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:14px 26px;
+    background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .back{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px;padding:8px 14px;border-radius:12px;background:#fff;box-shadow:var(--sh);transition:.18s}
+  .back:hover{transform:translateX(-2px)}
+  .crumb{font-size:13.5px;color:var(--muted)} .crumb b{color:var(--ink);font-weight:700;font-family:var(--po)}
+  .files{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);padding:7px 13px;border-radius:11px;background:#fff;box-shadow:var(--sh)}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:22px;display:grid;grid-template-columns:300px 1fr;gap:22px;align-items:start}
+
+  /* ---- sidebar TEMAS ---- */
+  .side{position:sticky;top:84px;background:#fff;border-radius:24px;box-shadow:var(--sh);padding:18px 16px}
+  .side h2{font-family:var(--po);font-size:15px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .side h2 .ic{color:var(--faint)}
+  .filters{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .btn-full{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:12px;border-radius:14px;color:#fff;font-weight:700;font-family:var(--po);font-size:13.5px;
+    background:linear-gradient(135deg,var(--blue),var(--violet));box-shadow:0 10px 22px rgba(99,102,241,.32);transition:.2s;margin-bottom:8px}
+  .btn-full:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(99,102,241,.4)}
+  .slabel{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin:14px 8px 6px}
+  .t-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:14px;cursor:pointer;transition:.16s;position:relative}
+  .t-item:hover{background:#f4f5fb}
+  .t-item.on{background:#eef1ff}
+  .t-item.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:4px;height:22px;border-radius:3px;background:linear-gradient(var(--blue),var(--violet))}
+  .t-dot{width:22px;height:22px;border-radius:50%;border:2.5px solid #e2e5f0;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;color:transparent}
+  .t-item.done .t-dot{background:var(--green-d);border-color:var(--green-d);color:#fff}
+  .t-item.prog .t-dot{border-color:var(--blue)}
+  .t-name{font-size:13px;font-weight:600;line-height:1.25}
+  .t-sub{font-size:11px;color:var(--muted)}
+
+  /* ---- reader ---- */
+  .reader{min-width:0}
+  .rhead{margin-bottom:6px}
+  .sec-eyebrow{font-size:12.5px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.05em}
+  .rtitle{font-family:var(--po);font-weight:800;font-size:30px;line-height:1.15;margin:4px 0 12px}
+  .rmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;font-size:12.5px;font-weight:700}
+  .pill.prog{background:#eaf0ff;color:var(--blue)}
+  .pill.read{background:#fff4e6;color:var(--amber)}
+
+  .actions{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:20px}
+  .act{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:13px;background:#fff;box-shadow:var(--sh);font-size:13px;font-weight:600;transition:.18s}
+  .act:hover{transform:translateY(-2px)}
+  .act.pdf{background:linear-gradient(135deg,#ff6b81,#e4264f);color:#fff;box-shadow:0 10px 22px rgba(228,38,79,.3)}
+  .act .i{display:grid;place-items:center}
+  .act.on{outline:2px solid var(--violet);outline-offset:1px}
+
+  .card{background:#fff;border-radius:22px;box-shadow:var(--sh);padding:24px 26px;margin-bottom:18px}
+  .card p{color:#3c4063;line-height:1.7;margin-bottom:12px}
+  .card p:last-child{margin-bottom:0}
+  .lead{font-size:16.5px}
+  .keylist{list-style:none;display:flex;flex-direction:column;gap:11px;margin:6px 0 4px}
+  .keylist li{display:flex;gap:12px;align-items:flex-start;line-height:1.55;color:#3c4063}
+  .keylist .kx{width:26px;height:26px;border-radius:9px;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-family:var(--po);font-size:13px}
+  .keylist b{color:var(--ink)}
+
+  table.t{width:100%;border-collapse:separate;border-spacing:0;margin:6px 0;font-size:13.5px;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
+  table.t th{background:#f3f1ff;color:var(--violet);font-family:var(--po);font-weight:700;text-align:left;padding:11px 14px;font-size:12.5px}
+  table.t td{padding:11px 14px;border-top:1px solid var(--line);color:#3c4063}
+  table.t tr:nth-child(even) td{background:#fafaff}
+
+  .booki-tip{display:flex;gap:13px;align-items:flex-start;background:linear-gradient(120deg,#f3efff,#eef3ff);border-radius:18px;padding:15px 17px;margin-top:4px}
+  .booki-tip .av{width:42px;height:42px;border-radius:50%;flex:none;background:linear-gradient(135deg,var(--blue),var(--violet));display:grid;place-items:center;box-shadow:0 8px 18px rgba(99,102,241,.3)}
+  .booki-tip .tx{font-size:13.5px;color:#43406b;line-height:1.55}
+  .booki-tip .tx b{color:var(--violet)}
+
+  .card-sec-title{font-family:var(--po);font-weight:700;font-size:14px;color:var(--ink);margin:18px 0 8px;display:flex;align-items:center;gap:8px}
+  .card-sec-title .em{font-size:18px}
+
+  /* ---- práctica rápida ---- */
+  .practica{background:linear-gradient(160deg,#fffdf7,#fff);border:1.5px solid #ffe7b3;border-radius:24px;padding:22px 24px;box-shadow:var(--sh)}
+  .practica .ph{display:flex;align-items:center;gap:11px;margin-bottom:4px}
+  .practica .ph .badge{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#ffc93c,#ffb020);box-shadow:0 8px 18px rgba(255,176,32,.4)}
+  .practica .ph h3{font-family:var(--po);font-weight:800;font-size:18px}
+  .practica .ph .qn{margin-left:auto;font-size:12px;font-weight:700;color:var(--amber);background:#fff4e0;padding:5px 11px;border-radius:999px}
+  .practica .sub{color:var(--muted);font-size:13.5px;margin-bottom:16px}
+
+  .q{margin-top:16px;padding-top:16px;border-top:1px dashed #f0e3c6}
+  .q:first-of-type{border-top:none;padding-top:4px;margin-top:6px}
+  .q .qt{font-weight:700;font-family:var(--po);font-size:15px;margin-bottom:12px;display:flex;gap:9px}
+  .q .qt .num{width:24px;height:24px;border-radius:8px;flex:none;background:#eef1ff;color:var(--blue);display:grid;place-items:center;font-size:12px}
+  .opts{display:flex;flex-direction:column;gap:9px}
+  .opt{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:14px;border:1.5px solid var(--line);background:#fff;text-align:left;font-size:14px;font-weight:500;transition:.16s;cursor:pointer;width:100%}
+  .opt:hover:not(.lock){border-color:var(--blue2);background:#f7f9ff;transform:translateX(2px)}
+  .opt .mk{width:24px;height:24px;border-radius:50%;flex:none;border:2px solid #d8dcec;display:grid;place-items:center;font-size:13px;color:#fff;transition:.18s}
+  .opts.lock .opt{cursor:default}
+  .opt.correct{border-color:var(--green-d);background:#ecfdf5}
+  .opt.correct .mk{background:var(--green-d);border-color:var(--green-d)}
+  .opt.wrong{border-color:var(--coral);background:#fff1f3}
+  .opt.wrong .mk{background:var(--red);border-color:var(--red)}
+  .exp{display:none;margin-top:11px;background:#f4f6ff;border-radius:13px;padding:12px 14px;font-size:13px;color:#43476b;line-height:1.55}
+  .exp.show{display:block;animation:fadeUp .35s both}
+  .exp b{color:var(--violet)}
+  .q-next{display:none;margin-top:13px}
+  .q-next.show{display:inline-flex}
+  .nbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:13px;font-weight:700;font-size:13.5px;color:#fff;background:linear-gradient(135deg,var(--blue),var(--violet));box-shadow:0 10px 22px rgba(99,102,241,.32);transition:.2s}
+  .nbtn:hover{transform:translateY(-2px)}
+  .nbtn.ghost{background:#fff;color:var(--ink);box-shadow:var(--sh)}
+
+  .done-banner{display:none;margin-top:18px;background:linear-gradient(135deg,#34d399,#10b981);color:#fff;border-radius:18px;padding:18px 20px;align-items:center;gap:14px}
+  .done-banner.show{display:flex;animation:fadeUp .4s both}
+  .done-banner .em{width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.2);display:grid;place-items:center;flex:none}
+  .done-banner h4{font-family:var(--po);font-weight:800;font-size:17px}
+  .done-banner p{font-size:13px;opacity:.92}
+  .done-banner .nbtn{margin-left:auto;background:#fff;color:var(--green-d);box-shadow:none}
+
+  @media(max-width:880px){.wrap{grid-template-columns:1fr}.side{position:static}.rtitle{font-size:25px}}
+</style>
+</head>
+<body class="railed">
+
+<!-- SIDEBAR FIJO (definitivo) -->
+<nav class="sidebar">
+  <a class="sbtn brand" href="home.html" data-tip="Inicio"><img src="bookilogo_t.png" alt="Inicio" /></a>
+  <a class="sbtn" href="home.html" data-tip="Subir apunte"><img src="signomas_t.png" alt="Subir apunte" /></a>
+  <a class="sbtn" href="home.html" data-tip="Mis materias"><img src="mismaterias_t.png" alt="Mis materias" /></a>
+  <a class="sbtn" href="#" data-tip="Logros"><img src="Logros_t.png" alt="Logros" /></a>
+  <a class="sbtn" href="#" data-tip="Comunidad"><img src="comunidad_t.png" alt="Comunidad" /></a>
+  <a class="sbtn me" href="#" data-tip="Tu perfil">E</a>
+</nav>
+
+<div class="topbar">
+  <a class="back" href="espacio-de-estudio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg> Volver</a>
+  <div class="crumb">Sistema cardiovascular · <b>Resumen</b></div>
+  <div class="files"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Archivos subidos (1)</div>
+</div>
+
+<div class="wrap">
+  <!-- ============ SIDEBAR TEMAS ============ -->
+  <aside class="side in">
+    <h2>Temas <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v18M3 9h18" opacity=".5"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg></span></h2>
+    <div class="filters">
+      <span class="chip on">Todo (7)</span>
+      <span class="chip"><span class="d" style="background:var(--green-d)"></span>Dominado (1)</span>
+      <span class="chip"><span class="d" style="background:var(--amber)"></span>Revisar (3)</span>
+      <span class="chip"><span class="d" style="background:var(--faint)"></span>Incompleto (3)</span>
+    </div>
+    <button class="btn-full press"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg> Resumen completo</button>
+
+    <div class="slabel">Proceso de decisión</div>
+    <div class="t-item done"><span class="t-dot">✓</span><div><div class="t-name">Anatomía del corazón</div><div class="t-sub">Dominado · 100%</div></div></div>
+    <div class="t-item prog on" id="tActive"><span class="t-dot"></span><div><div class="t-name">Ciclo cardíaco</div><div class="t-sub">En progreso · 60%</div></div></div>
+    <div class="t-item"><span class="t-dot"></span><div><div class="t-name">Sistema de conducción</div><div class="t-sub">Incompleto · 25%</div></div></div>
+    <div class="t-item"><span class="t-dot"></span><div><div class="t-name">Gasto cardíaco</div><div class="t-sub">Sin empezar</div></div></div>
+
+    <div class="slabel">Circulación</div>
+    <div class="t-item prog"><span class="t-dot"></span><div><div class="t-name">Arterias y venas</div><div class="t-sub">En progreso · 40%</div></div></div>
+    <div class="t-item"><span class="t-dot"></span><div><div class="t-name">Presión arterial</div><div class="t-sub">Sin empezar</div></div></div>
+    <div class="t-item"><span class="t-dot"></span><div><div class="t-name">Circulación pulmonar</div><div class="t-sub">Sin empezar</div></div></div>
+  </aside>
+
+  <!-- ============ READER ============ -->
+  <main class="reader">
+    <div class="rhead in">
+      <div class="sec-eyebrow">El corazón · Tema 2 de 4</div>
+      <h1 class="rtitle">Ciclo cardíaco</h1>
+      <div class="rmeta">
+        <span class="pill prog"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> En progreso · 60%</span>
+        <span class="pill read">⏱ 4 min de lectura</span>
+      </div>
+    </div>
+
+    <div class="actions in">
+      <button class="act pdf press"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></span> Descargar PDF</button>
+      <button class="act press" id="eli5"><span class="i">🧒</span> Explícalo como a un niño</button>
+      <button class="act press" id="more"><span class="i">🔬</span> Más detalles</button>
+      <button class="act press"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg></span> Ver referencia</button>
+    </div>
+
+    <!-- contenido del resumen -->
+    <div class="card in">
+      <p class="lead" id="leadP">El <b>ciclo cardíaco</b> es la secuencia de eventos que ocurren en cada latido, desde el llenado de las cavidades hasta la expulsión de la sangre. Se divide en dos grandes fases que se alternan de forma rítmica: <b>sístole</b> (contracción) y <b>diástole</b> (relajación).</p>
+
+      <div class="card-sec-title"><span class="em">📌</span> Puntos clave</div>
+      <ul class="keylist">
+        <li><span class="kx" style="background:linear-gradient(135deg,#5b8cff,#3f63ff)">1</span><div><b>Diástole:</b> los ventrículos se relajan y se llenan de sangre. Ocupa ~2/3 del ciclo en reposo.</div></li>
+        <li><span class="kx" style="background:linear-gradient(135deg,#9a63f7,#7c3aed)">2</span><div><b>Sístole:</b> los ventrículos se contraen y expulsan la sangre hacia la aorta y la arteria pulmonar.</div></li>
+        <li><span class="kx" style="background:linear-gradient(135deg,#ff5d79,#e4264f)">3</span><div><b>Ruidos cardíacos:</b> R1 (“lub”) por cierre de válvulas AV; R2 (“dub”) por cierre de válvulas sigmoideas.</div></li>
+      </ul>
+
+      <div class="card-sec-title"><span class="em">📊</span> Sístole vs. Diástole</div>
+      <table class="t">
+        <thead><tr><th>Característica</th><th>Sístole ventricular</th><th>Diástole ventricular</th></tr></thead>
+        <tbody>
+          <tr><td>Estado del músculo</td><td>Contracción</td><td>Relajación</td></tr>
+          <tr><td>Presión ventricular</td><td>Alta</td><td>Baja</td></tr>
+          <tr><td>Válvulas AV</td><td>Cerradas</td><td>Abiertas</td></tr>
+          <tr><td>Válvulas sigmoideas</td><td>Abiertas</td><td>Cerradas</td></tr>
+          <tr><td>Resultado</td><td>Expulsión de sangre</td><td>Llenado ventricular</td></tr>
+        </tbody>
+      </table>
+
+      <div class="booki-tip">
+        <span class="av"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/><path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-6l-3 3v-3H5a1 1 0 0 1-1-1Z" fill="none" stroke="#fff" stroke-width="1.6"/></svg></span>
+        <div class="tx"><b>Tip de Booki:</b> pensá el corazón como una bomba de dos tiempos — primero se <b>llena</b> (diástole) y después <b>aprieta</b> (sístole). Si te confundís las válvulas, recordá: cuando aprieta, las de salida (sigmoideas) se abren. 💙</div>
+      </div>
+    </div>
+
+    <!-- PRÁCTICA RÁPIDA -->
+    <div class="practica in" id="practica">
+      <div class="ph">
+        <span class="badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21 8 13.9 2 9.3h7.6z"/></svg></span>
+        <h3>Práctica rápida</h3>
+        <span class="qn">2 preguntas</span>
+      </div>
+      <div class="sub">Respondé para fijar el tema. Si acertás las dos, marcamos <b>Ciclo cardíaco</b> como dominado. 🎯</div>
+
+      <div class="q" data-q="0">
+        <div class="qt"><span class="num">1</span> ¿Durante qué fase los ventrículos se contraen y expulsan la sangre?</div>
+        <div class="opts">
+          <button class="opt"><span class="mk"></span> Diástole ventricular</button>
+          <button class="opt" data-correct><span class="mk"></span> Sístole ventricular</button>
+          <button class="opt"><span class="mk"></span> Diástole auricular</button>
+        </div>
+        <div class="exp"><b>Correcto:</b> durante la <b>sístole ventricular</b> el músculo se contrae, sube la presión y se abren las válvulas sigmoideas para expulsar la sangre. La diástole es la fase de relajación y llenado.</div>
+        <div class="q-next"><button class="nbtn next">Siguiente pregunta →</button></div>
+      </div>
+
+      <div class="q" data-q="1" style="display:none">
+        <div class="qt"><span class="num">2</span> ¿Qué válvulas se cierran al inicio de la sístole y generan el primer ruido (R1, “lub”)?</div>
+        <div class="opts">
+          <button class="opt" data-correct><span class="mk"></span> Válvulas auriculoventriculares</button>
+          <button class="opt"><span class="mk"></span> Válvulas sigmoideas</button>
+          <button class="opt"><span class="mk"></span> Ambas a la vez</button>
+        </div>
+        <div class="exp"><b>Correcto:</b> el <b>R1</b> se produce por el cierre de las válvulas <b>auriculoventriculares</b> (mitral y tricúspide) al empezar la sístole. El R2 (“dub”) corresponde al cierre de las sigmoideas al final.</div>
+        <div class="q-next"><button class="nbtn finish">Ver resultado 🎉</button></div>
+      </div>
+
+      <div class="done-banner" id="doneBanner">
+        <span class="em"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div><h4>¡Tema dominado! 🎉</h4><p>Ciclo cardíaco pasó a <b>100%</b>. Tu dominio del apunte subió.</p></div>
+        <button class="nbtn next-tema">Siguiente tema →</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Booki -->
+<div class="bfab" id="bfab"><span class="bk"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/><path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-6l-3 3v-3H5a1 1 0 0 1-1-1Z" fill="none" stroke="#fff" stroke-width="1.6"/></svg></span> Preguntale a Booki</div>
+<div id="bchat">
+  <div class="bch"><span class="bk" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/></svg></span> Booki · Ciclo cardíaco</div>
+  <div class="bcb"><div class="bubble">¿Algo de este tema no te cierra? Preguntame y te lo explico con tus palabras. 💬</div></div>
+  <div class="bin"><input placeholder="Escribí tu pregunta…" /><button><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div>
+</div>
+<div id="confetti"></div>
+
+<script>
+  const PAL=["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
+
+  // entrada stagger (delay por índice, sin parpadeo)
+  document.querySelectorAll('.in').forEach((el,i)=>{el.style.animationDelay=(i*0.08)+'s';});
+
+  // confetti
+  function confettiBurst(x,y){const lay=document.getElementById('confetti');
+    for(let i=0;i<32;i++){const p=document.createElement('span');p.className='cft';
+      p.style.left=x+'px';p.style.top=y+'px';p.style.background=PAL[i%PAL.length];
+      p.style.setProperty('--dx',(Math.random()*220-110)+'px');
+      p.style.transform='rotate('+(Math.random()*360)+'deg)';
+      p.style.animation='cftFall '+(0.8+Math.random()*0.7)+'s ease-out forwards';
+      lay.appendChild(p);setTimeout(()=>p.remove(),1700);}}
+
+  // toggles de acciones (explícalo como a un niño / más detalles)
+  const lead=document.getElementById('leadP'), leadOrig=lead.innerHTML;
+  const ELI5='Imaginá que el corazón es una <b>bombita de agua</b>: primero se llena despacito (diástole) y después da un apretón fuerte para mandar el agua lejos (sístole). ¡Hace eso una y otra vez, todo el día! 💧';
+  const MORE=leadOrig+' En reposo el ciclo dura ~0,8 s (diástole ~0,5 s, sístole ~0,3 s) y se acorta al aumentar la frecuencia cardíaca, principalmente a costa de la diástole.';
+  function setLead(html,btn){document.querySelectorAll('.act.on').forEach(b=>b.classList.remove('on'));
+    if(lead.innerHTML===html){lead.innerHTML=leadOrig;} else {lead.innerHTML=html; if(btn)btn.classList.add('on');}}
+  document.getElementById('eli5').addEventListener('click',function(){setLead(ELI5,this);});
+  document.getElementById('more').addEventListener('click',function(){setLead(MORE,this);});
+
+  // PRÁCTICA: responder pregunta
+  let aciertos=0, respondidas=0;
+  document.querySelectorAll('.q').forEach(q=>{
+    const opts=q.querySelector('.opts');
+    q.querySelectorAll('.opt').forEach(opt=>{
+      opt.addEventListener('click',()=>{
+        if(opts.classList.contains('lock')) return;
+        opts.classList.add('lock');
+        const ok=opt.hasAttribute('data-correct');
+        if(ok){ opt.classList.add('correct'); opt.querySelector('.mk').innerHTML='✓'; aciertos++; }
+        else { opt.classList.add('wrong'); opt.querySelector('.mk').innerHTML='✕';
+          const good=q.querySelector('.opt[data-correct]'); good.classList.add('correct'); good.querySelector('.mk').innerHTML='✓'; }
+        q.querySelector('.exp').classList.add('show');
+        q.querySelector('.q-next').classList.add('show');
+        respondidas++;
+      });
+    });
+  });
+
+  // siguiente pregunta
+  document.querySelectorAll('.next').forEach(b=>b.addEventListener('click',()=>{
+    const q=b.closest('.q'); const next=q.nextElementSibling;
+    if(next && next.classList.contains('q')){ next.style.display='block'; next.scrollIntoView({behavior:'smooth',block:'center'}); }
+  }));
+
+  // finalizar → dominado
+  document.querySelector('.finish').addEventListener('click',()=>{
+    const banner=document.getElementById('doneBanner'); banner.classList.add('show');
+    banner.scrollIntoView({behavior:'smooth',block:'center'});
+    const r=banner.getBoundingClientRect(); setTimeout(()=>confettiBurst(r.left+r.width/2, r.top+10),250);
+    // marcar el tema activo como dominado en la sidebar
+    const t=document.getElementById('tActive'); t.classList.remove('prog'); t.classList.add('done');
+    t.querySelector('.t-dot').textContent='✓'; t.querySelector('.t-sub').textContent='Dominado · 100%';
+    // actualizar pill del header
+    document.querySelectorAll('.pill.prog').forEach(p=>{p.className='pill';p.style.background='#ecfdf5';p.style.color='#10b981';p.innerHTML='✓ Dominado · 100%';});
+  });
+
+  // page transitions
+  function fadeNav(url){const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:9000;background:#eef0fb;opacity:0;transition:opacity .22s ease;pointer-events:none';document.body.appendChild(o);requestAnimationFrame(()=>{o.style.opacity='1';setTimeout(()=>location.href=url,240);});}
+  document.querySelectorAll('a[href]').forEach(a=>{const h=a.getAttribute('href');if(!h||!h.includes('.html'))return;a.addEventListener('click',e=>{e.preventDefault();fadeNav(h);});});
+
+  // siguiente tema → vuelve al espacio (placeholder)
+  document.querySelector('.next-tema').addEventListener('click',()=>fadeNav('espacio-de-estudio.html'));
+
+  // Booki chat
+  document.getElementById('bfab').addEventListener('click',()=>document.getElementById('bchat').classList.toggle('open'));
+
+  // filtros (visual)
+  document.querySelectorAll('.filters .chip').forEach(c=>c.addEventListener('click',()=>{
+    document.querySelectorAll('.filters .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on');
+  }));
+  // navegar entre temas de la sidebar (visual)
+  document.querySelectorAll('.t-item').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.t-item').forEach(x=>x.classList.remove('on')); t.classList.add('on');
+  }));
+</script>
+</body>
+</html>

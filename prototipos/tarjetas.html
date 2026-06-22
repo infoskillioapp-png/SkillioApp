@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Skillio · Tarjetas</title>
+<link rel="stylesheet" href="theme.css" />
+<script>document.documentElement.classList.add('js')</script>
+<style>
+  .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:14px 26px;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .back{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px;padding:8px 14px;border-radius:12px;background:#fff;box-shadow:var(--sh);transition:.18s}
+  .back:hover{transform:translateX(-2px)}
+  .crumb{font-size:13.5px;color:var(--muted)} .crumb b{color:var(--ink);font-weight:700;font-family:var(--po)}
+  .counter{margin-left:auto;font-size:13px;font-weight:700;color:var(--violet);background:#f3efff;padding:7px 14px;border-radius:999px}
+
+  .stage{max-width:680px;margin:0 auto;padding:30px 22px 60px;display:flex;flex-direction:column;align-items:center}
+
+  /* progreso */
+  .prog{width:100%;max-width:560px;margin-bottom:26px}
+  .prog .bar{height:9px;border-radius:6px;background:#e8eaf5;overflow:hidden}
+  .prog .bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--violet),var(--blue));transition:width .4s ease}
+  .prog .lab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:8px;font-weight:600}
+
+  /* mazo */
+  .deck{position:relative;perspective:1600px;width:min(560px,92vw);height:330px;margin-bottom:8px}
+  .deck::before,.deck::after{content:"";position:absolute;inset:0;border-radius:26px;background:#fff;box-shadow:var(--sh);pointer-events:none;z-index:0}
+  .deck::before{transform:translateY(14px) scale(.95);opacity:.55}
+  .deck::after{transform:translateY(7px) scale(.975);opacity:.8}
+  .flash{position:absolute;inset:0;z-index:2;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,.15,.2,1);cursor:pointer}
+  .flash.flipped{transform:rotateY(180deg)}
+  .flash.swap{animation:cardIn .45s cubic-bezier(.22,1,.36,1)}
+  @keyframes cardIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+  .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:26px;padding:30px 32px;display:flex;flex-direction:column;box-shadow:var(--sh2);overflow:hidden}
+  .face .eyebrow{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  .face .big{font-family:var(--po);font-weight:700;font-size:23px;line-height:1.3;margin:auto 0;display:flex;align-items:center}
+  .face .hint{font-size:12.5px;display:flex;align-items:center;gap:7px;opacity:.7}
+  .front{background:linear-gradient(155deg,#ffffff,#f5f6ff)}
+  .front .eyebrow{color:var(--blue)} .front .hint{color:var(--muted)}
+  .front::after{content:"";position:absolute;top:-40px;right:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,#eef1ff,transparent 70%)}
+  .back{background:linear-gradient(155deg,#9a63f7,#7c3aed);color:#fff;transform:rotateY(180deg)}
+  .back .eyebrow{color:rgba(255,255,255,.8)} .back .hint{color:rgba(255,255,255,.75)}
+  .back::after{content:"";position:absolute;inset:0;background:var(--gloss);pointer-events:none}
+
+  .flip-cta{margin:14px 0 22px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px}
+
+  /* rating */
+  .rate{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .rb{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 22px;border-radius:18px;background:#fff;box-shadow:var(--sh);font-weight:700;font-size:13.5px;transition:.18s;min-width:120px}
+  .rb:hover{transform:translateY(-3px)}
+  .rb .em{width:38px;height:38px;border-radius:50%;display:grid;place-items:center}
+  .rb.no .em{background:#fff1f3}.rb.no{color:var(--red)}
+  .rb.mid .em{background:#fff4e0}.rb.mid{color:var(--amber)}
+  .rb.yes .em{background:#ecfdf5}.rb.yes{color:var(--green-d)}
+
+  /* resultado */
+  .result{display:none;flex-direction:column;align-items:center;text-align:center;width:min(560px,94vw)}
+  .result.show{display:flex}
+  .rscene{position:relative;width:100%;border-radius:30px;overflow:hidden;min-height:330px;display:flex;flex-direction:column;justify-content:flex-end;
+    background:#5b3aa8 center/cover no-repeat;box-shadow:var(--sh2);animation:heroIn .6s cubic-bezier(.22,1,.36,1) both}
+  @keyframes heroIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+  .rscene::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(40,22,80,.04) 38%,rgba(26,12,54,.82) 100%);pointer-events:none}
+  .rscene .cap{position:relative;z-index:1;padding:22px 26px 24px;color:#fff;text-align:center}
+  .rscene h2{font-family:var(--po);font-weight:800;font-size:26px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+  .rscene h2 .em{display:inline-block;animation:emPop .55s .35s both,emBounce 2.2s 1.1s ease-in-out infinite}
+  @keyframes emPop{0%{transform:scale(0) rotate(-35deg)}70%{transform:scale(1.3)}100%{transform:scale(1)}}
+  @keyframes emBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .rscene p{opacity:.95;font-size:14px;margin-top:5px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+
+  .rcard{position:relative;z-index:2;width:90%;background:#fff;border-radius:24px;box-shadow:var(--sh2);padding:24px;margin-top:-30px;display:flex;flex-direction:column;align-items:center}
+  .rcard .ring{margin:2px 0 16px;animation:ringGlow 2.6s 1s ease-in-out infinite}
+  @keyframes ringGlow{0%,100%{filter:drop-shadow(0 6px 14px rgba(124,92,246,.16))}50%{filter:drop-shadow(0 6px 22px rgba(124,92,246,.4))}}
+  .rstats{display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap;justify-content:center}
+  .rstat{position:relative;background:#fff;border-radius:18px;box-shadow:var(--sh);padding:18px 22px 16px;min-width:114px;overflow:hidden;opacity:0;cursor:default;transition:transform .18s}
+  .rstat.in{animation:statPop .5s cubic-bezier(.34,1.56,.64,1) both}
+  .rstat:hover{transform:translateY(-4px)}
+  .rstat::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--ac,#ccc)}
+  @keyframes statPop{0%{opacity:0;transform:translateY(14px) scale(.92)}100%{opacity:1;transform:none}}
+  .rstat b{font-family:var(--po);font-size:28px;display:block;line-height:1}
+  .rstat span{font-size:12px;color:var(--muted);font-weight:600}
+  .rowbtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .nbtn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:14px;font-weight:700;font-size:14px;color:#fff;background:linear-gradient(135deg,var(--blue),var(--violet));box-shadow:0 10px 22px rgba(99,102,241,.32);transition:.2s}
+  .nbtn:hover{transform:translateY(-2px)}
+  .nbtn.ghost{background:#fff;color:var(--ink);box-shadow:var(--sh)}
+</style>
+</head>
+<body class="railed">
+
+<!-- SIDEBAR FIJO (definitivo) -->
+<nav class="sidebar">
+  <a class="sbtn brand" href="home.html" data-tip="Inicio"><img src="bookilogo_t.png" alt="Inicio" /></a>
+  <a class="sbtn" href="home.html" data-tip="Subir apunte"><img src="signomas_t.png" alt="Subir apunte" /></a>
+  <a class="sbtn" href="home.html" data-tip="Mis materias"><img src="mismaterias_t.png" alt="Mis materias" /></a>
+  <a class="sbtn" href="#" data-tip="Logros"><img src="Logros_t.png" alt="Logros" /></a>
+  <a class="sbtn" href="#" data-tip="Comunidad"><img src="comunidad_t.png" alt="Comunidad" /></a>
+  <a class="sbtn me" href="#" data-tip="Tu perfil">E</a>
+</nav>
+
+<div class="topbar">
+  <a class="back" href="espacio-de-estudio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg> Volver</a>
+  <div class="crumb">Sistema cardiovascular · <b>Tarjetas</b></div>
+  <div class="counter" id="counter">1 / 6</div>
+</div>
+
+<div class="stage">
+  <!-- sesión -->
+  <div id="session" style="width:100%;display:flex;flex-direction:column;align-items:center">
+    <div class="prog">
+      <div class="bar"><i id="pbar"></i></div>
+      <div class="lab"><span id="plabL">Tarjeta 1 de 6</span><span id="plabR">0 dominadas</span></div>
+    </div>
+
+    <div class="deck">
+      <div class="flash" id="flash">
+        <div class="face front">
+          <div class="eyebrow" id="fEye">El corazón</div>
+          <div class="big" id="fFront">…</div>
+          <div class="hint"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Tocá para ver la respuesta</div>
+        </div>
+        <div class="face back">
+          <div class="eyebrow">Respuesta</div>
+          <div class="big" id="fBack">…</div>
+          <div class="hint"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.4 2.6L3 8"/><path d="M3 3v5h5"/></svg> Tocá para volver</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flip-cta" id="flipCta"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.4 2.6L3 8"/><path d="M3 3v5h5"/></svg> ¿Te la sabías? Evaluate para fijar el tema</div>
+
+    <div class="rate">
+      <button class="rb no" data-r="0"><span class="em"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>No la sabía</button>
+      <button class="rb mid" data-r="1"><span class="em"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></span>Más o menos</button>
+      <button class="rb yes" data-r="2"><span class="em"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>¡La sabía!</button>
+    </div>
+  </div>
+
+  <!-- resultado -->
+  <div class="result" id="result">
+    <div class="rscene" id="rscene">
+      <div class="cap">
+        <h2 id="rTitle">¡Buen repaso! <span class="em">🎉</span></h2>
+        <p id="rMsg">Seguí practicando las que te costaron y vas a dominarlas.</p>
+      </div>
+    </div>
+    <div class="rcard">
+      <div class="ring">
+        <svg width="138" height="138" viewBox="0 0 150 150">
+          <circle cx="75" cy="75" r="62" fill="none" stroke="#eceefb" stroke-width="14"/>
+          <circle id="rRing" cx="75" cy="75" r="62" fill="none" stroke="url(#g)" stroke-width="14" stroke-linecap="round" transform="rotate(-90 75 75)"/>
+          <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#4f7dff"/></linearGradient></defs>
+          <text id="rPct" x="75" y="80" text-anchor="middle" font-family="Poppins" font-weight="800" font-size="30" fill="#1f2347">0%</text>
+          <text x="75" y="100" text-anchor="middle" font-family="Inter" font-size="11" fill="#8487a6">dominadas</text>
+        </svg>
+      </div>
+      <div class="rstats">
+        <div class="rstat" style="--ac:var(--green-d)"><b style="color:var(--green-d)" id="sYes">0</b><span>¡Las sabía!</span></div>
+        <div class="rstat" style="--ac:var(--amber)"><b style="color:var(--amber)" id="sMid">0</b><span>Más o menos</span></div>
+        <div class="rstat" style="--ac:var(--red)"><b style="color:var(--red)" id="sNo">0</b><span>No las sabía</span></div>
+      </div>
+      <div class="rowbtns">
+        <button class="nbtn ghost" id="redo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.4 2.6L3 8"/><path d="M3 3v5h5"/></svg> Repasar de nuevo</button>
+        <a class="nbtn" href="espacio-de-estudio.html">Volver al espacio →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Booki -->
+<div class="bfab" id="bfab"><span class="bk"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/><path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-6l-3 3v-3H5a1 1 0 0 1-1-1Z" fill="none" stroke="#fff" stroke-width="1.6"/></svg></span> Preguntale a Booki</div>
+<div id="bchat">
+  <div class="bch"><span class="bk" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/></svg></span> Booki · Tarjetas</div>
+  <div class="bcb"><div class="bubble">¿Una tarjeta te trabó? Preguntame y te la explico distinto. 🃏</div></div>
+  <div class="bin"><input placeholder="Escribí tu pregunta…" /><button><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div>
+</div>
+<div id="confetti"></div>
+
+<script>
+  const PAL=["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
+  const CARDS=[
+    {sec:"El corazón", q:"¿Qué fase del ciclo cardíaco corresponde a la contracción de los ventrículos?", a:"La sístole ventricular: el músculo se contrae, sube la presión y se expulsa la sangre."},
+    {sec:"El corazón", q:"¿Qué genera el primer ruido cardíaco (R1, “lub”)?", a:"El cierre de las válvulas auriculoventriculares (mitral y tricúspide) al inicio de la sístole."},
+    {sec:"El corazón", q:"¿Cuántas cámaras tiene el corazón y cómo se llaman?", a:"Cuatro: dos aurículas (arriba) y dos ventrículos (abajo)."},
+    {sec:"Circulación", q:"¿Qué transportan las arterias respecto del corazón?", a:"Sangre que SALE del corazón (en general oxigenada, salvo la arteria pulmonar)."},
+    {sec:"Circulación", q:"¿Qué es la presión arterial sistólica?", a:"La presión máxima en las arterias durante la contracción (sístole) del corazón."},
+    {sec:"Circulación", q:"¿A dónde lleva la sangre la circulación pulmonar?", a:"Del corazón (ventrículo derecho) a los pulmones para oxigenarla, y de vuelta a la aurícula izquierda."}
+  ];
+  const N=CARDS.length, RC=2*Math.PI*62;
+  let idx=0, stats=[0,0,0]; // no, mid, yes counts indexed by rating
+  const flash=document.getElementById('flash');
+
+  function render(){
+    const c=CARDS[idx];
+    document.getElementById('fEye').textContent=c.sec;
+    document.getElementById('fFront').textContent=c.q;
+    document.getElementById('fBack').textContent=c.a;
+    document.getElementById('counter').textContent=(idx+1)+' / '+N;
+    document.getElementById('plabL').textContent='Tarjeta '+(idx+1)+' de '+N;
+    document.getElementById('plabR').textContent=stats[2]+' dominadas';
+    document.getElementById('pbar').style.width=(idx/N*100)+'%';
+    flash.classList.remove('flipped'); flash.classList.remove('swap'); void flash.offsetWidth; flash.classList.add('swap');
+  }
+  flash.addEventListener('click',()=>flash.classList.toggle('flipped'));
+
+  function confettiBurst(x,y){const lay=document.getElementById('confetti');
+    for(let i=0;i<34;i++){const p=document.createElement('span');p.className='cft';
+      p.style.left=x+'px';p.style.top=y+'px';p.style.background=PAL[i%PAL.length];
+      p.style.setProperty('--dx',(Math.random()*240-120)+'px');p.style.transform='rotate('+(Math.random()*360)+'deg)';
+      p.style.animation='cftFall '+(0.8+Math.random()*0.7)+'s ease-out forwards';
+      lay.appendChild(p);setTimeout(()=>p.remove(),1700);}}
+
+  document.querySelectorAll('.rb').forEach(b=>b.addEventListener('click',()=>{
+    stats[+b.dataset.r]++;
+    if(idx<N-1){ idx++; render(); }
+    else finish();
+  }));
+
+  function countTo(el,to,dur,suf){suf=suf||'';const s=performance.now();
+    (function t(n){const p=Math.min((n-s)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(to*e)+suf;if(p<1)requestAnimationFrame(t);})(performance.now());}
+
+  function finish(){
+    document.getElementById('session').style.display='none';
+    document.getElementById('pbar').style.width='100%';
+    const res=document.getElementById('result'); res.classList.add('show');
+    const pct=Math.round(stats[2]/N*100), exito=pct>50;
+    document.getElementById('rscene').style.backgroundImage="url('"+(exito?'fondo_exito.png':'fondo_fracaso.png')+"')";
+    const ring=document.getElementById('rRing'); ring.style.strokeDasharray=RC; ring.style.strokeDashoffset=RC;
+    setTimeout(()=>{ring.style.transition='stroke-dashoffset 1s cubic-bezier(.22,1,.36,1)';ring.style.strokeDashoffset=RC-(pct/100)*RC;},250);
+    countTo(document.getElementById('rPct'),pct,1000,'%');
+    const tiles=[stats[2],stats[1],stats[0]];
+    document.querySelectorAll('.rstat').forEach((s,i)=>setTimeout(()=>{s.classList.add('in');countTo(s.querySelector('b'),tiles[i],650);},300+i*130));
+    if(exito){document.getElementById('rTitle').innerHTML='¡Excelente repaso! <span class="em">🎉</span>';
+      document.getElementById('rMsg').textContent='¡Vas dominando el tema! Seguí así. 🔥';
+      const r=res.getBoundingClientRect();
+      setTimeout(()=>{confettiBurst(window.innerWidth/2,r.top+80);setTimeout(()=>confettiBurst(window.innerWidth*0.32,r.top+120),250);},500);}
+    else{document.getElementById('rTitle').innerHTML='¡A seguir repasando! <span class="em">💪</span>';document.getElementById('rMsg').textContent='Repasá las que te costaron; con otra vuelta las dominás.';}
+  }
+
+  document.getElementById('redo').addEventListener('click',()=>{
+    idx=0;stats=[0,0,0];document.getElementById('result').classList.remove('show');
+    document.querySelectorAll('.rstat').forEach(s=>s.classList.remove('in'));
+    document.getElementById('session').style.display='flex';render();
+  });
+
+  document.getElementById('bfab').addEventListener('click',()=>document.getElementById('bchat').classList.toggle('open'));
+  render();
+
+  // page transitions
+  function fadeNav(url){const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:9000;background:#eef0fb;opacity:0;transition:opacity .22s ease;pointer-events:none';document.body.appendChild(o);requestAnimationFrame(()=>{o.style.opacity='1';setTimeout(()=>location.href=url,240);});}
+  document.querySelectorAll('a[href]').forEach(a=>{const h=a.getAttribute('href');if(!h||!h.includes('.html'))return;a.addEventListener('click',e=>{e.preventDefault();fadeNav(h);});});
+</script>
+</body>
+</html>

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Skillio 3.0 · Espacio de estudio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<script>document.documentElement.classList.add('js')</script>
+<style>
+  /* tokens (:root), base y componentes compartidos viven en theme.css */
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:
+      radial-gradient(1100px 560px at 78% -8%, #f1ecff, transparent),
+      radial-gradient(900px 520px at -5% 105%, #e9f0ff, transparent),
+      var(--bg);
+    color:var(--ink);font-family:var(--in);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+  ::selection{background:var(--violet);color:#fff}
+  .po{font-family:var(--po)}
+  button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+  .app{max-width:1180px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start}
+
+  /* ---------------- MAIN ---------------- */
+  .crumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-weight:500;margin:6px 2px 16px}
+  .crumb b{color:var(--ink)}
+  .crumb svg{width:14px;height:14px}
+
+  /* hero banner */
+  .hero{position:relative;border-radius:30px;padding:30px 34px;color:#fff;overflow:hidden;background:linear-gradient(125deg,#6d3bf2 0%,#9326cf 52%,#c1338f 100%);box-shadow:0 22px 46px rgba(123,40,200,.34);transition:box-shadow .28s}
+  .hero:hover{box-shadow:0 22px 46px rgba(124,58,242,.5),0 0 80px rgba(124,58,242,.44),0 0 140px rgba(124,58,242,.22)}
+  .hero::before{content:"";position:absolute;left:-10%;top:-70%;width:120%;height:130%;background:radial-gradient(closest-side,rgba(255,255,255,.24),transparent 70%);pointer-events:none}
+  .hero .blob{position:absolute;border-radius:50%;filter:blur(2px);opacity:.5}
+  .hero .b1{width:180px;height:180px;background:rgba(255,255,255,.16);top:-60px;right:120px}
+  .hero .b2{width:120px;height:120px;background:rgba(255,255,255,.12);bottom:-50px;right:40px}
+  .hero-row{position:relative;display:flex;align-items:center;gap:20px}
+  .hero .chip{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.2);padding:6px 13px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.04em;backdrop-filter:blur(4px)}
+  .hero h1{font-family:var(--po);font-weight:800;font-size:clamp(26px,3.6vw,40px);line-height:1.05;letter-spacing:-.02em;margin:14px 0 12px}
+  .hero .sub{font-size:14px;opacity:.92;max-width:42ch}
+  .hero .acts{display:flex;gap:10px;margin-top:18px}
+  .hero .hbtn{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.16);padding:8px 14px;border-radius:12px;font-size:13px;font-weight:600;transition:.2s}
+  .hero .hbtn:hover{background:rgba(255,255,255,.28)}
+  .hero .hbtn svg{width:15px;height:15px}
+  .booki-illu{margin-left:auto;flex:none;width:256px;height:256px;object-fit:contain;filter:drop-shadow(0 18px 26px rgba(0,0,0,.32));animation:bookiFloat 4.2s ease-in-out infinite;cursor:pointer}
+  .booki-illu:hover{animation:bookiWiggle .55s ease}
+  @media(max-width:720px){.booki-illu{width:152px;height:152px}}
+
+  .sectit{display:flex;align-items:center;gap:10px;margin:30px 4px 14px}
+  .sectit h2{font-family:var(--po);font-weight:700;font-size:19px}
+  .sectit .star{width:22px;height:22px}
+  .sectit .more{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:500}
+
+  /* mode cards (vibrantes) */
+  .modos{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .modo{position:relative;border-radius:24px;padding:20px;color:#fff;overflow:hidden;cursor:pointer;transition:.25s;box-shadow:var(--sh)}
+  .modo::after{content:"";position:absolute;inset:0;background:var(--gloss);pointer-events:none}
+  .modo:hover{transform:translateY(-5px);box-shadow:var(--sh2)}
+  .modo.blue{background:linear-gradient(155deg,#5b8cff 0%,#3f63ff 100%)}
+  .modo.violet{background:linear-gradient(155deg,#9a63f7 0%,#7c3aed 100%)}
+  .modo.coral{background:linear-gradient(155deg,#ff5d79 0%,#e4264f 100%)}
+  .modo .deco{position:absolute;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.16);top:-44px;right:-30px}
+  .modo .deco2{position:absolute;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.08);bottom:-30px;left:-20px}
+  .modo .top{position:relative;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:42px}
+  .modo .mi{width:48px;height:48px;border-radius:15px;background:rgba(255,255,255,.22);display:grid;place-items:center}
+  .modo .mi svg{width:25px;height:25px}
+  .modo .badge{background:#fff;border-radius:14px;padding:7px 11px;text-align:center;color:var(--ink);min-width:54px;box-shadow:0 6px 14px rgba(0,0,0,.12)}
+  .modo .badge b{display:block;font-family:var(--po);font-weight:800;font-size:18px;line-height:1}
+  .modo .badge span{font-size:9.5px;color:var(--muted);font-weight:600}
+  .modo .mt{font-family:var(--po);font-weight:700;font-size:18px;position:relative}
+  .modo .md{font-size:12.5px;opacity:.92;margin-top:3px;position:relative;min-height:34px}
+  .modo .pwrap{position:relative;margin-top:14px}
+  .modo .pbar{height:7px;border-radius:6px;background:rgba(255,255,255,.28);overflow:hidden}
+  .modo .pbar i{display:block;height:100%;background:#fff;border-radius:6px}
+  .modo .pfoot{display:flex;justify-content:space-between;align-items:center;margin-top:11px;position:relative}
+  .modo .stat{font-size:11.5px;font-weight:600;opacity:.95}
+  .modo .go{width:34px;height:34px;border-radius:50%;background:#fff;display:grid;place-items:center;transition:.2s}
+  .modo .go svg{width:17px;height:17px}
+  .modo.blue .go{color:var(--blue)} .modo.violet .go{color:var(--violet)} .modo.coral .go{color:var(--coral)}
+  .modo:hover .go{transform:translateX(2px) scale(1.08)}
+
+  /* desglose */
+  .panel{background:var(--card);border-radius:26px;box-shadow:var(--sh);padding:10px 8px;margin-top:4px}
+  .seccion{padding:6px 12px}
+  .shead{display:flex;align-items:center;gap:12px;padding:12px 8px;cursor:pointer;border-radius:16px;transition:.2s}
+  .shead:hover{background:#f7f8fd}
+  .sdot{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;color:#fff;font-family:var(--po);font-weight:700;font-size:13px;flex:none}
+  .shead .st{font-family:var(--po);font-weight:600;font-size:15px}
+  .shead .cnt{font-size:12px;color:var(--muted)}
+  .shead .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .shead .pc{font-family:var(--po);font-weight:700;font-size:13px}
+  .shead .chev{width:18px;height:18px;color:#c2c4d8;transition:.25s}
+  .seccion.open .chev{transform:rotate(90deg)}
+  .temas{overflow:hidden;transition:max-height .35s ease}
+  .tema{display:flex;align-items:center;gap:14px;padding:11px 10px;border-radius:16px;transition:.2s}
+  .tema:hover{background:#f7f8fd}
+  .ring-s{width:42px;height:42px;flex:none;position:relative}
+  .ring-s .pcm{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--po);font-weight:700;font-size:11px}
+  .tema .tnm{font-weight:500;font-size:14.5px}
+  .tema.done .tnm{color:var(--ink)}
+  .tema .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .tema .arw{margin-left:auto;width:30px;height:30px;border-radius:50%;background:#f3f4fb;display:grid;place-items:center;color:#b9bcd6;flex:none;transition:.2s}
+  .tema:hover .arw{background:var(--violet);color:#fff}
+  .tema .arw svg{width:15px;height:15px}
+
+  /* ---------------- RIGHT RAIL ---------------- */
+  .rail{position:sticky;top:20px;display:flex;flex-direction:column;gap:18px}
+  .player{background:var(--card);border-radius:26px;box-shadow:var(--sh);overflow:hidden}
+  .player .ph{background:linear-gradient(120deg,#ff8a5c,#ff6b81 60%,#f472b6);padding:18px;color:#fff;display:flex;align-items:center;gap:12px}
+  .player .ph .pav{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.25);display:grid;place-items:center;font-family:var(--po);font-weight:800;font-size:18px}
+  .player .ph .lv{font-family:var(--po);font-weight:700;font-size:15px}
+  .player .ph .lab{font-size:11.5px;opacity:.92}
+  .player .ph .xp{margin-top:6px;height:6px;border-radius:5px;background:rgba(255,255,255,.3);overflow:hidden;width:120px}
+  .player .ph .xp i{display:block;height:100%;width:62%;background:#fff;border-radius:5px}
+  .player .pbody{padding:20px;text-align:center}
+  .bigring{width:150px;height:150px;margin:2px auto 0;position:relative}
+  .bigring .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .bigring .ctr b{font-family:var(--po);font-weight:800;font-size:34px;line-height:1;background:linear-gradient(120deg,var(--blue),var(--violet));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .bigring .ctr span{font-size:11px;color:var(--muted);font-weight:600;margin-top:3px}
+  .stats3{display:flex;gap:9px;padding:0 16px 18px}
+  .stat3{flex:1;background:#f7f8fd;border-radius:18px;padding:13px 8px;text-align:center}
+  .stat3 .si{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;margin:0 auto 7px;color:#fff}
+  .stat3 .si svg{width:17px;height:17px}
+  .stat3 b{font-family:var(--po);font-weight:700;font-size:16px;display:block}
+  .stat3 span{font-size:10.5px;color:var(--muted)}
+
+  .ach{background:var(--card);border-radius:26px;box-shadow:var(--sh);padding:18px 20px}
+  .ach h3{font-family:var(--po);font-weight:700;font-size:15px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .badges{display:flex;gap:10px}
+  .bdg{flex:1;aspect-ratio:1;border-radius:18px;display:grid;place-items:center;color:#fff}
+  .bdg svg{width:26px;height:26px}
+  .bdg.off{background:#f1f2f8;color:#cfd1e2}
+
+  /* booki float */
+  .bfab{position:fixed;right:26px;bottom:26px;z-index:40;display:flex;align-items:center;gap:11px;background:#fff;padding:9px 18px 9px 10px;border-radius:999px;font-weight:600;font-size:13.5px;box-shadow:0 16px 36px rgba(40,44,90,.2);transition:.22s}
+  .bfab:hover{transform:translateY(-3px)}
+  .bfab .bk{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--violet));display:grid;place-items:center}
+
+  @media(max-width:1080px){
+    .app{grid-template-columns:1fr}
+    .rail{display:none}
+  }
+  @media(max-width:720px){
+    .app{grid-template-columns:1fr;padding:14px}
+    .modos{grid-template-columns:1fr}
+    .hero h1{font-size:26px}
+  }
+
+  /* ============ MICRO-INTERACCIONES ============ */
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* (1) entrada con stagger */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  html.js .hero, html.js .modo, html.js #desglose, html.js .player{opacity:0}
+  .in{animation:fadeUp .55s cubic-bezier(.22,1,.36,1) both}
+
+  /* (4) gloss sweep en mode cards (hover) */
+  .modo .sweep{position:absolute;top:0;bottom:0;width:55%;left:-80%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.4),transparent);transform:skewX(-18deg);pointer-events:none;z-index:2}
+  .modo:hover .sweep{animation:sweep .7s ease}
+  @keyframes sweep{from{left:-80%}to{left:150%}}
+  .modo .go svg{transition:transform .2s ease}
+
+  /* (6) tooltip + bounce sidebar */
+  .nv[data-tip]::after,.plus[data-tip]::after{content:attr(data-tip);position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%) scale(.9);background:#1f2347;color:#fff;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:9px;white-space:nowrap;opacity:0;pointer-events:none;transition:.18s;z-index:60}
+  .nv:hover::after,.plus:hover::after{opacity:1;transform:translateY(-50%) scale(1)}
+  .nv:hover{transform:translateY(-3px)}
+
+  /* (7) press feedback */
+  .modo:active{transform:translateY(-2px) scale(.985)}
+  .hbtn:active,.bfab:active,.tema:active,.go:active{transform:scale(.96)}
+  .shead:active{transform:scale(.99)}
+
+  /* (5) tema dominado celebration */
+  @keyframes ringPop{0%{transform:scale(1)}45%{transform:scale(1.3)}100%{transform:scale(1)}}
+  .ring-s.pop{animation:ringPop .5s cubic-bezier(.34,1.56,.64,1)}
+
+  /* confetti */
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
+  .cft{position:absolute;width:9px;height:14px;border-radius:2px}
+  @keyframes cftFall{to{transform:translate(var(--dx),140px) rotate(540deg);opacity:0}}
+
+  /* (10) dominio glow + +X% */
+  @keyframes domGlow{0%,100%{filter:drop-shadow(0 0 0 rgba(124,92,246,0))}50%{filter:drop-shadow(0 0 16px rgba(124,92,246,.65))}}
+  .bigring.glow{animation:domGlow 1s ease}
+  .plusx{position:absolute;left:50%;top:26%;transform:translateX(-50%);font-family:var(--po);font-weight:800;color:#10b981;font-size:18px;opacity:0;pointer-events:none}
+  .plusx.go-anim{animation:plusxFloat 1.2s ease both}
+  @keyframes plusxFloat{0%{opacity:0;transform:translate(-50%,4px)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-32px)}}
+
+  /* (8) accordion */
+  .temas{transition:max-height .42s cubic-bezier(.22,1,.36,1)}
+
+  /* (14) status chip cross-fade */
+  .chiplet{display:inline-block;transition:opacity .3s}
+
+  /* (12) booki chat */
+  #bchat{position:fixed;right:26px;bottom:84px;z-index:50;width:300px;background:#fff;border-radius:22px;box-shadow:0 24px 54px rgba(40,44,90,.26);overflow:hidden;transform-origin:bottom right;opacity:0;transform:translateY(16px) scale(.9);pointer-events:none;transition:.3s cubic-bezier(.34,1.56,.64,1)}
+  #bchat.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+  #bchat .bch{background:linear-gradient(120deg,#5b6cff,#8b5cf6);color:#fff;padding:14px 16px;font-family:var(--po);font-weight:700;font-size:14px;display:flex;align-items:center;gap:9px}
+  #bchat .bcb{padding:16px}
+  #bchat .bubble{background:#f4f5fb;border-radius:14px;border-top-left-radius:4px;padding:11px 13px;line-height:1.5;font-size:13px;color:#4a4a63}
+  #bchat .bin{display:flex;gap:8px;padding:12px 14px;border-top:1px solid #eef0f6}
+  #bchat .bin input{flex:1;border:1px solid #e6e8f2;border-radius:12px;padding:9px 12px;font:inherit;font-size:13px;outline:none}
+  #bchat .bin button{width:38px;border-radius:12px;background:linear-gradient(135deg,#5b6cff,#8b5cf6);color:#fff;display:grid;place-items:center}
+
+  /* (13) generando overlay */
+  #gen{position:fixed;inset:0;z-index:90;background:rgba(238,240,251,.86);backdrop-filter:blur(6px);display:none;place-items:center}
+  #gen.show{display:grid}
+  #gen .card{background:#fff;border-radius:26px;box-shadow:var(--sh2);width:min(760px,94vw);overflow:hidden;animation:fadeUp .4s both;display:grid;grid-template-columns:1fr 1fr}
+  #gen .vid{background:#0c0a16;min-height:360px;position:relative}
+  #gen .vid video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  #gen .right{padding:30px 30px;display:flex;flex-direction:column;justify-content:center}
+  @media(max-width:640px){#gen .card{grid-template-columns:1fr}#gen .vid{min-height:190px}#gen .right{padding:22px}}
+  #gen h3{font-family:var(--po);font-weight:700;font-size:18px;display:flex;justify-content:space-between;align-items:center}
+  #gen h3 .pct{color:#7c5cfc}
+  #gen .gbar{height:8px;border-radius:6px;background:#eef0f8;overflow:hidden;margin:14px 0 18px}
+  #gen .gbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#5b6cff,#8b5cf6);border-radius:6px;transition:width .45s ease}
+  #gen .step{display:flex;align-items:center;gap:11px;padding:8px 0;font-size:13.5px;color:#9a9bb5}
+  #gen .step.on{color:#1f2347;font-weight:600}
+  #gen .step .sk{width:20px;height:20px;border-radius:50%;border:2px solid #e0e2f0;flex:none;display:grid;place-items:center}
+  #gen .step.on .sk{border-color:#34d399;background:#34d399;color:#fff}
+  #gen .shimrow{height:12px;border-radius:6px;margin-top:14px}
+  .shimmer{background:linear-gradient(90deg,#eef0f8 25%,#f7f8fd 37%,#eef0f8 63%);background-size:400% 100%;animation:shim 1.3s infinite}
+  @keyframes shim{from{background-position:100% 0}to{background-position:-100% 0}}
+</style>
+</head>
+<body class="railed">
+
+<!-- SIDEBAR FIJO (definitivo) -->
+<nav class="sidebar">
+  <a class="sbtn brand" href="home.html" data-tip="Inicio"><img src="bookilogo_t.png" alt="Inicio" /></a>
+  <a class="sbtn" href="#" id="newNote" data-tip="Subir apunte"><img src="signomas_t.png" alt="Subir apunte" /></a>
+  <a class="sbtn" href="home.html" data-tip="Mis materias"><img src="mismaterias_t.png" alt="Mis materias" /></a>
+  <a class="sbtn" href="#" data-tip="Logros"><img src="Logros_t.png" alt="Logros" /></a>
+  <a class="sbtn" href="#" data-tip="Comunidad"><img src="comunidad_t.png" alt="Comunidad" /></a>
+  <a class="sbtn me" href="#" data-tip="Tu perfil">E</a>
+</nav>
+
+<div class="app">
+
+  <!-- MAIN -->
+  <main>
+    <nav class="crumb">
+      Mis apuntes
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+      <b>Anatomía</b>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <span class="blob b1"></span><span class="blob b2"></span>
+      <div class="hero-row">
+        <div>
+          <span class="chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M13 2 4 14h7l-1 8 10-12h-7z"/></svg> ¡Vamos por el 50%!</span>
+          <h1 class="po">Sistema cardiovascular</h1>
+          <p class="sub">7 temas listos para estudiar. Sumá Dominio jugando con resumen, tarjetas y simulacro.</p>
+          <div class="acts">
+            <a class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/></svg> Ver archivo</a>
+            <a class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/></svg> Compartir</a>
+          </div>
+        </div>
+        <!-- Booki 3.0 (transparente, flota) -->
+        <img class="booki-illu" src="booki-3.png" alt="Booki" onerror="this.style.display='none'" />
+      </div>
+    </section>
+
+    <!-- MODOS -->
+    <div class="sectit">
+      <svg class="star" viewBox="0 0 24 24" fill="#8b5cf6"><path d="m12 3 2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>
+      <h2 class="po">Estudiá jugando</h2>
+      <span class="more">Generado de tu apunte</span>
+    </div>
+    <div class="modos">
+      <div class="modo blue" data-href="resumen.html">
+        <span class="deco"></span><span class="deco2"></span><span class="sweep"></span>
+        <div class="top">
+          <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a1 1 0 0 1 1-1h5a3 3 0 0 1 2 1 3 3 0 0 1 2-1h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a2 2 0 0 0-2 2 2 2 0 0 0-2-2H5a1 1 0 0 1-1-1Z"/></svg></span>
+          <span class="badge"><b>7</b><span>temas</span></span>
+        </div>
+        <div class="mt po">Resumen</div>
+        <div class="md">El apunte explicado por tramos, con preguntas que refuerzan.</div>
+        <div class="pwrap"><div class="pbar"><i style="width:42%"></i></div>
+          <div class="pfoot"><span class="stat">En progreso · 42%</span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+        </div>
+      </div>
+
+      <div class="modo violet" data-href="tarjetas.html">
+        <span class="deco"></span><span class="deco2"></span><span class="sweep"></span>
+        <div class="top">
+          <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="12" rx="2"/><path d="M8 3h13v12"/></svg></span>
+          <span class="badge"><b>51</b><span>tarjetas</span></span>
+        </div>
+        <div class="mt po">Tarjetas</div>
+        <div class="md">Memorizá los términos con repetición espaciada.</div>
+        <div class="pwrap"><div class="pbar"><i style="width:24%"></i></div>
+          <div class="pfoot"><span class="stat">12 dominadas</span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+        </div>
+      </div>
+
+      <div class="modo coral" data-href="simulacro.html">
+        <span class="deco"></span><span class="deco2"></span><span class="sweep"></span>
+        <div class="top">
+          <span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg></span>
+          <span class="badge"><b>53</b><span>preguntas</span></span>
+        </div>
+        <div class="mt po">Simulacro</div>
+        <div class="md">Examen tipo parcial. Detectá tus lagunas.</div>
+        <div class="pwrap"><div class="pbar"><i style="width:0%"></i></div>
+          <div class="pfoot"><span class="stat">¡Nuevo! Sin empezar</span><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESGLOSE -->
+    <div class="sectit">
+      <svg class="star" viewBox="0 0 24 24" fill="none" stroke="#4f7dff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></svg>
+      <h2 class="po">Mapa del tema</h2>
+      <span class="more">2 secciones · 7 temas</span>
+    </div>
+    <div class="panel" id="desglose"></div>
+  </main>
+
+  <!-- RIGHT RAIL -->
+  <aside class="rail">
+    <div class="player">
+      <div class="ph">
+        <div class="pav po"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg></div>
+        <div>
+          <div class="lv po">Tu dominio</div>
+          <div class="lab">Sistema cardiovascular</div>
+        </div>
+      </div>
+      <div class="pbody">
+        <div class="bigring">
+          <svg viewBox="0 0 150 150" style="transform:rotate(-90deg)">
+            <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f7dff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+            <circle cx="75" cy="75" r="62" fill="none" stroke="#eef0f8" stroke-width="13"/>
+            <circle id="domRing" cx="75" cy="75" r="62" fill="none" stroke="url(#g1)" stroke-width="13" stroke-linecap="round"/>
+          </svg>
+          <div class="ctr"><b id="domPct">32%</b><span>Dominio del apunte</span></div>
+          <div class="plusx" id="plusx">+0%</div>
+        </div>
+      </div>
+      <div class="stats3">
+        <div class="stat3"><div class="si" style="background:linear-gradient(135deg,#ff8a5c,#ff6b81)"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2c1 4-2 5-2 8a4 4 0 0 0 8 0c0-1-1-2-1-3 2 1 3 3 3 6a8 8 0 1 1-16 0c0-5 5-7 6-11Z"/></svg></div><b>5</b><span>días de racha</span></div>
+        <div class="stat3"><div class="si" style="background:linear-gradient(135deg,#34d399,#10b981)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div><b>1/7</b><span>dominados</span></div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- BOOKI -->
+<div class="bfab" id="bfab">
+  <span class="bk"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/><path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-6l-3 3v-3H5a1 1 0 0 1-1-1Z" fill="none" stroke="#fff" stroke-width="1.6"/></svg></span>
+  Preguntale a Booki
+</div>
+
+<!-- chat de Booki -->
+<div id="bchat">
+  <div class="bch"><span class="bk" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/></svg></span> Booki · Sistema cardiovascular</div>
+  <div class="bcb"><div class="bubble">¡Hola! 👋 Preguntame lo que quieras sobre este apunte: definiciones, dudas, lo que sea.</div></div>
+  <div class="bin"><input placeholder="Escribí tu pregunta…" /><button><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div>
+</div>
+
+<!-- confetti layer -->
+<div id="confetti"></div>
+
+<!-- overlay generando -->
+<div id="gen">
+  <div class="card">
+    <div class="vid"><video src="precarga.mp4" autoplay muted loop playsinline></video></div>
+    <div class="right">
+      <h3>Generando tu set de estudio… <span class="pct" id="genPct">0%</span></h3>
+      <div class="gbar"><i id="genBar"></i></div>
+      <div class="step" data-s="0"><span class="sk"></span> Analizando Lectura 3.pdf</div>
+      <div class="step" data-s="1"><span class="sk"></span> Detectando secciones y temas</div>
+      <div class="step" data-s="2"><span class="sk"></span> Armando resumen, tarjetas y simulacro</div>
+      <div class="step" data-s="3"><span class="sk"></span> Calculando tu ruta de estudio</div>
+      <div class="shimrow shimmer"></div>
+      <div class="shimrow shimmer" style="width:70%"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SECS = [
+    { nombre:"El corazón", color:"#4f7dff", temas:[
+      {n:"Anatomía del corazón", sub:"6 tarjetas · 6 preguntas", d:100},
+      {n:"Ciclo cardíaco", sub:"10 tarjetas · 8 preguntas", d:60},
+      {n:"Sistema de conducción", sub:"7 tarjetas", d:25},
+      {n:"Gasto cardíaco", sub:"5 tarjetas", d:0},
+    ]},
+    { nombre:"Circulación", color:"#8b5cf6", temas:[
+      {n:"Arterias y venas", sub:"5 tarjetas", d:40},
+      {n:"Presión arterial", sub:"9 tarjetas", d:0},
+      {n:"Circulación pulmonar", sub:"6 tarjetas", d:0},
+    ]},
+  ];
+  const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
+  const allTemas = SECS.flatMap(s=>s.temas);
+  const domOf = () => Math.round(allTemas.reduce((a,t)=>a+t.d,0)/allTemas.length);
+  const RC = 2*Math.PI*16;
+
+  function countUp(el,to,dur,suf){suf=suf||'';const f0=+(el.dataset.from||0),s=performance.now();
+    (function tick(t){const p=Math.min((t-s)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(f0+(to-f0)*e)+suf;if(p<1)requestAnimationFrame(tick);})(performance.now());}
+
+  // big dominio ring
+  const bigC=2*Math.PI*62, ring=document.getElementById('domRing'), bigring=document.querySelector('.bigring');
+  ring.style.strokeDasharray=bigC; ring.style.strokeDashoffset=bigC; document.getElementById('domPct').textContent='0%';
+  function setDom(v,glow){ring.style.transition="stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)";ring.style.strokeDashoffset=bigC-(v/100)*bigC;
+    if(glow){bigring.classList.add('glow');setTimeout(()=>bigring.classList.remove('glow'),1000);}}
+
+  // mini ring inner (empieza vacío para animar)
+  function ringInner(pct,color){
+    const done=pct>=100, stroke=done?"#10b981":color;
+    const extra=done
+      ? `<svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;inset:0;margin:auto;stroke-dasharray:30;stroke-dashoffset:30"><path d="M5 13l4 4L19 7"/></svg>`
+      : `<span class="pcm" style="color:${pct?color:'#c2c4d8'}">0%</span>`;
+    return `<svg viewBox="0 0 42 42" style="transform:rotate(-90deg)">
+        <circle cx="21" cy="21" r="16" fill="none" stroke="#eef0f8" stroke-width="4"/>
+        <circle class="mr" cx="21" cy="21" r="16" fill="none" stroke="${stroke}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${RC}" stroke-dashoffset="${RC}"/>
+      </svg>${extra}`;
+  }
+
+  // render desglose
+  let gi=0;
+  document.getElementById('desglose').innerHTML = SECS.map((s,si)=>{
+    const avg=Math.round(s.temas.reduce((a,t)=>a+t.d,0)/s.temas.length);
+    const temas=s.temas.map(t=>{const idx=gi++;
+      return `<div class="tema ${t.d>=100?'done':''}" data-idx="${idx}" data-pct="${t.d}">
+        <div class="ring-s">${ringInner(t.d, PAL[idx%PAL.length])}</div>
+        <div><div class="tnm">${t.n}</div><div class="sub">${t.sub}</div></div>
+        <span class="arw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+      </div>`;
+    }).join('');
+    return `<div class="seccion open" data-si="${si}">
+      <div class="shead">
+        <span class="sdot po" style="background:linear-gradient(135deg,${s.color},${s.color}cc)">${si+1}</span>
+        <div><div class="st">${s.nombre}</div><div class="cnt">${s.temas.length} temas</div></div>
+        <div class="right"><span class="pc" data-pc style="color:${s.color}">${avg}%</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></div>
+      </div>
+      <div class="temas">${temas}</div>
+    </div>`;
+  }).join('');
+
+  // (1) entrada stagger
+  [...document.querySelectorAll('.hero, .modo, #desglose, .player')].forEach((el,i)=>setTimeout(()=>el.classList.add('in'),90*i));
+
+  // (1) count-up dominio + badges
+  setTimeout(()=>{ setDom(domOf()); countUp(document.getElementById('domPct'),domOf(),1200,'%'); },320);
+  document.querySelectorAll('.modo .badge b').forEach(b=>{const to=+b.textContent;b.textContent='0';setTimeout(()=>countUp(b,to,900,''),450);});
+
+  // (2) cascada mini-rings
+  document.querySelectorAll('.tema').forEach((tema,i)=>{
+    const pct=+tema.dataset.pct, rs=tema.querySelector('.ring-s'), mr=rs.querySelector('.mr'), off=RC-(pct/100)*RC, pcm=rs.querySelector('.pcm'), ck=rs.querySelector('.ck');
+    setTimeout(()=>{ mr.style.transition="stroke-dashoffset .7s ease"; mr.style.strokeDashoffset=off;
+      if(pcm) countUp(pcm,pct,700,'%');
+      if(ck){ ck.style.transition="stroke-dashoffset .5s ease .15s"; ck.style.strokeDashoffset=0; }
+    }, 600 + i*110);
+  });
+
+  // (5)(10) celebrar tema dominado + confetti + dominio +X%
+  function confettiBurst(x,y){const lay=document.getElementById('confetti');
+    for(let i=0;i<28;i++){const p=document.createElement('span');p.className='cft';
+      p.style.left=x+'px';p.style.top=y+'px';p.style.background=PAL[i%PAL.length];
+      p.style.setProperty('--dx',(Math.random()*180-90)+'px');
+      p.style.transform='rotate('+(Math.random()*360)+'deg)';
+      p.style.animation='cftFall '+(0.8+Math.random()*0.6)+'s ease-out forwards';
+      lay.appendChild(p);setTimeout(()=>p.remove(),1600);}}
+
+  function celebrate(tema){
+    const idx=+tema.dataset.idx; if(allTemas[idx].d>=100) return;
+    const before=domOf(); allTemas[idx].d=100; const after=domOf();
+    tema.classList.add('done');
+    const rs=tema.querySelector('.ring-s'); rs.classList.add('pop'); setTimeout(()=>rs.classList.remove('pop'),520);
+    const mr=rs.querySelector('.mr'); mr.setAttribute('stroke','#10b981'); mr.style.transition='stroke-dashoffset .5s ease, stroke .3s'; mr.style.strokeDashoffset=0;
+    const pcm=rs.querySelector('.pcm');
+    if(pcm){ pcm.outerHTML='<svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;inset:0;margin:auto;stroke-dasharray:30;stroke-dashoffset:30"><path d="M5 13l4 4L19 7"/></svg>';
+      const ck=rs.querySelector('.ck'); requestAnimationFrame(()=>{ck.style.transition='stroke-dashoffset .45s ease .12s';ck.style.strokeDashoffset=0;}); }
+    const sec=tema.closest('.seccion'), si=+sec.dataset.si;
+    const savg=Math.round(SECS[si].temas.reduce((a,t)=>a+t.d,0)/SECS[si].temas.length);
+    const pc=sec.querySelector('[data-pc]'); pc.dataset.from=parseInt(pc.textContent)||0; countUp(pc,savg,600,'%');
+    const dp=document.getElementById('domPct'); dp.dataset.from=before; setDom(after,true); countUp(dp,after,800,'%');
+    if(after>before){ const px=document.getElementById('plusx'); px.textContent='+'+(after-before)+'%'; px.classList.remove('go-anim'); void px.offsetWidth; px.classList.add('go-anim'); }
+    const ndone=allTemas.filter(t=>t.d>=100).length, dstat=document.querySelectorAll('.stats3 .stat3 b')[1]; if(dstat) dstat.textContent=ndone+'/7';
+    const r=tema.getBoundingClientRect(); confettiBurst(r.left+30, r.top+18);
+  }
+  document.getElementById('desglose').addEventListener('click', e=>{ const tema=e.target.closest('.tema'); if(tema) celebrate(tema); });
+
+  // (8) collapse secciones
+  document.querySelectorAll('.shead').forEach(h=>{
+    const sec=h.closest('.seccion'), box=sec.querySelector('.temas');
+    box.style.maxHeight=box.scrollHeight+'px';
+    h.addEventListener('click',()=>{ const open=sec.classList.toggle('open'); box.style.maxHeight=open?box.scrollHeight+'px':'0px'; });
+  });
+
+  // (12) booki chat
+  document.getElementById('bfab').addEventListener('click',()=>document.getElementById('bchat').classList.toggle('open'));
+
+  // page transitions
+  function fadeNav(url){const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:9000;background:#eef0fb;opacity:0;transition:opacity .22s ease;pointer-events:none';document.body.appendChild(o);requestAnimationFrame(()=>{o.style.opacity='1';setTimeout(()=>location.href=url,240);});}
+  document.querySelectorAll('a[href]').forEach(a=>{const h=a.getAttribute('href');if(!h||!h.includes('.html'))return;a.addEventListener('click',e=>{e.preventDefault();fadeNav(h);});});
+
+  // (13) generando overlay
+  function runGen(){
+    const gen=document.getElementById('gen'), bar=document.getElementById('genBar'), pct=document.getElementById('genPct'), steps=document.querySelectorAll('#gen .step'), vid=gen.querySelector('video');
+    gen.classList.add('show'); steps.forEach(s=>s.classList.remove('on')); bar.style.width='0%'; pct.textContent='0%';
+    if(vid){ try{ vid.currentTime=0; vid.play(); }catch(_){} }
+    let p=0; const iv=setInterval(()=>{ p=Math.min(100,p+Math.floor(8+Math.random()*14)); bar.style.width=p+'%'; pct.textContent=p+'%';
+      const ns=Math.min(Math.floor(p/25),3); for(let i=0;i<=ns;i++) if(steps[i]) steps[i].classList.add('on');
+      if(p>=100){clearInterval(iv); setTimeout(()=>{gen.classList.remove('show'); if(vid)vid.pause(); history.replaceState({},'',location.pathname);},900);} },420);
+  }
+  document.getElementById('newNote').addEventListener('click',(ev)=>{ ev.preventDefault(); runGen(); });
+  if(new URLSearchParams(location.search).get('demo')==='1') runGen();
+
+  // navegación entre pantallas (cards con data-href) + (14) status chips
+  document.querySelectorAll('.modo').forEach(card=>{ if(card.dataset.href) card.style.cursor='pointer';
+    card.addEventListener('click',()=>{ if(card.dataset.href) fadeNav(card.dataset.href); }); });
+  const CYCLE=["No empezado","En progreso","¡Dominado!"];
+  document.querySelectorAll('.modo .go').forEach(go=>{ go.addEventListener('click',e=>{
+    if(go.closest('.modo').dataset.href) return; // card navegable: dejar pasar el click
+    e.stopPropagation();
+    const stat=go.closest('.modo').querySelector('.stat'); let i=((+stat.dataset.i||0)+1)%3; stat.dataset.i=i;
+    stat.style.transition='opacity .3s'; stat.style.opacity=0;
+    setTimeout(()=>{ stat.textContent=CYCLE[i]; stat.style.opacity=1; },300);
+  }); });
+</script>
+</body>
+</html>

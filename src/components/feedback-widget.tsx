@@ -116,10 +116,10 @@ export function FeedbackWidget() {
         {/* Header */}
         <div className="flex items-start justify-between px-5 pt-4 pb-0">
           <div>
-            <p style={{ fontFamily:"var(--v3-po)", fontWeight:700, fontSize:15, color:"var(--v3-ink)", lineHeight:1.3 }}>
+            <p style={{ fontFamily:"var(--po)", fontWeight:700, fontSize:15, color:"var(--ink)", lineHeight:1.3 }}>
               ¿Cómo vas con Skillio?
             </p>
-            <p style={{ fontSize:12, color:"var(--v3-muted)", marginTop:2 }}>
+            <p style={{ fontSize:12, color:"var(--muted)", marginTop:2 }}>
               30 segundos · Nos ayuda un montón
             </p>
           </div>

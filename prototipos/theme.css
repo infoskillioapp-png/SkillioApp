@@ -1,0 +1,112 @@
+/* ===========================================================================
+   SKILLIO 3.0 · theme.css — fuente de verdad del prototipo (tokens + base +
+   componentes compartidos). Cambiás un color acá y se actualiza en TODAS las
+   pantallas. Cada HTML linkea este archivo y agrega solo su layout propio.
+   =========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#eef0fb; --card:#ffffff; --ink:#1f2347; --muted:#8487a6; --faint:#aab2c8;
+  --line:#eef0f6; --line2:#f4f5fb;
+  --blue:#4f7dff; --blue2:#6f97ff;
+  --violet:#8b5cf6; --violet2:#a78bfa;
+  --coral:#ff6b81; --coral2:#ff8a9b; --red:#e4264f;
+  --yellow:#ffc93c; --amber:#ffb020;
+  --green:#34d399; --green-d:#10b981;
+  --pink:#f472b6; --teal:#2dd4bf;
+  --po:"Poppins",-apple-system,system-ui,sans-serif;
+  --in:"Inter",-apple-system,system-ui,sans-serif;
+  --sh:inset 0 1px 0 rgba(255,255,255,.75), 0 2px 4px rgba(40,44,90,.04), 0 10px 20px rgba(72,56,142,.10), 0 22px 40px rgba(72,56,142,.12);
+  --sh2:inset 0 1px 0 rgba(255,255,255,.8), 0 4px 8px rgba(40,44,90,.06), 0 18px 34px rgba(72,56,142,.17), 0 38px 66px rgba(72,56,142,.24);
+  --gloss:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 46%);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:
+    radial-gradient(1100px 560px at 78% -8%, #f1ecff, transparent),
+    radial-gradient(900px 520px at -5% 105%, #e9f0ff, transparent),
+    var(--bg);
+  color:var(--ink);font-family:var(--in);font-size:16px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;min-height:100vh}
+body::after{content:"";position:fixed;inset:0;z-index:8000;background:#eef0fb;pointer-events:none;animation:ptIn .38s ease both}
+@keyframes ptIn{from{opacity:1}to{opacity:0;visibility:hidden}}
+::selection{background:var(--violet);color:#fff}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.po{font-family:var(--po)}
+
+/* ---- keyframes compartidos ---- */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bookiFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes bookiWiggle{0%,100%{transform:rotate(0)}20%{transform:rotate(-7deg)}60%{transform:rotate(6deg)}}
+@keyframes shim{from{background-position:100% 0}to{background-position:-100% 0}}
+@keyframes cftFall{to{transform:translate(var(--dx),140px) rotate(540deg);opacity:0}}
+@keyframes ringPop{0%{transform:scale(1)}45%{transform:scale(1.3)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* entrada stagger */
+.in{animation:fadeUp .55s cubic-bezier(.22,1,.36,1) both}
+
+/* ---- press feedback ---- */
+.press:active{transform:scale(.96)}
+
+/* ---- chips de estado ---- */
+.chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s;border:1px solid transparent}
+.chip .d{width:8px;height:8px;border-radius:50%}
+.chip.on{background:#eef1ff;color:var(--violet);border-color:#dfe3ff}
+.chip:not(.on){color:var(--muted)} .chip:not(.on):hover{background:#f4f5fb}
+
+/* ---- mini ring ---- */
+.ring-s{width:42px;height:42px;flex:none;position:relative}
+.ring-s .pcm{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--po);font-weight:700;font-size:11px}
+.ring-s.pop{animation:ringPop .5s cubic-bezier(.34,1.56,.64,1)}
+
+/* ---- confetti ---- */
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
+.cft{position:absolute;width:9px;height:14px;border-radius:2px}
+
+/* ---- Booki flotante ---- */
+.bfab{position:fixed;right:26px;bottom:26px;z-index:50;display:flex;align-items:center;gap:11px;background:#fff;padding:9px 18px 9px 10px;border-radius:999px;font-weight:600;font-size:13.5px;box-shadow:0 16px 36px rgba(40,44,90,.2);transition:.22s}
+.bfab:hover{transform:translateY(-3px)}
+.bfab .bk{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--violet));display:grid;place-items:center}
+
+/* ---- Booki chat ---- */
+#bchat{position:fixed;right:26px;bottom:84px;z-index:50;width:300px;background:#fff;border-radius:22px;box-shadow:0 24px 54px rgba(40,44,90,.26);overflow:hidden;transform-origin:bottom right;opacity:0;transform:translateY(16px) scale(.9);pointer-events:none;transition:.3s cubic-bezier(.34,1.56,.64,1)}
+#bchat.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+#bchat .bch{background:linear-gradient(120deg,#5b6cff,#8b5cf6);color:#fff;padding:14px 16px;font-family:var(--po);font-weight:700;font-size:14px;display:flex;align-items:center;gap:9px}
+#bchat .bcb{padding:16px}
+#bchat .bubble{background:#f4f5fb;border-radius:14px;border-top-left-radius:4px;padding:11px 13px;line-height:1.5;font-size:13px;color:#4a4a63}
+#bchat .bin{display:flex;gap:8px;padding:12px 14px;border-top:1px solid #eef0f6}
+#bchat .bin input{flex:1;border:1px solid #e6e8f2;border-radius:12px;padding:9px 12px;font:inherit;font-size:13px;outline:none}
+#bchat .bin button{width:38px;border-radius:12px;background:linear-gradient(135deg,#5b6cff,#8b5cf6);color:#fff;display:grid;place-items:center}
+
+/* ---- shimmer ---- */
+.shimmer{background:linear-gradient(90deg,#eef0f8 25%,#f7f8fd 37%,#eef0f8 63%);background-size:400% 100%;animation:shim 1.3s infinite}
+
+/* ===== SIDEBAR FIJO (definitivo, en todas las páginas) ===== */
+body.railed{padding-left:122px}
+.sidebar{position:fixed;left:22px;top:50%;transform:translateY(-50%);z-index:200;
+  display:flex;flex-direction:column;align-items:center;gap:15px;padding:18px 12px;width:84px;
+  background:linear-gradient(180deg,#cfb9f6 0%,#bb9bee 58%,#ad8be8 100%);border-radius:48px;
+  box-shadow:inset 0 2px 3px rgba(255,255,255,.55), inset 0 -7px 13px rgba(108,62,178,.42),
+    0 20px 42px rgba(95,55,165,.42), 0 6px 14px rgba(95,55,165,.3)}
+.sbtn{position:relative;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;cursor:pointer;text-decoration:none;
+  background:radial-gradient(130% 130% at 32% 24%, #efe6ff 0%, #cdb4f3 46%, #b18eea 100%);
+  box-shadow:inset 0 3px 5px rgba(255,255,255,.75), inset 0 -6px 10px rgba(120,70,190,.5),
+    0 7px 14px rgba(95,55,165,.42), 0 2px 4px rgba(95,55,165,.3);
+  transition:transform .18s, box-shadow .18s}
+.sbtn img{width:72%;height:72%;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(60,30,110,.35))}
+.sbtn.brand img{width:100%}
+.sbtn:hover{transform:translateY(-3px) scale(1.06)}
+.sbtn:active{transform:scale(.95)}
+.sbtn.active{box-shadow:inset 0 3px 5px rgba(255,255,255,.75), inset 0 -6px 10px rgba(120,70,190,.5),
+    0 0 0 3px rgba(255,255,255,.6), 0 9px 20px rgba(95,55,165,.55)}
+.sbtn.me{width:46px;height:46px;margin-top:4px;color:#fff;font-family:var(--po);font-weight:800;font-size:17px;
+  background:radial-gradient(130% 130% at 32% 24%, #8a6cf3, #5b39cf)}
+.sbtn[data-tip]::after{content:attr(data-tip);position:absolute;left:calc(100% + 14px);top:50%;
+  transform:translateY(-50%) scale(.9);background:#1f2347;color:#fff;font-size:12px;font-weight:600;
+  padding:7px 11px;border-radius:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:.18s;z-index:80}
+.sbtn:hover::after{opacity:1;transform:translateY(-50%) scale(1)}
+@media(max-width:760px){body.railed{padding-left:0}
+  .sidebar{position:static;flex-direction:row;width:auto;transform:none;margin:0 auto 16px;border-radius:40px;padding:10px 14px}
+  .sbtn.me{margin-top:0}}

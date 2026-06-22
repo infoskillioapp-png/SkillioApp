@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { completeDemo } from "@/lib/api/demo";
-import { ResultModal, type AnyResult, type PuntosClaveData } from "@/app/app/ia/_components/result-modal";
+// tipos inline — ResultModal se reconstruye en /app/ia con el nuevo diseño
+type PuntosClaveData = { puntos: { titulo: string; descripcion: string }[] };
+type AnyResult = { kind: "summary"; format: "puntos_clave"; data: PuntosClaveData };
 
 // ===========================================================================
 // Tipos
@@ -253,9 +255,22 @@ function StepResumen({ demo, onNext }: { demo: DemoProps["demo"]; onNext: () => 
         </div>
       )}
 
-      {/* Resultado idéntico a la app paga (mismo modal + PDF brandeado) */}
+      {/* Preview del resumen — modal simple hasta que reconstruyamos /app/ia */}
       {modalOpen && result && (
-        <ResultModal result={result} onClose={() => setModalOpen(false)} chromeless />
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(38,26,74,.5)", backdropFilter: "blur(4px)" }}>
+          <div style={{ background: "#fff", borderRadius: 24, padding: "24px 24px 20px", maxWidth: 500, width: "100%", maxHeight: "80vh", overflow: "auto", boxShadow: "0 30px 60px rgba(40,30,90,.3)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <span style={{ fontFamily: "var(--po)", fontWeight: 800, fontSize: 15 }}>Puntos clave</span>
+              <button onClick={() => setModalOpen(false)} style={{ width: 32, height: 32, borderRadius: 10, background: "#f4f5fb", border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>✕</button>
+            </div>
+            {result.data.puntos?.map((p, i) => (
+              <div key={i} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: i < result.data.puntos.length - 1 ? "1px solid #eef0f6" : "none" }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: 4 }}>{p.titulo}</div>
+                <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>{p.descripcion}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {showDoc && (

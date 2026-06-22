@@ -1,0 +1,159 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+
+type Tab = "file" | "text" | "yt" | "drive";
+
+export function UploadModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [tab, setTab] = useState<Tab>("file");
+  const [dragging, setDragging] = useState(false);
+  const [textInput, setTextInput] = useState("");
+  const [ytUrl, setYtUrl] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  function goEstudio() {
+    onClose();
+    router.push("/app/ia");
+  }
+
+  const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    {
+      id: "file", label: "Subir archivo", icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+        </svg>
+      ),
+    },
+    {
+      id: "text", label: "Texto", icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+        </svg>
+      ),
+    },
+    {
+      id: "yt", label: "YouTube Video", icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="4" />
+          <path d="m10 9 5 3-5 3z" fill="currentColor" stroke="none" />
+        </svg>
+      ),
+    },
+    {
+      id: "drive", label: "Google Drive", icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 19h12a3 3 0 0 0 0-6 5 5 0 0 0-9.6-1.3A3.5 3.5 0 0 0 6 19z" />
+        </svg>
+      ),
+    },
+  ];
+
+  if (!open) return null;
+
+  return (
+    <div
+      id="upModal"
+      className="show"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="um-card">
+        <div className="um-head">
+          <h3>Creá tu estudio desde:</h3>
+          <button className="um-x" onClick={onClose} aria-label="Cerrar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="um-tabs">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              className={`um-tab${tab === t.id ? " on" : ""}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "file" && (
+          <div className="um-pane on">
+            <div
+              className={`um-drop${dragging ? " drag" : ""}`}
+              onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setDragging(false); }}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); goEstudio(); }}
+            >
+              <Image src="/bookisubirarchivocorrecto.png" alt="Booki con un documento" width={340} height={240} style={{ width: 340, height: "auto", margin: "0 auto", display: "block", filter: "drop-shadow(0 12px 18px rgba(80,40,150,.28))" }} />
+              <div className="um-arrow">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 4v12M6 12l6 6 6-6" />
+                </svg>
+              </div>
+              <h4>Arrastrá y soltá tus archivos acá</h4>
+              <div className="types">Formatos: PDF · Word · PPT · TXT · JPG · PNG · HEIC · WebP · MP3 · WAV · M4A</div>
+              <input ref={fileRef} type="file" style={{ display: "none" }} onChange={goEstudio} accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp3,.wav,.m4a" />
+              <button className="um-pick" onClick={() => fileRef.current?.click()}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                </svg>
+                Seleccionar archivo
+              </button>
+              <button className="um-demo-link" onClick={() => { onClose(); router.push("/app/ia?demo=1"); }}>
+                ¿No tenés un apunte a mano? Usá el nuestro de prueba
+              </button>
+            </div>
+          </div>
+        )}
+
+        {tab === "text" && (
+          <div className="um-pane on">
+            <textarea className="um-ta" placeholder="Pegá acá tu texto, apuntes o lo que quieras estudiar…" value={textInput} onChange={(e) => setTextInput(e.target.value)} />
+            <div className="um-row" style={{ justifyContent: "flex-end" }}>
+              <button className="um-pick" onClick={goEstudio}>Crear estudio</button>
+            </div>
+          </div>
+        )}
+
+        {tab === "yt" && (
+          <div className="um-pane on">
+            <div className="um-soft" style={{ padding: "16px 0 4px" }}>Pegá el enlace de un video y Booki lo convierte en tu set de estudio.</div>
+            <input className="um-input" placeholder="https://www.youtube.com/watch?v=…" value={ytUrl} onChange={(e) => setYtUrl(e.target.value)} />
+            <div className="um-row" style={{ justifyContent: "flex-end" }}>
+              <button className="um-pick" onClick={goEstudio}>Crear estudio</button>
+            </div>
+          </div>
+        )}
+
+        {tab === "drive" && (
+          <div className="um-pane on">
+            <div className="um-soft">
+              <span className="em">📁</span>
+              Conectá tu Google Drive para importar documentos directamente.<br />
+              <span style={{ fontSize: 12 }}>Próximamente</span>
+            </div>
+            <div className="um-row" style={{ justifyContent: "center" }}>
+              <button className="um-pick" style={{ opacity: .55, cursor: "default" }}>Conectar Google Drive</button>
+            </div>
+          </div>
+        )}
+
+        <div className="um-foot">Cada set puede incluir hasta 10 fuentes.</div>
+      </div>
+    </div>
+  );
+}
