@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import { SalePopup } from "@/components/sale-popup";
 
 const KX_COLORS = [
   "linear-gradient(135deg,#5b8cff,#3f63ff)",
@@ -13,6 +14,7 @@ const KX_COLORS = [
 ];
 
 const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
+const FREE_LIMIT = 3;
 
 function confettiBurst(x: number, y: number) {
   const lay = document.getElementById("confetti-layer");
@@ -25,7 +27,6 @@ function confettiBurst(x: number, y: number) {
   }
 }
 
-// ---- tipos ----
 export type SummaryPoint = {
   emoji?: string;
   title: string;
@@ -80,11 +81,8 @@ function PracticaQuiz({
   }
 
   function next() {
-    if (current < questions.length - 1) {
-      setCurrent((c) => c + 1);
-    } else {
-      setFinished(true);
-    }
+    if (current < questions.length - 1) setCurrent((c) => c + 1);
+    else setFinished(true);
   }
 
   function handleFinish(e: React.MouseEvent) {
@@ -174,20 +172,30 @@ function ResumenSidebar({
   sections,
   activeIdx,
   doneSet,
+  isPro,
+  totalPoints,
   onSelect,
+  onLocked,
 }: {
   sections: SummarySection[];
   activeIdx: number;
   doneSet: Set<number>;
+  isPro: boolean;
+  totalPoints: number;
   onSelect: (i: number) => void;
+  onLocked: () => void;
 }) {
+  let globalCounter = 0;
+
   return (
     <aside className="rside in">
       <h2 className="po">
         Temas
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--faint)" }}>
-          <path d="M9 3v18M3 9h18" opacity=".5" /><rect x="3" y="3" width="18" height="18" rx="2" />
-        </svg>
+        {!isPro && totalPoints > FREE_LIMIT && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginLeft: 8 }}>
+            {FREE_LIMIT}/{totalPoints} 🔒
+          </span>
+        )}
       </h2>
       <button className="btn-full">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
@@ -199,19 +207,28 @@ function ResumenSidebar({
             <div className="slabel">{sec.name}</div>
           )}
           {sec.points.map((pt, pi) => {
-            const globalIdx = sections.slice(0, si).reduce((a, s) => a + s.points.length, 0) + pi;
-            const isDone = doneSet.has(globalIdx);
-            const isActive = globalIdx === activeIdx;
+            const gIdx = globalCounter++;
+            const isLocked = !isPro && gIdx >= FREE_LIMIT;
+            const isDone = doneSet.has(gIdx);
+            const isActive = gIdx === activeIdx;
             return (
               <div
                 key={pi}
-                className={`t-item${isDone ? " done" : ""}${isActive ? " on" : ""}`}
-                onClick={() => onSelect(globalIdx)}
+                className={`t-item${isDone ? " done" : ""}${isActive ? " on" : ""}${isLocked ? " locked" : ""}`}
+                onClick={() => {
+                  if (isLocked) { onLocked(); return; }
+                  onSelect(gIdx);
+                }}
+                style={isLocked ? { opacity: 0.5, cursor: "pointer" } : {}}
               >
-                <span className="t-dot">{isDone ? "✓" : ""}</span>
+                <span className="t-dot">
+                  {isLocked ? "🔒" : (isDone ? "✓" : "")}
+                </span>
                 <div>
                   <div className="t-name">{pt.emoji ? `${pt.emoji} ${pt.title}` : pt.title}</div>
-                  <div className="t-sub">{isDone ? "Dominado · 100%" : isActive ? "En progreso" : "Sin empezar"}</div>
+                  <div className="t-sub">
+                    {isLocked ? "Requiere PRO" : isDone ? "Dominado · 100%" : isActive ? "En progreso" : "Sin empezar"}
+                  </div>
                 </div>
               </div>
             );
@@ -223,8 +240,7 @@ function ResumenSidebar({
 }
 
 // ---- componente principal ----
-export function ResumenClient({ data }: { data: ResumenData }) {
-  // Aplanar todos los puntos de todas las secciones
+export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boolean }) {
   const allPoints: { point: SummaryPoint; secName: string; localIdx: number }[] = [];
   data.sections.forEach((sec) => {
     sec.points.forEach((pt, i) => {
@@ -232,21 +248,33 @@ export function ResumenClient({ data }: { data: ResumenData }) {
     });
   });
 
+  const totalPoints = allPoints.length;
+  const visiblePoints = isPro ? allPoints : allPoints.slice(0, FREE_LIMIT);
+  const lockedCount = isPro ? 0 : Math.max(0, totalPoints - FREE_LIMIT);
+
   const [activeIdx, setActiveIdx] = useState(0);
   const [doneSet, setDoneSet] = useState<Set<number>>(new Set());
   const [leadMode, setLeadMode] = useState<"normal" | "eli5" | "more">("normal");
+  const [showPaywall, setShowPaywall] = useState(false);
 
-  const active = allPoints[activeIdx] ?? allPoints[0];
-  const totalTopics = allPoints.length;
+  const safeActiveIdx = Math.min(activeIdx, visiblePoints.length - 1);
+  const active = visiblePoints[safeActiveIdx];
+
   const doneCount = doneSet.size;
 
   const handleQuizDone = useCallback((_rect: DOMRect) => {
-    setDoneSet((prev) => new Set([...prev, activeIdx]));
-  }, [activeIdx]);
+    setDoneSet((prev) => new Set([...prev, safeActiveIdx]));
+  }, [safeActiveIdx]);
 
   function markDone() {
-    setDoneSet((prev) => new Set([...prev, activeIdx]));
-    if (activeIdx < totalTopics - 1) setActiveIdx((i) => i + 1);
+    setDoneSet((prev) => new Set([...prev, safeActiveIdx]));
+    if (safeActiveIdx < visiblePoints.length - 1) setActiveIdx((i) => i + 1);
+  }
+
+  function handleSelect(i: number) {
+    if (!isPro && i >= FREE_LIMIT) { setShowPaywall(true); return; }
+    setActiveIdx(i);
+    setLeadMode("normal");
   }
 
   if (!active) return <div style={{ padding: 40, color: "var(--muted)" }}>Sin contenido generado aún.</div>;
@@ -256,12 +284,13 @@ export function ResumenClient({ data }: { data: ResumenData }) {
   const leadNormal = point.description;
   const leadEli5 = `Pensalo así: ${point.description.split(".")[0].toLowerCase()}. ¡Más simple imposible! 🧒`;
   const leadMore = `${point.description} Profundizando un poco más: esto se relaciona directamente con ${point.category ?? "el tema"} y tiene implicaciones prácticas importantes.`;
-
   const currentLead = leadMode === "eli5" ? leadEli5 : leadMode === "more" ? leadMore : leadNormal;
 
   return (
     <>
       <div id="confetti-layer" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 80, overflow: "hidden" }} />
+
+      {showPaywall && <SalePopup ctx="resumen" onClose={() => setShowPaywall(false)} />}
 
       {/* topbar */}
       <div className="rtopbar">
@@ -276,7 +305,7 @@ export function ResumenClient({ data }: { data: ResumenData }) {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
           </svg>
-          {doneCount}/{totalTopics} dominados
+          {doneCount}/{visiblePoints.length}{!isPro && lockedCount > 0 ? ` · 🔒 ${lockedCount}` : ""} dominados
         </div>
       </div>
 
@@ -284,9 +313,12 @@ export function ResumenClient({ data }: { data: ResumenData }) {
         {/* sidebar */}
         <ResumenSidebar
           sections={data.sections}
-          activeIdx={activeIdx}
+          activeIdx={safeActiveIdx}
           doneSet={doneSet}
-          onSelect={setActiveIdx}
+          isPro={isPro}
+          totalPoints={totalPoints}
+          onSelect={handleSelect}
+          onLocked={() => setShowPaywall(true)}
         />
 
         {/* reader */}
@@ -301,7 +333,7 @@ export function ResumenClient({ data }: { data: ResumenData }) {
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                   <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
                 </svg>
-                {doneSet.has(activeIdx) ? "Dominado · 100%" : "En progreso"}
+                {doneSet.has(safeActiveIdx) ? "Dominado · 100%" : "En progreso"}
               </span>
               <span className="rpill amber">⏱ 2 min de lectura</span>
             </div>
@@ -326,10 +358,9 @@ export function ResumenClient({ data }: { data: ResumenData }) {
               <span className="em">📌</span> Puntos clave
             </div>
             <ul className="keylist">
-              {/* Mostrar los demás puntos de la misma categoría como puntos clave */}
               {data.sections
                 .flatMap((s) => s.points)
-                .slice(Math.max(0, activeIdx - 1), activeIdx + 3)
+                .slice(Math.max(0, safeActiveIdx - 1), safeActiveIdx + 3)
                 .map((pt, i) => (
                   <li key={i}>
                     <span className="kx" style={{ background: KX_COLORS[i % KX_COLORS.length] }}>{i + 1}</span>
@@ -349,18 +380,44 @@ export function ResumenClient({ data }: { data: ResumenData }) {
                 </svg>
               </span>
               <div className="btx">
-                <b>Tip de Booki:</b> Para recordar mejor <b>{point.title}</b>, relacionalo con algo que ya sabés. La memoria funciona por asociaciones, no de memoria pura. 💡
+                <b>Tip de Booki:</b> Para recordar mejor <b>{point.title}</b>, relacionalo con algo que ya sabés. 💡
               </div>
             </div>
+
+            {/* upgrade CTA inline si hay temas bloqueados */}
+            {!isPro && lockedCount > 0 && safeActiveIdx === visiblePoints.length - 1 && (
+              <div style={{
+                marginTop: 24,
+                background: "linear-gradient(135deg,rgba(139,92,246,.07),rgba(79,125,255,.07))",
+                border: "1.5px solid rgba(139,92,246,.2)",
+                borderRadius: 18, padding: "18px",
+              }}>
+                <div style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>
+                  🔒 {lockedCount} punto{lockedCount !== 1 ? "s" : ""} clave más esperan
+                </div>
+                <div style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6, marginBottom: 14 }}>
+                  Este es el último tema del plan gratuito. Desbloqueá el resumen completo para dominar el apunte entero.
+                </div>
+                <button
+                  onClick={() => setShowPaywall(true)}
+                  style={{
+                    width: "100%", padding: "12px",
+                    background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
+                    color: "#fff", border: "none", borderRadius: 13,
+                    fontFamily: "var(--po)", fontWeight: 700, fontSize: 14,
+                    cursor: "pointer", boxShadow: "0 8px 20px rgba(99,38,210,.22)",
+                  }}
+                >
+                  ⚡ Desbloquear resumen completo
+                </button>
+              </div>
+            )}
           </div>
 
           {/* práctica rápida */}
           {data.quizQuestions.length > 0 && (
             <PracticaQuiz
-              questions={data.quizQuestions.slice(
-                activeIdx * 2,
-                activeIdx * 2 + 2
-              )}
+              questions={data.quizQuestions.slice(safeActiveIdx * 2, safeActiveIdx * 2 + 2)}
               topicName={point.title}
               onDone={handleQuizDone}
             />
@@ -368,21 +425,32 @@ export function ResumenClient({ data }: { data: ResumenData }) {
 
           {/* nav entre temas */}
           <div style={{ display: "flex", gap: 12, marginTop: 8, paddingBottom: 40 }}>
-            {activeIdx > 0 && (
+            {safeActiveIdx > 0 && (
               <button className="nbtn ghost" onClick={() => setActiveIdx((i) => i - 1)}>
                 ← Anterior
               </button>
             )}
-            {!doneSet.has(activeIdx) && (
+            {!doneSet.has(safeActiveIdx) && (
               <button className="nbtn" onClick={markDone}>
                 Marcar como dominado ✓
               </button>
             )}
-            {activeIdx < totalTopics - 1 && (
+            {safeActiveIdx < visiblePoints.length - 1 ? (
               <button className="nbtn" onClick={() => setActiveIdx((i) => i + 1)} style={{ marginLeft: "auto" }}>
                 Siguiente tema →
               </button>
-            )}
+            ) : !isPro && lockedCount > 0 ? (
+              <button
+                className="nbtn"
+                onClick={() => setShowPaywall(true)}
+                style={{
+                  marginLeft: "auto",
+                  background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
+                }}
+              >
+                🔒 Siguiente tema →
+              </button>
+            ) : null}
           </div>
         </main>
       </div>

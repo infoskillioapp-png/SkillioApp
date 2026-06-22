@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isPaidPlan } from "@/lib/ai/claude";
 import { ResumenClient } from "./_components/resumen-client";
 import type { ResumenData } from "./_components/resumen-client";
 
@@ -22,7 +23,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
 
   const sb = supabaseAdmin();
 
-  const { data: userRow } = await sb.from("users").select("id").eq("clerk_user_id", userId).single();
+  const { data: userRow } = await sb.from("users").select("id,plan,expires_at").eq("clerk_user_id", userId).single();
   if (!userRow) redirect("/login");
 
   const { data: note } = await sb.from("notes").select("id,title,subject_id").eq("id", note_id).eq("user_id", userRow.id).single();
@@ -80,5 +81,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
 
   if (rawPoints.length === 0) redirect(`/app/ia?note_id=${note_id}`);
 
-  return <ResumenClient data={data} />;
+  const isPro = isPaidPlan(userRow.plan, userRow.expires_at ?? null);
+
+  return <ResumenClient data={data} isPro={isPro} />;
 }

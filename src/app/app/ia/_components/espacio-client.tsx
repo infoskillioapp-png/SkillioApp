@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { SalePopup } from "@/components/sale-popup";
 
 // ---- tipos ----
 type Topic = { id: string; name: string; sub: string; pct: number };
@@ -131,7 +132,7 @@ const GEN_STEPS = [
   "Calculando tu ruta de estudio",
 ];
 
-function GeneratingOverlay({ noteId, fileName, onDone }: { noteId: string; fileName: string; onDone: () => void }) {
+function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: string; fileName: string; onDone: () => void; onPaywall: () => void }) {
   const [pct, setPct] = useState(0);
   const [step, setStep] = useState(0);
 
@@ -143,18 +144,21 @@ function GeneratingOverlay({ noteId, fileName, onDone }: { noteId: string; fileN
       setStep(Math.min(Math.floor(p / 25), 3));
       if (p >= 100) {
         clearInterval(iv);
-        // Trigger real generation in parallel
         Promise.all([
           fetch("/api/ai/summarize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId, format: "puntos_clave" }) }),
           fetch("/api/ai/flashcards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId }) }),
           fetch("/api/ai/simulacro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId }) }),
-        ]).finally(() => {
+        ]).then((responses) => {
+          const has402 = responses.some((r) => r.status === 402);
+          if (has402) { onPaywall(); return; }
+          setTimeout(onDone, 900);
+        }).catch(() => {
           setTimeout(onDone, 900);
         });
       }
     }, 400);
     return () => clearInterval(iv);
-  }, [noteId, onDone]);
+  }, [noteId, onDone, onPaywall]);
 
   return (
     <div id="gen" className="show">
@@ -268,6 +272,7 @@ export function EspacioClient({ note, generating, fileName }: Props) {
   const [isGenerating, setIsGenerating] = useState(generating);
   const [domPct, setDomPct] = useState(0);
   const [donePcts, setDonePcts] = useState<Record<string, number>>({});
+  const [showPaywall, setShowPaywall] = useState(false);
   const bigringRef = useRef<HTMLDivElement>(null);
   const plusRef = useRef<HTMLDivElement>(null);
 
@@ -294,6 +299,11 @@ export function EspacioClient({ note, generating, fileName }: Props) {
     router.replace(`/app/ia?note_id=${note.id}`);
     router.refresh();
   }, [note.id, router]);
+
+  const handlePaywall = useCallback(() => {
+    setIsGenerating(false);
+    setShowPaywall(true);
+  }, []);
 
   function celebrate(topicId: string, _secId: string, rect: DOMRect) {
     if ((donePcts[topicId] ?? 0) >= 100) return;
@@ -324,8 +334,10 @@ export function EspacioClient({ note, generating, fileName }: Props) {
   return (
     <>
       {isGenerating && (
-        <GeneratingOverlay noteId={note.id} fileName={fileName} onDone={handleDone} />
+        <GeneratingOverlay noteId={note.id} fileName={fileName} onDone={handleDone} onPaywall={handlePaywall} />
       )}
+
+      {showPaywall && <SalePopup ctx="generic" onClose={() => setShowPaywall(false)} />}
 
       <div id="confetti-layer" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 80, overflow: "hidden" }} />
 

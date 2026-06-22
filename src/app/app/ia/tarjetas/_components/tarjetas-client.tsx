@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { SalePopup } from "@/components/sale-popup";
 
 const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
+const FREE_LIMIT = 3;
 
 function confettiBurst(x: number, y: number) {
   const lay = document.getElementById("confetti-layer");
@@ -72,14 +74,83 @@ function ResultRing({ pct }: { pct: number }) {
   );
 }
 
-export function TarjetasClient({ data }: { data: TarjetasData }) {
-  const [cards, setCards] = useState(data.flashcards);
+// ---- pantalla de lock ----
+function LockedScreen({
+  lockedCount,
+  onUnlock,
+  onFinish,
+  stats,
+  noteId,
+}: {
+  lockedCount: number;
+  onUnlock: () => void;
+  onFinish: () => void;
+  stats: { yes: number; mid: number; no: number };
+  noteId: string;
+}) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", minHeight: "60vh",
+      padding: "32px 20px", textAlign: "center",
+      gap: 14,
+    }}>
+      <div style={{
+        width: 80, height: 80, borderRadius: 24,
+        background: "linear-gradient(135deg,#8b5cf6,#6d3bf2)",
+        display: "grid", placeItems: "center", fontSize: 38, marginBottom: 4,
+      }}>🔒</div>
+      <h2 style={{ fontFamily: "var(--po)", fontWeight: 800, fontSize: 22, color: "var(--ink)" }}>
+        {lockedCount} tarjeta{lockedCount !== 1 ? "s" : ""} más esperan
+      </h2>
+      <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6, maxWidth: "30ch", margin: "0 auto" }}>
+        Terminaste las 3 tarjetas del plan gratuito. Actualizá para ver el mazo completo.
+      </p>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
+        <button
+          onClick={onUnlock}
+          style={{
+            padding: "12px 22px", borderRadius: 14,
+            background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
+            color: "#fff", border: "none",
+            fontFamily: "var(--po)", fontWeight: 700, fontSize: 14,
+            cursor: "pointer", boxShadow: "0 10px 24px rgba(99,38,210,.28)",
+          }}
+        >
+          ⚡ Desbloquear tarjetas
+        </button>
+        <button
+          onClick={onFinish}
+          style={{
+            padding: "12px 22px", borderRadius: 14,
+            background: "#f3f4fb", color: "var(--muted)",
+            border: "none", fontWeight: 600, fontSize: 14, cursor: "pointer",
+          }}
+        >
+          Ver mi resultado
+        </button>
+      </div>
+      <Link href={`/app/ia?note_id=${noteId}`} style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
+        Volver al espacio →
+      </Link>
+    </div>
+  );
+}
+
+// ---- main ----
+export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boolean }) {
+  const allCards = data.flashcards;
+  const visibleCards = isPro ? allCards : allCards.slice(0, FREE_LIMIT);
+  const lockedCount = isPro ? 0 : Math.max(0, allCards.length - FREE_LIMIT);
+
+  const [cards, setCards] = useState(visibleCards);
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [animating, setAnimating] = useState(false);
   const [stats, setStats] = useState({ no: 0, mid: 0, yes: 0 });
-  const [phase, setPhase] = useState<"session" | "result">("session");
+  const [phase, setPhase] = useState<"session" | "locked" | "result">("session");
   const [resultData, setResultData] = useState({ pct: 0, yes: 0, mid: 0, no: 0, total: 0 });
+  const [showPaywall, setShowPaywall] = useState(false);
   const rstatRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
 
   const N = cards.length;
@@ -101,7 +172,12 @@ export function TarjetasClient({ data }: { data: TarjetasData }) {
     if (idx < N - 1) {
       advance();
     } else {
-      finish(newStats);
+      // Si free y hay tarjetas bloqueadas, mostrar pantalla de lock
+      if (!isPro && lockedCount > 0) {
+        setPhase("locked");
+      } else {
+        finish(newStats);
+      }
     }
   }
 
@@ -128,7 +204,7 @@ export function TarjetasClient({ data }: { data: TarjetasData }) {
   }
 
   function restart() {
-    setCards(data.flashcards);
+    setCards(visibleCards);
     setIdx(0);
     setFlipped(false);
     setStats({ no: 0, mid: 0, yes: 0 });
@@ -143,6 +219,8 @@ export function TarjetasClient({ data }: { data: TarjetasData }) {
     <>
       <div id="confetti-layer" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 80, overflow: "hidden" }} />
 
+      {showPaywall && <SalePopup ctx="flashcard" onClose={() => setShowPaywall(false)} />}
+
       {/* topbar */}
       <div className="rtopbar">
         <Link href={`/app/ia?note_id=${data.noteId}`} className="back">
@@ -154,7 +232,7 @@ export function TarjetasClient({ data }: { data: TarjetasData }) {
         <div className="crumb-r">{data.subjectName} · <b>Tarjetas</b></div>
         {phase === "session" && (
           <div className="rfiles">
-            {idx + 1} / {N}
+            {!isPro && lockedCount > 0 ? `${idx + 1} / ${N} · 🔒 ${lockedCount} más` : `${idx + 1} / ${N}`}
           </div>
         )}
       </div>
@@ -166,7 +244,7 @@ export function TarjetasClient({ data }: { data: TarjetasData }) {
             <div className="fprog">
               <div className="bar"><i style={{ width: progress + "%" }} /></div>
               <div className="lab">
-                <span>Tarjeta {idx + 1} de {N}</span>
+                <span>Tarjeta {idx + 1} de {N}{!isPro && lockedCount > 0 ? ` · ${lockedCount} 🔒` : ""}</span>
                 <span>{stats.yes} dominadas</span>
               </div>
             </div>
@@ -235,6 +313,17 @@ export function TarjetasClient({ data }: { data: TarjetasData }) {
           </>
         )}
 
+        {/* ---- locked ---- */}
+        {phase === "locked" && (
+          <LockedScreen
+            lockedCount={lockedCount}
+            onUnlock={() => setShowPaywall(true)}
+            onFinish={() => finish(stats)}
+            stats={stats}
+            noteId={data.noteId}
+          />
+        )}
+
         {/* ---- resultado ---- */}
         {phase === "result" && (
           <div className="fresult show">
@@ -262,6 +351,35 @@ export function TarjetasClient({ data }: { data: TarjetasData }) {
                   <span>No las sabía</span>
                 </div>
               </div>
+
+              {/* upgrade CTA en resultado para free */}
+              {!isPro && lockedCount > 0 && (
+                <div style={{
+                  background: "linear-gradient(135deg,rgba(139,92,246,.08),rgba(79,125,255,.08))",
+                  border: "1.5px solid rgba(139,92,246,.2)",
+                  borderRadius: 18, padding: "16px 18px", marginBottom: 14,
+                }}>
+                  <div style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, marginBottom: 5 }}>
+                    🔒 {lockedCount} tarjeta{lockedCount !== 1 ? "s" : ""} más esperan
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5, marginBottom: 12 }}>
+                    Desbloqueá el mazo completo con PRO y dominá cada concepto.
+                  </div>
+                  <button
+                    onClick={() => setShowPaywall(true)}
+                    style={{
+                      width: "100%", padding: "11px",
+                      background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
+                      color: "#fff", border: "none", borderRadius: 13,
+                      fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+                      cursor: "pointer",
+                    }}
+                  >
+                    ⚡ Desbloquear tarjetas
+                  </button>
+                </div>
+              )}
+
               <div className="rowbtns">
                 <button className="nbtn ghost" onClick={restart}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">

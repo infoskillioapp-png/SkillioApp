@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { SalePopup } from "@/components/sale-popup";
 
 const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
+const FREE_LIMIT = 3;
 
 function confettiBurst(x: number, y: number) {
   const lay = document.getElementById("confetti-layer");
@@ -28,7 +30,6 @@ export type SimulacroData = {
   questions: SimQuestion[];
 };
 
-// Normaliza cualquier pregunta a formato MC con opciones indexadas
 function normalizeQuestion(q: SimQuestion): { question: string; options: string[]; correct: number; explanation: string } {
   if (q.kind === "multiple_choice") {
     return { question: q.question, options: q.options, correct: q.correct, explanation: q.explanation };
@@ -39,7 +40,6 @@ function normalizeQuestion(q: SimQuestion): { question: string; options: string[
   }
 }
 
-// Ring animado para resultado
 function ScoreRing({ ok, total }: { ok: number; total: number }) {
   const ringRef = useRef<SVGCircleElement>(null);
   const scoreRef = useRef<SVGTextElement>(null);
@@ -81,18 +81,21 @@ function ScoreRing({ ok, total }: { ok: number; total: number }) {
   );
 }
 
-export function SimulacroClient({ data }: { data: SimulacroData }) {
-  const normalized = data.questions.map(normalizeQuestion);
+export function SimulacroClient({ data, isPro }: { data: SimulacroData; isPro: boolean }) {
+  const allNormalized = data.questions.map(normalizeQuestion);
+  const visibleNormalized = isPro ? allNormalized : allNormalized.slice(0, FREE_LIMIT);
+  const lockedCount = isPro ? 0 : Math.max(0, allNormalized.length - FREE_LIMIT);
+
   const [phase, setPhase] = useState<"intro" | "exam" | "result">("intro");
-  const [order, setOrder] = useState<number[]>(normalized.map((_, i) => i));
+  const [order, setOrder] = useState<number[]>(visibleNormalized.map((_, i) => i));
   const [cur, setCur] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [secs, setSecs] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const [lastWrong, setLastWrong] = useState<number[]>([]);
+  const [showPaywall, setShowPaywall] = useState(false);
   const reviewRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Timer
   useEffect(() => {
     if (!timerActive) return;
     const iv = setInterval(() => setSecs((s) => s + 1), 1000);
@@ -100,6 +103,7 @@ export function SimulacroClient({ data }: { data: SimulacroData }) {
   }, [timerActive]);
 
   const M = order.length;
+  const normalized = visibleNormalized;
   const progress = M > 0 ? (cur / M) * 100 : 0;
   const currentQ = cur < M ? normalized[order[cur]] : null;
 
@@ -160,6 +164,8 @@ export function SimulacroClient({ data }: { data: SimulacroData }) {
     <>
       <div id="confetti-layer" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 80, overflow: "hidden" }} />
 
+      {showPaywall && <SalePopup ctx="simulacro" onClose={() => setShowPaywall(false)} />}
+
       {/* topbar */}
       <div className="rtopbar">
         <Link href={`/app/ia?note_id=${data.noteId}`} className="back">
@@ -191,14 +197,37 @@ export function SimulacroClient({ data }: { data: SimulacroData }) {
             <h1>Simulacro · {data.noteTitle}</h1>
             <p>Poné a prueba lo que estudiaste con un examen tipo múltiple choice.</p>
             <div className="specs">
-              <div className="spec"><b>{data.questions.length}</b><span>preguntas</span></div>
-              <div className="spec"><b>~{Math.ceil(data.questions.length * 0.8)} min</b><span>duración</span></div>
+              <div className="spec">
+                <b>{!isPro && lockedCount > 0 ? FREE_LIMIT : data.questions.length}</b>
+                <span>preguntas{!isPro && lockedCount > 0 ? ` / ${data.questions.length} 🔒` : ""}</span>
+              </div>
+              <div className="spec"><b>~{Math.ceil((isPro ? data.questions.length : FREE_LIMIT) * 0.8)} min</b><span>duración</span></div>
               <div className="spec"><b>{data.subjectName.slice(0, 8)}</b><span>materia</span></div>
             </div>
+
+            {/* aviso de lock para free */}
+            {!isPro && lockedCount > 0 && (
+              <div style={{
+                background: "rgba(139,92,246,.07)",
+                border: "1.5px solid rgba(139,92,246,.2)",
+                borderRadius: 16, padding: "12px 16px",
+                marginBottom: 14, maxWidth: 360,
+                display: "flex", alignItems: "center", gap: 10,
+              }}>
+                <span style={{ fontSize: 22 }}>🔒</span>
+                <div style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.5 }}>
+                  Plan gratuito · Solo {FREE_LIMIT} de {data.questions.length} preguntas disponibles.{" "}
+                  <button onClick={() => setShowPaywall(true)} style={{ color: "#8b5cf6", fontWeight: 700, background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13 }}>
+                    Desbloqueá el simulacro completo →
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button
               className="simnav snbtn coral"
               style={{ display: "inline-flex", padding: "13px 26px", fontSize: 15, borderRadius: 15 }}
-              onClick={() => startExam(normalized.map((_, i) => i))}
+              onClick={() => startExam(visibleNormalized.map((_, i) => i))}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
               Comenzar simulacro
@@ -271,6 +300,34 @@ export function SimulacroClient({ data }: { data: SimulacroData }) {
                 </div>
               </div>
             </div>
+
+            {/* upgrade CTA en resultado para free */}
+            {!isPro && lockedCount > 0 && (
+              <div style={{
+                background: "linear-gradient(135deg,rgba(139,92,246,.08),rgba(79,125,255,.08))",
+                border: "1.5px solid rgba(139,92,246,.22)",
+                borderRadius: 18, padding: "16px 18px", marginBottom: 18,
+              }}>
+                <div style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, marginBottom: 5 }}>
+                  🔒 Hay {lockedCount} pregunta{lockedCount !== 1 ? "s" : ""} más en el simulacro completo
+                </div>
+                <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5, marginBottom: 12 }}>
+                  Desbloqueá el examen completo para una preparación real del parcial.
+                </div>
+                <button
+                  onClick={() => setShowPaywall(true)}
+                  style={{
+                    width: "100%", padding: "11px",
+                    background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
+                    color: "#fff", border: "none", borderRadius: 13,
+                    fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+                    cursor: "pointer",
+                  }}
+                >
+                  ⚡ Desbloquear simulacro completo
+                </button>
+              </div>
+            )}
 
             <div className="review">
               <h3>Repaso del simulacro</h3>

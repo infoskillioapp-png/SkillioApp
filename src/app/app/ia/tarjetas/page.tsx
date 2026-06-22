@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isPaidPlan } from "@/lib/ai/claude";
 import { TarjetasClient } from "./_components/tarjetas-client";
 import type { TarjetasData } from "./_components/tarjetas-client";
 
@@ -18,7 +19,7 @@ export default async function TarjetasPage({ searchParams }: { searchParams: Sea
 
   const sb = supabaseAdmin();
 
-  const { data: userRow } = await sb.from("users").select("id").eq("clerk_user_id", userId).single();
+  const { data: userRow } = await sb.from("users").select("id,plan,expires_at").eq("clerk_user_id", userId).single();
   if (!userRow) redirect("/login");
 
   const { data: note } = await sb.from("notes").select("id,title,subject_id").eq("id", note_id).eq("user_id", userRow.id).single();
@@ -48,5 +49,7 @@ export default async function TarjetasPage({ searchParams }: { searchParams: Sea
     flashcards,
   };
 
-  return <TarjetasClient data={data} />;
+  const isPro = isPaidPlan(userRow.plan, userRow.expires_at ?? null);
+
+  return <TarjetasClient data={data} isPro={isPro} />;
 }
