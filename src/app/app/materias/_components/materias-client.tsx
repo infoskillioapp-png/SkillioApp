@@ -71,16 +71,32 @@ function MateriaPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [moving, setMoving] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  // posicion fija calculada desde el boton para escapar del overflow:hidden del acordeon
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (
+        popRef.current && !popRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  function handleOpen(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (open) { setOpen(false); return; }
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    }
+    setOpen(true);
+  }
 
   async function move(subjectId: string) {
     setMoving(true);
@@ -100,10 +116,11 @@ function MateriaPicker({
   const realMaterias = allMaterias.filter((m) => m.id !== "sin-materia");
 
   return (
-    <div ref={ref} className="mpicker" onClick={(e) => e.stopPropagation()}>
+    <div className="mpicker" onClick={(e) => e.stopPropagation()}>
       <button
+        ref={btnRef}
         className={`mpicker-btn${moving ? " loading" : ""}`}
-        onClick={() => setOpen((o) => !o)}
+        onClick={handleOpen}
         title="Mover a otra materia"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -116,7 +133,12 @@ function MateriaPicker({
       </button>
 
       {open && (
-        <div className="mpicker-pop">
+        <div
+          ref={popRef}
+          className="mpicker-pop"
+          style={{ position: "fixed", top: pos.top, right: pos.right }}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div
             className={`mpicker-item${!currentMateriaId ? " active" : ""}`}
             onClick={() => move("")}
