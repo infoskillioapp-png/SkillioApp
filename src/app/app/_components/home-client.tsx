@@ -114,6 +114,11 @@ type Props = {
 export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false }: Props) {
   const [modalOpen, setModalOpen] = useState(autoUpload);
   const bgRef = useParallaxBg();
+
+  // Reaccionar si el prop cambia (e.g., sidebar navega a /app?upload=1 estando ya en /app)
+  useEffect(() => {
+    if (autoUpload) setModalOpen(true);
+  }, [autoUpload]);
   const [localDominio, setLocalDominio] = useState<number | null>(null);
 
   useEffect(() => {
@@ -185,27 +190,27 @@ export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false
           <div className="sec-h in" style={{ animationDelay: ".18s" }}>
             <div>
               <h2>Mis materias</h2>
-              <p>Tus apuntes ordenados por materia. Tocá una y seguí sumando dominio. 💪</p>
+              <p>Tus apuntes ordenados por materia. Tocá una y seguí sumando dominio.</p>
             </div>
-            <span className="all">Ver todas →</span>
+            <Link href="/app/materias" className="all">Ver todas →</Link>
           </div>
 
           <div className="in" style={{ animationDelay: ".22s" }}>
             <MateriasAccordion subjects={subjects} notes={notes} onUpload={() => setModalOpen(true)} />
           </div>
 
-          <button className="add-materia" onClick={() => setModalOpen(true)}>
+          <Link href="/app/materias" className="add-materia">
             <span className="plus">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </span>
             Crear nueva materia
-          </button>
+          </Link>
         </main>
       </div>
 
-      <UploadModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <UploadModal open={modalOpen} onClose={() => setModalOpen(false)} subjects={subjects} />
     </>
   );
 }

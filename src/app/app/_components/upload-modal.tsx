@@ -5,13 +5,23 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 type Tab = "file" | "text" | "yt" | "drive";
+type Subject = { id: string; name: string; color: string };
 
-export function UploadModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function UploadModal({
+  open,
+  onClose,
+  subjects = [],
+}: {
+  open: boolean;
+  onClose: () => void;
+  subjects?: Subject[];
+}) {
   const [tab, setTab] = useState<Tab>("file");
   const [dragging, setDragging] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [ytUrl, setYtUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -29,6 +39,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
       const form = new FormData();
       form.append("file", file);
       form.append("title", file.name.replace(/\.[^.]+$/, ""));
+      if (selectedSubject) form.append("subject_id", selectedSubject);
       const res = await fetch("/api/notes/upload", { method: "POST", body: form });
       const data = await res.json();
       if (res.ok && data.note?.id) {
@@ -49,6 +60,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
       const form = new FormData();
       form.append("file", file);
       form.append("title", textInput.slice(0, 60));
+      if (selectedSubject) form.append("subject_id", selectedSubject);
       const res = await fetch("/api/notes/upload", { method: "POST", body: form });
       const data = await res.json();
       if (res.ok && data.note?.id) {
@@ -109,6 +121,22 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
             </svg>
           </button>
         </div>
+
+        {subjects.length > 0 && (
+          <div className="um-materia">
+            <label className="um-label">Materia (opcional)</label>
+            <select
+              className="um-select"
+              value={selectedSubject}
+              onChange={(e) => setSelectedSubject(e.target.value)}
+            >
+              <option value="">Sin materia</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="um-tabs">
           {TABS.map((t) => (
