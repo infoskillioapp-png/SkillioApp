@@ -7,7 +7,7 @@ type Props = {
   notes: PublicNote[];
   referralUrl: string;
   myReferrals: number;
-  userPlan: "free" | "pro";
+  userPlan: "free" | "pro" | "semanal";
 };
 
 const KIND_LABEL: Record<string, string> = {

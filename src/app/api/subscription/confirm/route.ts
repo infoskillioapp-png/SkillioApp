@@ -3,10 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { mpGetSubscription } from "@/lib/mercadopago";
 
-// Confirmación post-pago: el usuario vuelve de MercadoPago con ?preapproval_id=
-// Activamos el plan directamente desde su sesión, sin depender del webhook
-// (que puede tardar o fallar por mismatch de email).
-// Sin free_trial: al pagar se otorga el acceso PRO completo (500 créditos) ya.
+const SEMANAL_DAYS = 7;
+const PRO_CREDITS = 500;
+
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId)
@@ -25,7 +24,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "mp_fetch_failed" }, { status: 502 });
   }
 
-  // La suscripción debe estar autorizada (o pendiente de primer cobro por trial)
   if (subscription.status !== "authorized" && subscription.status !== "pending") {
     return NextResponse.json(
       { error: "subscription_not_active", status: subscription.status },
@@ -33,8 +31,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Plan único: toda suscripción activa es PRO.
-  const plan = "pro" as const;
+  // Determinar tipo de plan por el plan MP al que pertenece la suscripción
+  const isSemanal = subscription.preapproval_plan_id === process.env.MP_PLAN_ID_SEMANAL;
+  const plan = isSemanal ? ("semanal" as const) : ("pro" as const);
+  const expiresAt = isSemanal
+    ? new Date(Date.now() + SEMANAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    : null;
 
   const sb = supabaseAdmin();
   const { data: user } = await sb
@@ -46,21 +48,17 @@ export async function POST(req: NextRequest) {
   if (!user)
     return NextResponse.json({ error: "user not found" }, { status: 404 });
 
-  // Solo activamos si todavía está en free (no pisar un plan ya activo)
   if (user.plan === "free") {
-    const { error } = await sb
-      .from("users")
-      .update({
-        plan,
-        mp_subscription_id: subscription.id,
-        credits: 500, // acceso PRO completo al instante (sin free_trial)
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id);
+    const patch: Record<string, unknown> = {
+      plan,
+      mp_subscription_id: subscription.id,
+      credits: isSemanal ? 0 : PRO_CREDITS,
+      updated_at: new Date().toISOString(),
+    };
+    if (expiresAt) patch.expires_at = expiresAt;
+
+    const { error } = await sb.from("users").update(patch).eq("id", user.id);
     if (error) {
-      // No fallar en silencio: si el update se rechaza (p.ej. constraint),
-      // devolvemos error para que /pago-exitoso NO redirija como si hubiera
-      // activado, y quede registro en logs.
       console.error(`[subscription/confirm] update falló (user=${user.id}, plan=${plan}):`, error);
       return NextResponse.json({ error: "activation_failed" }, { status: 500 });
     }

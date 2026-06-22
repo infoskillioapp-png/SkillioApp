@@ -8,11 +8,17 @@ export async function POST(req: NextRequest) {
   if (!userId)
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  // Plan único: PRO.
-  const planId = process.env.MP_PLAN_ID_PRO;
+  const body = await req.json().catch(() => ({}));
+  // "semanal" o cualquier otro valor → mensual (pro)
+  const planType: "semanal" | "pro" = body.plan === "semanal" ? "semanal" : "pro";
+
+  const planId =
+    planType === "semanal"
+      ? process.env.MP_PLAN_ID_SEMANAL
+      : process.env.MP_PLAN_ID_PRO;
 
   if (!planId) {
-    console.error("[subscription/create] MP_PLAN_ID_PRO not set");
+    console.error(`[subscription/create] env var para plan=${planType} no configurada`);
     return NextResponse.json(
       { error: "Planes no configurados. Contactá soporte." },
       { status: 500 },
@@ -33,10 +39,9 @@ export async function POST(req: NextRequest) {
 
   const plan = await mpGetPlan(planId);
 
-  // Inyectamos external_reference (clerk userId) en el init_point para que
-  // el webhook y la confirmación post-pago puedan matchear al usuario.
+  // Inyectamos external_reference (clerk userId) en el init_point
   const url = new URL(plan.init_point);
   url.searchParams.set("external_reference", userId);
 
-  return NextResponse.json({ init_point: url.toString() });
+  return NextResponse.json({ init_point: url.toString(), plan: planType });
 }

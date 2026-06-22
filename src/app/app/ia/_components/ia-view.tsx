@@ -8,7 +8,7 @@ import { ResultModal, type AnyResult } from "./result-modal";
 import { Uploader } from "@/app/app/apuntes/_components/uploader";
 import { useToast } from "@/components/toast";
 import { useUpgradeModal } from "@/components/upgrade-modal";
-import { GlowButton } from "@/components/cult/glow-button";
+import { useSalePopup } from "@/components/sale-popup";
 import { AnimatedNumber } from "@/components/cult/animated-number";
 
 const SUMMARY_FORMATS = [
@@ -21,7 +21,8 @@ type Props = {
   notes: Note[];
   subjects: Subject[];
   credits: number;
-  plan: "free" | "pro";
+  plan: "free" | "pro" | "semanal";
+  expiresAt: string | null;
   freeGenerationsUsed: number;
   history: AiOutputRow[];
 };
@@ -61,45 +62,39 @@ const COSTS = { summary: 28, flashcards: 17, simulacro: 18 } as const;
 const MAX_CREDITS = 500;
 const FREE_LIMIT = 3;
 
-export function IaView({ notes, subjects, credits, plan, freeGenerationsUsed, history }: Props) {
+export function IaView({ notes, subjects, credits, plan, expiresAt, freeGenerationsUsed, history }: Props) {
   const router = useRouter();
   const toast = useToast();
   const upgrade = useUpgradeModal();
-  const isPro = plan === "pro";
+  const salePopup = useSalePopup();
+  const isProCredits = plan === "pro";
+  const isSemanal = plan === "semanal";
+  const isPaid = isProCredits || (isSemanal && !!expiresAt && new Date(expiresAt) > new Date());
   const [pending, startTransition] = useTransition();
   const [noteId, setNoteId] = useState<string>(notes[0]?.id ?? "");
   const [showUploader, setShowUploader] = useState(false);
   const [format, setFormat] = useState("puntos_clave");
   const [result, setResult] = useState<AnyResult | null>(null);
+  const [isPaidResult, setIsPaidResult] = useState(false);
   const [localCredits, setLocalCredits] = useState(credits);
-  // Free: generaciones gratis restantes (contador interno, no se muestra).
-  const [freeGenLeft, setFreeGenLeft] = useState(
-    Math.max(0, FREE_LIMIT - freeGenerationsUsed),
-  );
   const [showNoCredits, setShowNoCredits] = useState(false);
   const [showServedNudge, setShowServedNudge] = useState(false);
 
-  // PRO se mide por créditos; free por generaciones restantes.
-  const canAfford = (cost: number) => (isPro ? localCredits >= cost : freeGenLeft > 0);
+  // PRO: créditos. Semanal y free: siempre generan (gate en UI).
+  const canAfford = (cost: number) => (isProCredits ? localCredits >= cost : true);
 
-  // Al cerrar un resultado, free recibe el empujón "¿Te sirvió? Con PRO hacés
-  // ilimitados" — en el pico de deseo, justo después de ver el material. Cap de
-  // 1 vez por sesión para no spamear (sessionStorage sobrevive a la navegación).
   function handleResultClose() {
     setResult(null);
-    if (isPro) return;
+    if (isPaid) return;
     try {
       if (sessionStorage.getItem("skillio_served_nudge")) return;
       sessionStorage.setItem("skillio_served_nudge", "1");
-    } catch {
-      // sessionStorage no disponible (modo privado raro): mostramos igual.
-    }
+    } catch { /* modo privado */ }
     setShowServedNudge(true);
   }
 
-  // Free agotó las 3 gratis → popup PRO (a MercadoPago). PRO sin créditos →
-  // modal de créditos (espera renovación / pack próximamente).
-  const showPaywall = () => (isPro ? setShowNoCredits(true) : upgrade.open("credits"));
+  // PRO sin créditos → modal de créditos. Free/semanal expirado → no debería llegar acá.
+  const showPaywall = () => (isProCredits ? setShowNoCredits(true) : salePopup.open());
 
   function call(kind: "summary" | "flashcards" | "simulacro") {
     if (!noteId) {
@@ -131,17 +126,15 @@ export function IaView({ notes, subjects, credits, plan, freeGenerationsUsed, hi
           }
           return;
         }
-        if (isPro) {
-          if (typeof data.credits_remaining === "number") setLocalCredits(data.credits_remaining);
-        } else {
-          setFreeGenLeft((n) => Math.max(0, n - 1));
+        if (isProCredits && typeof data.credits_remaining === "number") {
+          setLocalCredits(data.credits_remaining);
         }
-        // Activación: primera generación con material propio. El server ya
-        // disparó CAPI con este id; el píxel usa el MISMO id para deduplicar.
         if (data.activation_event_id) {
           const f = (window as Window & { fbq?: (...a: unknown[]) => void }).fbq;
           if (f) f("trackCustom", "Activacion", {}, { eventID: data.activation_event_id });
         }
+        // Guardar si este resultado es de usuario pago (para content locks)
+        setIsPaidResult(!!data.is_paid);
         if (kind === "summary") {
           if (data.format === "resumen") {
             setResult({ kind: "summary", format: "resumen", text: data.data.text } as AnyResult);
@@ -153,7 +146,7 @@ export function IaView({ notes, subjects, credits, plan, freeGenerationsUsed, hi
         else setResult({ kind: "simulacro", simulacro: data.simulacro });
         toast.success(
           kind === "summary" ? "Resumen listo" : kind === "flashcards" ? "Flashcards generadas" : "Simulacro listo",
-          isPro ? `Quedaron ${data.credits_remaining} créditos.` : "Tu material está listo.",
+          isProCredits ? `Quedaron ${data.credits_remaining} créditos.` : "Tu material está listo.",
         );
         router.refresh();
       } catch (e) {
@@ -206,39 +199,55 @@ export function IaView({ notes, subjects, credits, plan, freeGenerationsUsed, hi
             </p>
           </div>
 
-          {/* Créditos — visual mejorado */}
+          {/* Créditos / Acceso */}
           <div
             className="rounded-2xl border border-rule-soft p-5 min-w-[220px]"
             style={{ background: "var(--paper-warm)" }}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10.5px] uppercase tracking-[0.14em] text-ink-soft font-semibold">
-                Créditos
-              </span>
-              {plan === "pro" && (
-                <span className="text-[9px] font-bold text-success bg-success-soft px-1.5 py-0.5 rounded-full">
-                  Pro
-                </span>
-              )}
-            </div>
-            <div className="font-display font-extrabold text-3xl flex items-baseline gap-1 mb-2">
-              <span className="text-accent">
-                <AnimatedNumber value={localCredits} stiffness={60} damping={14} />
-              </span>
-              <span className="text-ink-softer text-base font-bold">/ 500</span>
-            </div>
-            <div className="h-2.5 rounded-full bg-rule-soft overflow-hidden relative">
-              <div
-                className="h-full rounded-full transition-[width] duration-700"
-                style={{
-                  width: `${creditPct}%`,
-                  background: "linear-gradient(90deg, var(--accent), var(--accent-2))",
-                  boxShadow: "0 0 8px var(--accent-glow)",
-                }}
-              />
-            </div>
-            {isPro && (
-              <div className="text-[10.5px] text-ink-softer mt-1.5">Se recargan el 1 de cada mes</div>
+            {isSemanal ? (
+              <>
+                <div className="text-[10.5px] uppercase tracking-[0.14em] text-ink-soft font-semibold mb-1">
+                  Acceso hasta
+                </div>
+                <div className="font-display font-extrabold text-xl text-accent mb-1">
+                  {expiresAt
+                    ? new Date(expiresAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" })
+                    : "—"}
+                </div>
+                <div className="text-[10.5px] text-ink-softer">Plan Semanal activo</div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10.5px] uppercase tracking-[0.14em] text-ink-soft font-semibold">
+                    Créditos
+                  </span>
+                  {isProCredits && (
+                    <span className="text-[9px] font-bold text-success bg-success-soft px-1.5 py-0.5 rounded-full">
+                      Pro
+                    </span>
+                  )}
+                </div>
+                <div className="font-display font-extrabold text-3xl flex items-baseline gap-1 mb-2">
+                  <span className="text-accent">
+                    <AnimatedNumber value={localCredits} stiffness={60} damping={14} />
+                  </span>
+                  <span className="text-ink-softer text-base font-bold">/ 500</span>
+                </div>
+                <div className="h-2.5 rounded-full bg-rule-soft overflow-hidden relative">
+                  <div
+                    className="h-full rounded-full transition-[width] duration-700"
+                    style={{
+                      width: `${creditPct}%`,
+                      background: "linear-gradient(90deg, var(--accent), var(--accent-2))",
+                      boxShadow: "0 0 8px var(--accent-glow)",
+                    }}
+                  />
+                </div>
+                {isProCredits && (
+                  <div className="text-[10.5px] text-ink-softer mt-1.5">Se recargan el 1 de cada mes</div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -291,30 +300,33 @@ export function IaView({ notes, subjects, credits, plan, freeGenerationsUsed, hi
         </div>
       )}
 
-      {/* 3 tool cards — premium design */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        <PremiumToolCard
-          icon="✨"
-          title="Resumen IA"
-          description="Convertí un apunte en puntos clave, resumen académico o ficha de estudio."
-          cost={COSTS.summary}
-          accentColor="var(--accent)"
-          glowColor="rgba(165,64,45,0.35)"
+      {/* 3 modo cards — estilo prototipo 3.0 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <ModoCard
+          gradient={["#5b8cff", "#3f63ff"]}
+          shadowColor="rgba(63,99,255,.38)"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 24, height: 24 }}>
+              <path d="M4 5a1 1 0 0 1 1-1h5a3 3 0 0 1 2 1 3 3 0 0 1 2-1h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a2 2 0 0 0-2 2 2 2 0 0 0-2-2H5a1 1 0 0 1-1-1Z" />
+            </svg>
+          }
+          title="Resumen"
+          description="El apunte explicado en puntos clave, resumen o ficha de estudio."
+          stat={`${history.filter(h => h.kind === "summary").length} generados`}
           disabled={noNotes || pending}
           extra={
-            <div className="flex flex-wrap gap-1.5 mt-1 mb-4">
+            <div className="flex flex-wrap gap-1.5 mt-2 mb-1">
               {SUMMARY_FORMATS.map((f) => {
                 const isSelected = format === f.value;
                 return (
                   <button
                     key={f.value}
                     type="button"
-                    onClick={() => setFormat(f.value)}
-                    className="px-3 py-1.5 rounded-full text-[11.5px] font-semibold transition cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); setFormat(f.value); }}
+                    className="px-2.5 py-1 rounded-full text-[10.5px] font-bold transition cursor-pointer"
                     style={{
-                      backgroundColor: isSelected ? "var(--accent)" : "var(--paper-warm)",
-                      color: isSelected ? "#FBF1EF" : "var(--ink-soft)",
-                      border: `1px solid ${isSelected ? "var(--accent)" : "var(--rule)"}`,
+                      background: isSelected ? "rgba(255,255,255,.95)" : "rgba(255,255,255,.2)",
+                      color: isSelected ? "#3f63ff" : "rgba(255,255,255,.9)",
                     }}
                   >
                     {f.label}
@@ -325,23 +337,34 @@ export function IaView({ notes, subjects, credits, plan, freeGenerationsUsed, hi
           }
           onClick={() => call("summary")}
         />
-        <PremiumToolCard
-          icon="🃏"
+        <ModoCard
+          gradient={["#9a63f7", "#7c3aed"]}
+          shadowColor="rgba(124,58,237,.38)"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 24, height: 24 }}>
+              <rect x="3" y="6" width="14" height="12" rx="2" />
+              <path d="M8 3h13v12" />
+            </svg>
+          }
           title="Flashcards"
-          description="Mazo de tarjetas para repetición espaciada generadas del apunte."
-          cost={COSTS.flashcards}
-          accentColor="var(--success)"
-          glowColor="rgba(74,124,89,0.35)"
+          description="Mazo de tarjetas para memorizar con repetición espaciada."
+          stat={`${history.filter(h => h.kind === "flashcards").length} mazos`}
           disabled={noNotes || pending}
           onClick={() => call("flashcards")}
         />
-        <PremiumToolCard
-          icon="📝"
+        <ModoCard
+          gradient={["#ff5d79", "#e4264f"]}
+          shadowColor="rgba(228,38,79,.35)"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 24, height: 24 }}>
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="4.5" />
+              <circle cx="12" cy="12" r="1" />
+            </svg>
+          }
           title="Simulacro"
-          description="5 a 8 preguntas mezclando opción múltiple, V/F y desarrollo corto."
-          cost={COSTS.simulacro}
-          accentColor="var(--warning)"
-          glowColor="rgba(196,123,43,0.35)"
+          description="Examen tipo parcial: opción múltiple, V/F y preguntas cortas."
+          stat={`${history.filter(h => h.kind === "simulacro").length} simulacros`}
           disabled={noNotes || pending}
           onClick={() => call("simulacro")}
         />
@@ -396,13 +419,20 @@ export function IaView({ notes, subjects, credits, plan, freeGenerationsUsed, hi
         )}
       </section>
 
-      {result && <ResultModal result={result} onClose={handleResultClose} />}
+      {result && (
+        <ResultModal
+          result={result}
+          onClose={handleResultClose}
+          isPaid={isPaidResult || isPaid}
+          onPaywall={(ctx) => salePopup.open(ctx)}
+        />
+      )}
       {showNoCredits && <NoCreditsModal onClose={() => setShowNoCredits(false)} />}
       {showServedNudge && (
         <ServedNudge
           onUpgrade={() => {
             setShowServedNudge(false);
-            upgrade.open("generic");
+            upgrade.open();
           }}
           onClose={() => setShowServedNudge(false)}
         />
@@ -548,64 +578,75 @@ function NoCreditsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function PremiumToolCard({
-  icon, title, description, cost, accentColor, glowColor, extra, disabled, onClick,
+// Modo card — gradiente vibrante, estilo prototipo 3.0
+function ModoCard({
+  gradient, shadowColor, icon, title, description, stat, extra, disabled, onClick,
 }: {
-  icon: string;
+  gradient: [string, string];
+  shadowColor: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
-  cost: number;
-  accentColor: string;
-  glowColor: string;
+  stat: string;
   extra?: React.ReactNode;
   disabled: boolean;
   onClick: () => void;
 }) {
   return (
-    <div
-      className="group rounded-3xl border border-rule-soft p-6 flex flex-col transition-all duration-300 hover:-translate-y-1 relative overflow-hidden"
-      style={{ background: "var(--paper)" }}
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="group relative overflow-hidden rounded-[24px] p-5 text-left flex flex-col transition-all duration-250 hover:-translate-y-[5px] active:translate-y-[-2px] active:scale-[.985] disabled:opacity-60 disabled:cursor-not-allowed"
+      style={{
+        background: `linear-gradient(155deg,${gradient[0]} 0%,${gradient[1]} 100%)`,
+        boxShadow: `0 12px 32px ${shadowColor}`,
+        color: "#fff",
+      }}
     >
-      {/* Glow en hover */}
+      {/* blobs de profundidad */}
+      <div aria-hidden className="pointer-events-none absolute w-[130px] h-[130px] rounded-full top-[-44px] right-[-30px]" style={{ background: "rgba(255,255,255,.16)" }} />
+      <div aria-hidden className="pointer-events-none absolute w-[90px] h-[90px] rounded-full bottom-[-30px] left-[-20px]" style={{ background: "rgba(255,255,255,.08)" }} />
+      {/* gloss sweep on hover */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-12 -right-12 w-36 h-36 rounded-full blur-3xl opacity-0 group-hover:opacity-70 transition-opacity duration-500"
-        style={{ background: `radial-gradient(circle, ${glowColor}, transparent 70%)` }}
+        className="pointer-events-none absolute top-0 bottom-0 w-[55%] opacity-0 group-hover:opacity-100 z-[2]"
+        style={{
+          left: "-80%",
+          background: "linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent)",
+          transform: "skewX(-18deg)",
+          animation: "none",
+          transition: "left .7s ease, opacity .3s",
+        }}
       />
 
-      {/* Ícono */}
-      <div
-        className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-5 transition-transform duration-300 group-hover:scale-110 relative"
-        style={{
-          background: `radial-gradient(circle at 30% 30%, ${glowColor}, transparent 80%)`,
-          border: `1px solid ${accentColor}30`,
-        }}
-      >
-        {icon}
-      </div>
-
-      <h3 className="font-display font-bold text-lg mb-2 relative">{title}</h3>
-      <p className="text-[12.5px] text-ink-soft mb-4 flex-1 relative">{description}</p>
-      {extra}
-
-      <div className="flex items-center justify-between gap-3 relative">
-        <span className="text-[11px] text-ink-soft">
-          <strong className="text-ink num">{cost}</strong> créditos
+      {/* top row: icon + stat badge */}
+      <div className="relative z-10 flex items-start justify-between mb-10">
+        <span className="w-12 h-12 rounded-[15px] flex items-center justify-center" style={{ background: "rgba(255,255,255,.22)" }}>
+          {icon}
         </span>
-        <GlowButton
-          onClick={onClick}
-          disabled={disabled}
-          glowColor={glowColor}
-          className="text-[#FBF1EF] text-[12.5px] disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: accentColor,
-            boxShadow: `0 6px 20px ${glowColor}`,
-            padding: "8px 20px",
-          }}
-        >
-          Generar
-        </GlowButton>
+        <span className="rounded-[14px] px-3 py-1.5 text-center min-w-[52px]" style={{ background: "#fff", color: "var(--ink)", boxShadow: "0 6px 14px rgba(0,0,0,.12)" }}>
+          <b className="block font-display font-extrabold text-[18px] leading-none num">{stat.split(" ")[0]}</b>
+          <span className="text-[9.5px] text-ink-soft font-semibold">{stat.split(" ").slice(1).join(" ")}</span>
+        </span>
       </div>
-    </div>
+
+      {/* title + description */}
+      <div className="relative z-10 flex-1">
+        <div className="font-display font-bold text-[18px] mb-1">{title}</div>
+        <div className="text-[12.5px] opacity-90 leading-snug min-h-[34px]">{description}</div>
+        {extra}
+      </div>
+
+      {/* bottom: go arrow */}
+      <div className="relative z-10 flex items-center justify-between mt-4">
+        <span className="text-[11.5px] font-semibold opacity-95">Generar</span>
+        <span className="w-[34px] h-[34px] rounded-full flex items-center justify-center transition group-hover:translate-x-[2px] group-hover:scale-[1.08]" style={{ background: "#fff" }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: gradient[1] }}>
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </span>
+      </div>
+    </button>
   );
 }

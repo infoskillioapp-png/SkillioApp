@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MarkmapRender } from "./markmap-render";
+import type { SaleContext } from "@/components/sale-popup";
 
 // Estructuras del nuevo formato (Claude devuelve JSON)
 export type PuntosClaveData = {
@@ -60,12 +61,18 @@ export type SimulacroResult = {
 
 export type AnyResult = SummaryResult | FlashcardsResult | SimulacroResult;
 
-// chromeless: para contextos SIN el chrome de la app (topbar + bottom-nav), como
-// el demo del onboarding. Ahí el modal ocupa toda la pantalla (no descuenta esos
-// 52+64px que no existen) y la hoja inferior va al ras del borde.
-type Props = { result: AnyResult; onClose: () => void; chromeless?: boolean };
+type Props = {
+  result: AnyResult;
+  onClose: () => void;
+  /** Usuario pago (pro o semanal activo). false = FREE → content locks. */
+  isPaid?: boolean;
+  /** Callback cuando el usuario toca contenido bloqueado. */
+  onPaywall?: (ctx: SaleContext) => void;
+  // chromeless: para contextos sin chrome de la app (demo del onboarding)
+  chromeless?: boolean;
+};
 
-export function ResultModal({ result, onClose, chromeless = false }: Props) {
+export function ResultModal({ result, onClose, isPaid = true, onPaywall, chromeless = false }: Props) {
   const [footer, setFooter] = useState<React.ReactNode>(null);
   const [downloading, setDownloading] = useState(false);
   // Portal a <body>: el modal debe escapar de cualquier ancestro con `transform`
@@ -188,10 +195,24 @@ export function ResultModal({ result, onClose, chromeless = false }: Props) {
           className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-7"
           style={{ overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
         >
-          {result.kind === "summary" && <SummaryDispatcher result={result} />}
-          {result.kind === "flashcards" && <FlashcardsView deck={result.deck} onFooter={setFooter} />}
+          {result.kind === "summary" && (
+            <SummaryDispatcher result={result} isPaid={isPaid} onPaywall={onPaywall} />
+          )}
+          {result.kind === "flashcards" && (
+            <FlashcardsView
+              deck={result.deck}
+              onFooter={setFooter}
+              isPaid={isPaid}
+              onPaywall={onPaywall}
+            />
+          )}
           {result.kind === "simulacro" && (
-            <SimulacroView simulacro={result.simulacro} onFooter={setFooter} />
+            <SimulacroView
+              simulacro={result.simulacro}
+              onFooter={setFooter}
+              isPaid={isPaid}
+              onPaywall={onPaywall}
+            />
           )}
         </div>
 
@@ -208,19 +229,76 @@ export function ResultModal({ result, onClose, chromeless = false }: Props) {
   return mounted ? createPortal(overlay, document.body) : null;
 }
 
-function SummaryDispatcher({ result }: { result: SummaryResult }) {
-  if (result.format === "resumen" && "text" in result) return <ResumenView text={result.text} />;
-  if (result.format === "puntos_clave" && "data" in result) return <PuntosClaveView data={result.data as PuntosClaveData} />;
-  if (result.format === "mapa" && "data" in result) return <MapaView data={result.data as MapaData} />;
-  if (result.format === "ficha" && "data" in result) return <FichaView data={result.data as FichaData} />;
-  // legacy: text field fallback
+function SummaryDispatcher({
+  result,
+  isPaid,
+  onPaywall,
+}: {
+  result: SummaryResult;
+  isPaid: boolean;
+  onPaywall?: (ctx: SaleContext) => void;
+}) {
+  if (result.format === "resumen" && "text" in result)
+    return <ResumenView text={result.text} isPaid={isPaid} onPaywall={onPaywall} />;
+  if (result.format === "puntos_clave" && "data" in result)
+    return <PuntosClaveView data={result.data as PuntosClaveData} isPaid={isPaid} onPaywall={onPaywall} />;
+  if (result.format === "mapa" && "data" in result)
+    return <MapaView data={result.data as MapaData} />;
+  if (result.format === "ficha" && "data" in result)
+    return <FichaView data={result.data as FichaData} isPaid={isPaid} onPaywall={onPaywall} />;
   if ("text" in result) return <LegacyMarkdownView text={result.text as string} />;
   return null;
 }
 
+// Overlay de bloqueo para usuarios FREE
+function ContentLock({
+  onUnlock,
+  label = "Desbloqueá el contenido completo",
+}: {
+  onUnlock?: () => void;
+  label?: string;
+}) {
+  return (
+    <div
+      className="relative rounded-2xl overflow-hidden border border-rule mt-3"
+      onClick={onUnlock}
+    >
+      {/* Contenido fantasma borroso */}
+      <div className="h-28 bg-paper-warm blur-[6px] opacity-60 select-none pointer-events-none" />
+      {/* Overlay con CTA */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-paper/80 backdrop-blur-sm cursor-pointer">
+        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-accent">
+            <rect x="5" y="11" width="14" height="9" rx="2" />
+            <path d="M8 11V8a4 4 0 1 1 8 0v3" strokeLinecap="round" />
+          </svg>
+        </div>
+        <p className="text-[12.5px] font-semibold text-ink text-center px-4 leading-snug">{label}</p>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onUnlock?.(); }}
+          className="px-5 py-2 rounded-full bg-accent text-[#FBF1EF] font-display font-bold text-[12px] shadow-[0_6px_18px_var(--accent-glow)] hover:opacity-90 transition"
+        >
+          Desbloquear →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const FREE_VISIBLE = 3; // ítems visibles para usuarios FREE antes del lock
+
 const BRAND_SIGNATURE = "\n\n⚡ Resumen generado con Skilio.app - Aprobá tus parciales con IA.";
 
-function ResumenView({ text }: { text: string }) {
+function ResumenView({
+  text,
+  isPaid,
+  onPaywall,
+}: {
+  text: string;
+  isPaid: boolean;
+  onPaywall?: (ctx: SaleContext) => void;
+}) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -261,6 +339,14 @@ function ResumenView({ text }: { text: string }) {
         )}
       </button>
 
+      {/* Lock para FREE: muestra resumen pero bloquea la última sección */}
+      {!isPaid && (
+        <ContentLock
+          onUnlock={() => onPaywall?.("resumen")}
+          label="Desbloqueá el resumen completo"
+        />
+      )}
+
       {/* Markdown renderizado */}
       <div className="prose prose-base max-w-none pt-8
         prose-headings:font-display prose-headings:tracking-tight prose-headings:text-ink
@@ -295,7 +381,15 @@ const CATEGORY_TONES = [
   { bg: "var(--info-soft)", text: "var(--info)" },
 ];
 
-function PuntosClaveView({ data }: { data: PuntosClaveData }) {
+function PuntosClaveView({
+  data,
+  isPaid,
+  onPaywall,
+}: {
+  data: PuntosClaveData;
+  isPaid: boolean;
+  onPaywall?: (ctx: SaleContext) => void;
+}) {
   // Asignar un tono por categoria (ciclico)
   const catTone = new Map<string, (typeof CATEGORY_TONES)[number]>();
   let idx = 0;
@@ -306,6 +400,9 @@ function PuntosClaveView({ data }: { data: PuntosClaveData }) {
     }
   }
 
+  const visiblePoints = isPaid ? data.points : data.points.slice(0, FREE_VISIBLE);
+  const hasLocked = !isPaid && data.points.length > FREE_VISIBLE;
+
   return (
     <div>
       {data.intro && (
@@ -315,7 +412,7 @@ function PuntosClaveView({ data }: { data: PuntosClaveData }) {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {data.points.map((p, i) => {
+        {visiblePoints.map((p, i) => {
           const tone = p.category
             ? catTone.get(p.category) ?? CATEGORY_TONES[0]
             : CATEGORY_TONES[i % CATEGORY_TONES.length];
@@ -351,6 +448,13 @@ function PuntosClaveView({ data }: { data: PuntosClaveData }) {
           );
         })}
       </div>
+
+      {hasLocked && (
+        <ContentLock
+          onUnlock={() => onPaywall?.("resumen")}
+          label={`+${data.points.length - FREE_VISIBLE} puntos más · desbloqueá el resumen completo`}
+        />
+      )}
     </div>
   );
 }
@@ -363,7 +467,19 @@ function MapaView({ data }: { data: MapaData }) {
   );
 }
 
-function FichaView({ data }: { data: FichaData }) {
+function FichaView({
+  data,
+  isPaid,
+  onPaywall,
+}: {
+  data: FichaData;
+  isPaid: boolean;
+  onPaywall?: (ctx: SaleContext) => void;
+}) {
+  const FREE_SECTIONS = 2;
+  const visibleSections = isPaid ? data.sections : data.sections.slice(0, FREE_SECTIONS);
+  const hasLocked = !isPaid && data.sections.length > FREE_SECTIONS;
+
   return (
     <div>
       <div className="mb-5">
@@ -374,7 +490,7 @@ function FichaView({ data }: { data: FichaData }) {
       </div>
 
       <div className="space-y-5">
-        {data.sections.map((sec, i) => (
+        {visibleSections.map((sec, i) => (
           <section
             key={i}
             className="rounded-2xl bg-paper border border-rule-soft overflow-hidden"
@@ -400,6 +516,13 @@ function FichaView({ data }: { data: FichaData }) {
           </section>
         ))}
       </div>
+
+      {hasLocked && (
+        <ContentLock
+          onUnlock={() => onPaywall?.("resumen")}
+          label={`+${data.sections.length - FREE_SECTIONS} secciones más · desbloqueá la ficha completa`}
+        />
+      )}
     </div>
   );
 }
@@ -407,15 +530,28 @@ function FichaView({ data }: { data: FichaData }) {
 function FlashcardsView({
   deck,
   onFooter,
+  isPaid,
+  onPaywall,
 }: {
   deck: FlashcardsResult["deck"];
   onFooter: (node: React.ReactNode) => void;
+  isPaid: boolean;
+  onPaywall?: (ctx: SaleContext) => void;
 }) {
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const isLocked = !isPaid && idx >= FREE_VISIBLE;
   const card = deck.cards[idx];
 
-  function next() { setFlipped(false); setIdx((i) => Math.min(i + 1, deck.cards.length - 1)); }
+  function next() {
+    const nextIdx = Math.min(idx + 1, deck.cards.length - 1);
+    if (!isPaid && nextIdx >= FREE_VISIBLE) {
+      onPaywall?.("flashcard");
+      return;
+    }
+    setFlipped(false);
+    setIdx(nextIdx);
+  }
   function prev() { setFlipped(false); setIdx((i) => Math.max(i - 1, 0)); }
 
   useEffect(() => {
@@ -429,20 +565,32 @@ function FlashcardsView({
           <div className="h-full bg-accent rounded-full transition-[width] duration-300"
             style={{ width: `${((idx + 1) / deck.cards.length) * 100}%` }} />
         </div>
-        <button type="button" onClick={next} disabled={idx === deck.cards.length - 1}
+        <button type="button" onClick={next} disabled={idx === deck.cards.length - 1 && (isPaid || idx < FREE_VISIBLE - 1)}
           className="px-4 py-2.5 rounded-full bg-accent text-[#FBF1EF] text-sm font-display font-semibold hover:bg-accent-hover transition disabled:opacity-40">
-          Siguiente →
+          {!isPaid && idx === FREE_VISIBLE - 1 ? "Desbloquear →" : "Siguiente →"}
         </button>
       </div>
     );
-  }, [idx, deck.cards.length]);
+  }, [idx, deck.cards.length, isPaid]);
 
   if (!card) return null;
+
+  if (isLocked) {
+    return (
+      <ContentLock
+        onUnlock={() => onPaywall?.("flashcard")}
+        label={`Hay ${deck.cards.length - FREE_VISIBLE} tarjetas más en este mazo`}
+      />
+    );
+  }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3 text-[12.5px] text-ink-soft">
-        <span>Tarjeta <strong className="text-ink">{idx + 1}</strong> de {deck.cards.length}</span>
+        <span>
+          Tarjeta <strong className="text-ink">{idx + 1}</strong> de{" "}
+          {isPaid ? deck.cards.length : `${deck.cards.length} (${FREE_VISIBLE} visibles)`}
+        </span>
         {card.category && (
           <span className="px-2.5 py-1 rounded-full bg-accent-soft text-accent text-[11px] font-semibold">
             {card.category}
@@ -505,9 +653,13 @@ const STATE_STYLE: Record<
 function SimulacroView({
   simulacro,
   onFooter,
+  isPaid,
+  onPaywall,
 }: {
   simulacro: SimulacroResult["simulacro"];
   onFooter: (node: React.ReactNode) => void;
+  isPaid: boolean;
+  onPaywall?: (ctx: SaleContext) => void;
 }) {
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<number, unknown>>({});
@@ -524,8 +676,13 @@ function SimulacroView({
     setRevealed((r) => ({ ...r, [idx]: true }));
   }
   function next() {
+    const nextIdx = idx + 1;
+    if (!isPaid && nextIdx >= FREE_VISIBLE) {
+      onPaywall?.("simulacro");
+      return;
+    }
     if (idx === total - 1) setFinished(true);
-    else setIdx((i) => i + 1);
+    else setIdx(nextIdx);
   }
   function prev() {
     setIdx((i) => Math.max(i - 1, 0));
@@ -598,6 +755,16 @@ function SimulacroView({
 
   if (!q) return null;
 
+  // FREE: mostrar lock si la pregunta actual está bloqueada
+  if (!isPaid && idx >= FREE_VISIBLE) {
+    return (
+      <ContentLock
+        onUnlock={() => onPaywall?.("simulacro")}
+        label={`Hay ${total - FREE_VISIBLE} preguntas más en este simulacro`}
+      />
+    );
+  }
+
   function stateFor(isSelected: boolean, isCorrect: boolean): AnswerState {
     if (!isRevealed) return isSelected ? "selected" : "empty";
     if (isCorrect) return "correct";
@@ -611,6 +778,20 @@ function SimulacroView({
       <div className="flex items-center justify-between gap-3 mb-5">
         <div className="flex gap-1.5 flex-1">
           {simulacro.questions.map((qq, i) => {
+            const isLockedDot = !isPaid && i >= FREE_VISIBLE;
+            if (isLockedDot) {
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onPaywall?.("simulacro")}
+                  className="h-2 flex-1 rounded-full transition"
+                  style={{ background: "var(--rule-soft)", opacity: 0.5 }}
+                  aria-label={`Pregunta ${i + 1} (bloqueada)`}
+                  title={`Pregunta ${i + 1} (bloqueada)`}
+                />
+              );
+            }
             const wasAnswered = answers[i] !== undefined;
             const wasRevealed = !!revealed[i];
             let color = "var(--rule)";

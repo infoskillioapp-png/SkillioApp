@@ -119,7 +119,7 @@ export function Sidebar({ user }: { user: SkillioUser }) {
       {/* BOTTOM */}
       <div className="mt-auto flex flex-col gap-3 pt-4">
         {/* Pro banner — TextureCard premium */}
-        {user.plan !== "pro" && (
+        {user.plan === "free" && (
           <button
             type="button"
             onClick={() => upgrade.open()}
@@ -245,7 +245,7 @@ export function Sidebar({ user }: { user: SkillioUser }) {
               {user.full_name ?? user.email.split("@")[0]}
             </div>
             <div className="truncate text-[10.5px] text-ink-soft">
-              {user.plan === "pro" ? "Pro" : "Gratis"} · 🔥 {user.current_streak}d
+              {user.plan === "pro" ? "Mensual" : user.plan === "semanal" ? "Semanal" : "Gratis"} · 🔥 {user.current_streak}d
             </div>
           </div>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-3.5 w-3.5 shrink-0 text-ink-softer">

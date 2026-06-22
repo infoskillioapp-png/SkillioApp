@@ -24,10 +24,11 @@ export type SkillioUser = {
   normalized_email: string | null;
   full_name: string | null;
   avatar_url: string | null;
-  plan: "free" | "pro";
+  plan: "free" | "pro" | "semanal";
   mp_subscription_id: string | null;
   credits: number;
   free_generations_used: number;
+  expires_at: string | null;
   referral_token: string | null;
   referred_by: string | null;
   current_streak: number;
