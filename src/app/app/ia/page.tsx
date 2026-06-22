@@ -89,10 +89,13 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     sections,
   };
 
+  // Auto-generar si falta cualquier output (resumen, tarjetas o simulacro)
+  const needsGeneration = !summaryOutput || !flashcardsOutput || !simulacroOutput;
+
   return (
     <EspacioClient
       note={noteData}
-      generating={gen === "1" && (!outputs || outputs.length === 0)}
+      generating={needsGeneration}
       fileName={note.file_name ?? note.title}
     />
   );

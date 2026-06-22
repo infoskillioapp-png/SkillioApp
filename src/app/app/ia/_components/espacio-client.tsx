@@ -138,28 +138,43 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: st
 
   useEffect(() => {
     const startMs = Date.now();
-    // Tiempo esperado de generación: ~25s. La curva asintótica llega a ~95% a eso tiempo.
-    // Solo toca 100% cuando la API responde de verdad.
     const HALF_LIFE = 22000;
     let apiDone = false;
     let apiHas402 = false;
 
-    // Arrancar llamadas a la API de inmediato
-    Promise.all([
-      fetch("/api/ai/summarize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId, format: "puntos_clave" }) }),
-      fetch("/api/ai/flashcards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId }) }),
-      fetch("/api/ai/simulacro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note_id: noteId }) }),
-    ]).then((responses) => {
-      apiHas402 = responses.some((r) => r.status === 402);
-      apiDone = true;
-    }).catch(() => {
-      apiDone = true;
-    });
+    async function callApis() {
+      try {
+        const post = (url: string, body: object) =>
+          fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-    // Animar la barra según tiempo transcurrido real (nunca llega a 100% sola)
+        // Llamar las 3 en paralelo; reintentar summarize una vez si falla (status >= 500)
+        const [sumRes, fcRes, simRes] = await Promise.all([
+          post("/api/ai/summarize", { note_id: noteId, format: "puntos_clave" }),
+          post("/api/ai/flashcards", { note_id: noteId }),
+          post("/api/ai/simulacro", { note_id: noteId }),
+        ]);
+
+        if (sumRes.status === 402 || fcRes.status === 402 || simRes.status === 402) {
+          apiHas402 = true;
+          apiDone = true;
+          return;
+        }
+
+        // Reintentar summarize si devolvió 500
+        if (sumRes.status >= 500) {
+          await post("/api/ai/summarize", { note_id: noteId, format: "puntos_clave" });
+        }
+      } catch {
+        // error de red — igual completamos
+      } finally {
+        apiDone = true;
+      }
+    }
+
+    callApis();
+
     const iv = setInterval(() => {
       const elapsed = Date.now() - startMs;
-      // Curva asintótica: crece rápido al inicio, se frena cerca del 94%
       const natural = Math.floor(94 * (1 - Math.exp(-elapsed / HALF_LIFE)));
 
       if (apiDone) {
