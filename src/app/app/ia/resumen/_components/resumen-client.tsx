@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { SalePopup } from "@/components/sale-popup";
 
@@ -15,6 +15,7 @@ const KX_COLORS = [
 
 const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
 const FREE_LIMIT = 3;
+const ESPACIO_KEY = "skillio_tema_";
 
 function confettiBurst(x: number, y: number) {
   const lay = document.getElementById("confetti-layer");
@@ -53,6 +54,7 @@ export type ResumenData = {
   intro: string;
   sections: SummarySection[];
   quizQuestions: QuizQuestion[];
+  fileUrl: string | null;
 };
 
 // ---- práctica rápida ----
@@ -63,7 +65,7 @@ function PracticaQuiz({
 }: {
   questions: QuizQuestion[];
   topicName: string;
-  onDone: (rect: DOMRect) => void;
+  onDone: (correct: number, total: number, rect: DOMRect) => void;
 }) {
   const [current, setCurrent] = useState(0);
   const [answered, setAnswered] = useState<Record<number, { chosen: number; correct: boolean }>>({});
@@ -81,17 +83,70 @@ function PracticaQuiz({
   }
 
   function next() {
-    if (current < questions.length - 1) setCurrent((c) => c + 1);
-    else setFinished(true);
+    if (current < questions.length - 1) {
+      setCurrent((c) => c + 1);
+    }
   }
 
   function handleFinish(e: React.MouseEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const aciertos = Object.values(answered).filter((a) => a.correct).length;
     confettiBurst(rect.left + 24, rect.top + 12);
-    onDone(rect);
+    setFinished(true);
+    onDone(aciertos, questions.length, rect);
   }
 
   const aciertos = Object.values(answered).filter((a) => a.correct).length;
+  const allAnswered = Object.keys(answered).length === questions.length;
+
+  if (finished) {
+    const pct = Math.round((aciertos / questions.length) * 100);
+    const perfect = aciertos === questions.length;
+    return (
+      <div className="practica in">
+        <div className="done-banner show" style={{
+          background: perfect
+            ? "linear-gradient(135deg,rgba(16,185,129,.12),rgba(52,211,153,.08))"
+            : "linear-gradient(135deg,rgba(79,125,255,.10),rgba(139,92,246,.08))",
+          border: `1.5px solid ${perfect ? "rgba(16,185,129,.3)" : "rgba(79,125,255,.25)"}`,
+          borderRadius: 18, padding: "20px 22px",
+          display: "flex", gap: 16, alignItems: "center",
+        }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
+            background: perfect ? "linear-gradient(135deg,#10b981,#34d399)" : "linear-gradient(135deg,#4f7dff,#8b5cf6)",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
+          }}>
+            {perfect ? "🏆" : pct >= 50 ? "💪" : "📖"}
+          </div>
+          <div>
+            <div style={{ fontFamily: "var(--po)", fontWeight: 800, fontSize: 17, marginBottom: 4 }}>
+              {perfect ? "¡Tema dominado! 🎉" : `${aciertos} de ${questions.length} correctas`}
+            </div>
+            <div style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.5 }}>
+              {perfect
+                ? `${topicName} pasó a 100% de dominio. ¡Seguí así!`
+                : pct >= 50
+                  ? `Vas bien. Repasá ${topicName} y volvé a intentarlo.`
+                  : `Prestá más atención a ${topicName} antes de seguir.`}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+              {questions.map((_, qi) => (
+                <span key={qi} style={{
+                  width: 30, height: 30, borderRadius: 8, display: "flex",
+                  alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700,
+                  background: answered[qi]?.correct ? "rgba(16,185,129,.15)" : "rgba(255,91,113,.15)",
+                  color: answered[qi]?.correct ? "#10b981" : "#ff5b71",
+                }}>
+                  {answered[qi]?.correct ? "✓" : "✕"}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="practica in">
@@ -108,61 +163,100 @@ function PracticaQuiz({
         Respondé para fijar el tema. Si acertás todas, marcamos <b>{topicName}</b> como dominado. 🎯
       </p>
 
-      {!finished ? (
-        <div className="pq">
-          <div className="pqt">
-            <span className="pqnum">{current + 1}</span>
-            {q.pregunta}
-          </div>
-          <div className="popts">
-            {q.opciones.map((opt, i) => {
-              let cls = "popt";
-              if (locked) {
-                cls += " locked";
-                if (i === q.correcta) cls += " correct";
-                else if (ans.chosen === i) cls += " wrong";
-              }
-              return (
-                <button key={i} className={cls} onClick={() => choose(i)}>
-                  <span className="mk">
-                    {locked && i === q.correcta && "✓"}
-                    {locked && ans.chosen === i && i !== q.correcta && "✕"}
-                  </span>
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-          {locked && q.explicacion && (
-            <div className="pexp show">
-              <b>{ans.correct ? "Correcto:" : "Incorrecto:"}</b> {q.explicacion}
-            </div>
-          )}
-          {locked && (
-            <div className="pqnext show">
-              {current < questions.length - 1 ? (
-                <button className="nbtn" onClick={next}>Siguiente →</button>
-              ) : (
-                <button className="nbtn" onClick={handleFinish}>
-                  Ver resultado 🎉
-                </button>
-              )}
-            </div>
-          )}
+      <div className="pq">
+        <div className="pqt">
+          <span className="pqnum">{current + 1}</span>
+          {q.pregunta}
         </div>
-      ) : (
-        <div className="done-banner show">
-          <span className="dem">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
-          </span>
-          <div>
-            <h4>¡{aciertos === questions.length ? "Tema dominado! 🎉" : `${aciertos}/${questions.length} correctas`}</h4>
-            <p>{topicName} — {aciertos === questions.length ? "pasó a 100%. Tu dominio subió." : "Seguí repasando para dominarlo."}</p>
-          </div>
+        <div className="popts">
+          {q.opciones.map((opt, i) => {
+            let cls = "popt";
+            if (locked) {
+              cls += " locked";
+              if (i === q.correcta) cls += " correct";
+              else if (ans.chosen === i) cls += " wrong";
+            }
+            return (
+              <button key={i} className={cls} onClick={() => choose(i)}>
+                <span className="mk">
+                  {locked && i === q.correcta && "✓"}
+                  {locked && ans.chosen === i && i !== q.correcta && "✕"}
+                </span>
+                {opt}
+              </button>
+            );
+          })}
         </div>
-      )}
+        {locked && q.explicacion && (
+          <div className="pexp show">
+            <b>{ans.correct ? "Correcto:" : "Incorrecto:"}</b> {q.explicacion}
+          </div>
+        )}
+        {locked && (
+          <div className="pqnext show">
+            {!allAnswered ? (
+              <button className="nbtn" onClick={next}>Siguiente →</button>
+            ) : (
+              <button className="nbtn" onClick={handleFinish}>
+                Ver resultado 🎉
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- booki tip con llamada AI ----
+function BookiTip({ point }: { point: SummaryPoint }) {
+  const [tip, setTip] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const cacheRef = useRef<Map<string, string>>(new Map());
+  const key = point.title;
+
+  useEffect(() => {
+    if (cacheRef.current.has(key)) {
+      setTip(cacheRef.current.get(key)!);
+      return;
+    }
+    setTip(null);
+    setLoading(true);
+    fetch("/api/ai/booki-tip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: point.title, description: point.description, category: point.category }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.tip) {
+          cacheRef.current.set(key, d.tip);
+          setTip(d.tip);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [key, point.description, point.category]);
+
+  return (
+    <div className="booki-tip">
+      <span className="bav">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+          <circle cx="9" cy="11" r="1.6" />
+          <circle cx="15" cy="11" r="1.6" />
+          <path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-6l-3 3v-3H5a1 1 0 0 1-1-1Z" fill="none" stroke="#fff" strokeWidth="1.6" />
+        </svg>
+      </span>
+      <div className="btx">
+        <b>Tip de Booki:</b>{" "}
+        {loading ? (
+          <span style={{ color: "var(--muted)", fontStyle: "italic" }}>Generando tip mnemotécnico…</span>
+        ) : tip ? (
+          tip
+        ) : (
+          `Para recordar mejor "${point.title}", relacionalo con algo que ya sabés. 💡`
+        )}
+      </div>
     </div>
   );
 }
@@ -174,6 +268,7 @@ function ResumenSidebar({
   doneSet,
   isPro,
   totalPoints,
+  fileUrl,
   onSelect,
   onLocked,
 }: {
@@ -182,6 +277,7 @@ function ResumenSidebar({
   doneSet: Set<number>;
   isPro: boolean;
   totalPoints: number;
+  fileUrl: string | null;
   onSelect: (i: number) => void;
   onLocked: () => void;
 }) {
@@ -197,10 +293,17 @@ function ResumenSidebar({
           </span>
         )}
       </h2>
-      <button className="btn-full">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
-        Resumen completo
-      </button>
+      {fileUrl ? (
+        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="btn-full" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 7 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
+          Apunte original
+        </a>
+      ) : (
+        <button className="btn-full" style={{ opacity: 0.5, cursor: "default" }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
+          Resumen completo
+        </button>
+      )}
       {sections.map((sec, si) => (
         <div key={si}>
           {sec.name !== sections[si - 1]?.name && (
@@ -241,10 +344,11 @@ function ResumenSidebar({
 
 // ---- componente principal ----
 export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boolean }) {
-  const allPoints: { point: SummaryPoint; secName: string; localIdx: number }[] = [];
-  data.sections.forEach((sec) => {
-    sec.points.forEach((pt, i) => {
-      allPoints.push({ point: pt, secName: sec.name, localIdx: i });
+  // allPoints con indices de sección para sync con espacio mapa
+  const allPoints: { point: SummaryPoint; secName: string; secIdx: number; pointIdx: number }[] = [];
+  data.sections.forEach((sec, si) => {
+    sec.points.forEach((pt, pi) => {
+      allPoints.push({ point: pt, secName: sec.name, secIdx: si, pointIdx: pi });
     });
   });
 
@@ -262,12 +366,25 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
 
   const doneCount = doneSet.size;
 
-  const handleQuizDone = useCallback((_rect: DOMRect) => {
-    setDoneSet((prev) => new Set([...prev, safeActiveIdx]));
+  // Sync done topics to localStorage para que espacio/mapa lo refleje
+  function markTopicDoneInEspacio(gIdx: number) {
+    const ap = allPoints[gIdx];
+    if (!ap) return;
+    const key = `${ESPACIO_KEY}topic-${ap.secIdx}-${ap.pointIdx}`;
+    localStorage.setItem(key, "100");
+  }
+
+  const handleQuizDone = useCallback((correct: number, total: number, _rect: DOMRect) => {
+    if (correct === total) {
+      setDoneSet((prev) => new Set([...prev, safeActiveIdx]));
+      markTopicDoneInEspacio(safeActiveIdx);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeActiveIdx]);
 
   function markDone() {
     setDoneSet((prev) => new Set([...prev, safeActiveIdx]));
+    markTopicDoneInEspacio(safeActiveIdx);
     if (safeActiveIdx < visiblePoints.length - 1) setActiveIdx((i) => i + 1);
   }
 
@@ -279,7 +396,7 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
 
   if (!active) return <div style={{ padding: 40, color: "var(--muted)" }}>Sin contenido generado aún.</div>;
 
-  const { point, secName, localIdx } = active;
+  const { point, secName, pointIdx } = active;
 
   const leadNormal = point.description;
   const leadEli5 = `Pensalo así: ${point.description.split(".")[0].toLowerCase()}. ¡Más simple imposible! 🧒`;
@@ -301,11 +418,33 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
           Volver
         </Link>
         <div className="crumb-r">{data.subjectName} · <b>Resumen</b></div>
-        <div className="rfiles">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-          </svg>
-          {doneCount}/{visiblePoints.length}{!isPro && lockedCount > 0 ? ` · 🔒 ${lockedCount}` : ""} dominados
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Link
+            href={`/app/ia/tarjetas?note_id=${data.noteId}`}
+            style={{
+              fontSize: 12.5, fontWeight: 700, padding: "5px 12px",
+              background: "rgba(139,92,246,.12)", color: "#8b5cf6",
+              borderRadius: 20, textDecoration: "none", border: "1px solid rgba(139,92,246,.2)",
+            }}
+          >
+            🃏 Tarjetas
+          </Link>
+          <Link
+            href={`/app/ia/simulacro?note_id=${data.noteId}`}
+            style={{
+              fontSize: 12.5, fontWeight: 700, padding: "5px 12px",
+              background: "rgba(255,107,129,.12)", color: "#ff6b81",
+              borderRadius: 20, textDecoration: "none", border: "1px solid rgba(255,107,129,.2)",
+            }}
+          >
+            🎯 Simulacro
+          </Link>
+          <div className="rfiles">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            {doneCount}/{visiblePoints.length}{!isPro && lockedCount > 0 ? ` · 🔒 ${lockedCount}` : ""} dominados
+          </div>
         </div>
       </div>
 
@@ -317,6 +456,7 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
           doneSet={doneSet}
           isPro={isPro}
           totalPoints={totalPoints}
+          fileUrl={data.fileUrl}
           onSelect={handleSelect}
           onLocked={() => setShowPaywall(true)}
         />
@@ -325,7 +465,7 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
         <main className="reader-main">
           <div className="rhead in">
             <div className="sec-eyebrow">
-              {secName} · Tema {localIdx + 1}
+              {secName} · Tema {pointIdx + 1}
             </div>
             <h1 className="rtitle">{point.emoji ? `${point.emoji} ${point.title}` : point.title}</h1>
             <div className="rmeta">
@@ -371,18 +511,7 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
                 ))}
             </ul>
 
-            <div className="booki-tip">
-              <span className="bav">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
-                  <circle cx="9" cy="11" r="1.6" />
-                  <circle cx="15" cy="11" r="1.6" />
-                  <path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-6l-3 3v-3H5a1 1 0 0 1-1-1Z" fill="none" stroke="#fff" strokeWidth="1.6" />
-                </svg>
-              </span>
-              <div className="btx">
-                <b>Tip de Booki:</b> Para recordar mejor <b>{point.title}</b>, relacionalo con algo que ya sabés. 💡
-              </div>
-            </div>
+            <BookiTip point={point} />
 
             {/* upgrade CTA inline si hay temas bloqueados */}
             {!isPro && lockedCount > 0 && safeActiveIdx === visiblePoints.length - 1 && (
@@ -417,6 +546,7 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
           {/* práctica rápida */}
           {data.quizQuestions.length > 0 && (
             <PracticaQuiz
+              key={safeActiveIdx}
               questions={data.quizQuestions.slice(safeActiveIdx * 2, safeActiveIdx * 2 + 2)}
               topicName={point.title}
               onDone={handleQuizDone}

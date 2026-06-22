@@ -26,7 +26,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
   const { data: userRow } = await sb.from("users").select("id,plan,expires_at").eq("clerk_user_id", userId).single();
   if (!userRow) redirect("/login");
 
-  const { data: note } = await sb.from("notes").select("id,title,subject_id").eq("id", note_id).eq("user_id", userRow.id).single();
+  const { data: note } = await sb.from("notes").select("id,title,subject_id,file_path").eq("id", note_id).eq("user_id", userRow.id).single();
   if (!note) redirect("/app");
 
   const subjectName = note.subject_id
@@ -73,6 +73,11 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
       }
     });
 
+  // URL del archivo original (para "Resumen completo")
+  const { data: fileSignedUrl } = await sb.storage
+    .from("notes-uploads")
+    .createSignedUrl(note.file_path, 3600);
+
   const data: ResumenData = {
     noteId: note.id,
     noteTitle: note.title,
@@ -80,6 +85,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     intro: summaryRaw?.intro ?? "",
     sections: sections.length > 0 ? sections : [{ name: "Contenido", points: rawPoints }],
     quizQuestions,
+    fileUrl: fileSignedUrl?.signedUrl ?? null,
   };
 
   if (rawPoints.length === 0) redirect(`/app/ia?note_id=${note_id}`);
