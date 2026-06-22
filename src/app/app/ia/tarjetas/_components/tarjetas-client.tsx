@@ -328,11 +328,9 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
         {phase === "result" && (
           <div className="fresult show">
             <div className="rscene" style={{ backgroundImage: `url(${exito ? "/fondo_exito.png" : "/fondo_fracaso.png"})` }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/booki-3.png" alt="Booki" style={{ position:"absolute", right:12, bottom:0, height:130, objectFit:"contain", zIndex:2, filter:"drop-shadow(0 4px 16px rgba(0,0,0,.3))" }} />
               <div className="cap">
-                <h2>{exito ? "¡Excelente repaso! 🎉" : "¡A seguir repasando! 💪"}</h2>
-                <p>{exito ? "¡Vas dominando el tema! Seguí así. 🔥" : "Repasá las que te costaron; con otra vuelta las dominás."}</p>
+                <h2>{exito ? "¡Excelente repaso!" : "¡A seguir repasando!"}</h2>
+                <p>{exito ? "¡Vas dominando el tema! Seguí así." : "Repasá las que te costaron; con otra vuelta las dominás."}</p>
               </div>
             </div>
             <div className="rcard2">
