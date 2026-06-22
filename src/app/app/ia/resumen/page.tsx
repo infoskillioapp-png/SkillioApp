@@ -39,7 +39,10 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     .eq("note_id", note_id)
     .eq("user_id", userRow.id);
 
-  const summaryRaw = outputs?.find((o) => o.kind === "summary")?.content as SummaryContent | null;
+  // La API guarda content = { format, data: SummaryContent }
+  type SummaryWrapper = { data?: SummaryContent } & SummaryContent;
+  const summaryWrapper = outputs?.find((o) => o.kind === "summary")?.content as SummaryWrapper | null;
+  const summaryRaw: SummaryContent | null = summaryWrapper?.data ?? summaryWrapper ?? null;
   const simulacroRaw = outputs?.find((o) => o.kind === "simulacro")?.content as SimulacroContent | null;
 
   const rawPoints: SummaryPoint[] = summaryRaw?.points ?? [];

@@ -52,7 +52,10 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
   const simulacroOutput = outputs?.find((o) => o.kind === "simulacro");
 
   type Point = { emoji?: string; title: string; description?: string; category?: string };
-  const points: Point[] = (summaryOutput?.content as { points?: Point[] })?.points ?? [];
+  // La API guarda content = { format, data: { title, intro, points } }
+  type SumContent = { points?: Point[]; data?: { points?: Point[] } };
+  const sumContent = summaryOutput?.content as SumContent | null;
+  const points: Point[] = sumContent?.data?.points ?? sumContent?.points ?? [];
 
   const secMap = new Map<string, Point[]>();
   points.forEach((p) => {
