@@ -5,25 +5,41 @@ import Link from "next/link";
 import { SignOutButton } from "@clerk/nextjs";
 import { SkillioMark } from "@/app/_components/landing/landing-top";
 
-const PRO = {
-  name: "PRO",
-  price: "$16.000",
-  period: "/ mes",
-  perks: [
-    "500 créditos mensuales de IA",
-    "Resúmenes y procesamiento prioritario",
-    "Simulacros de parciales ilimitados",
-    "Flashcards inteligentes + repetición espaciada",
-    "Acceso completo a la comunidad",
-    "Pomodoro, agenda y logros",
-  ],
+const PLANS = {
+  mensual: {
+    name: "Mensual",
+    price: "$15.900",
+    period: "/ mes",
+    duration: "30 días de acceso completo",
+    perks: [
+      "Resúmenes, flashcards y simulacros ilimitados",
+      "Modelo Sonnet (máxima calidad en resúmenes)",
+      "Repetición espaciada inteligente",
+      "Acceso completo a la comunidad",
+      "Pomodoro, agenda y logros",
+    ],
+  },
+  semanal: {
+    name: "Semanal",
+    price: "$4.900",
+    period: "/ semana",
+    duration: "7 días · ideal para preparar el parcial",
+    perks: [
+      "Resúmenes, flashcards y simulacros completos",
+      "Acceso por 7 días corridos desde el pago",
+      "Mismo contenido que el plan mensual",
+    ],
+  },
 } as const;
 
+type PlanKey = keyof typeof PLANS;
+
 export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) {
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("mensual");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const current = PRO;
+  const current = PLANS[selectedPlan];
 
   async function handlePay() {
     setLoading(true);
@@ -32,7 +48,7 @@ export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) 
       const res = await fetch("/api/subscription/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "pro" }),
+        body: JSON.stringify({ plan: selectedPlan === "mensual" ? "pro" : "semanal" }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -48,7 +64,7 @@ export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) 
   }
 
   return (
-    <div className="fixed inset-0 bg-bg flex items-center justify-center px-4">
+    <div className="fixed inset-0 bg-bg flex items-center justify-center px-4 overflow-y-auto py-8">
       {/* Fondo decorativo */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
@@ -64,7 +80,7 @@ export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) 
       <div className="relative w-full max-w-lg animate-skillio-fade-in">
         <div className="flex items-center justify-between mb-8">
           <SkillioMark size={28} />
-          <span className="text-xs text-ink-softer">Paso final · Activá tu PRO</span>
+          <span className="text-xs text-ink-softer">Elegí tu plan</span>
         </div>
 
         {/* Badge de referido */}
@@ -77,18 +93,44 @@ export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) 
           </div>
         )}
 
-        {/* Detalle del plan PRO */}
-        <div className="rounded-3xl bg-paper border border-rule-soft p-7 shadow-lg">
-          <div className="flex items-baseline gap-2 mb-5">
-            <span className="font-display font-bold text-lg" style={{ color: "var(--accent)" }}>
-              {current.name}
-            </span>
-            <span className="font-display font-extrabold text-3xl tracking-tight ml-1" style={{ color: "var(--accent)" }}>
-              {current.price}
-            </span>
-            <span className="text-sm text-ink-soft">{current.period}</span>
-          </div>
+        {/* Selector de planes */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          {(Object.keys(PLANS) as PlanKey[]).map((key) => {
+            const p = PLANS[key];
+            const isActive = selectedPlan === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setSelectedPlan(key)}
+                className="rounded-2xl p-4 text-left transition border-2"
+                style={{
+                  borderColor: isActive ? "var(--accent)" : "var(--rule)",
+                  background: isActive ? "rgba(165,64,45,0.04)" : "var(--paper)",
+                }}
+              >
+                <div className="font-display font-bold text-[15px]" style={{ color: isActive ? "var(--accent)" : "var(--ink)" }}>
+                  {p.name}
+                </div>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className="font-display font-extrabold text-xl" style={{ color: isActive ? "var(--accent)" : "var(--ink)" }}>
+                    {p.price}
+                  </span>
+                  <span className="text-xs text-ink-softer">{p.period}</span>
+                </div>
+                <p className="text-[11px] text-ink-soft mt-1">{p.duration}</p>
+                {key === "mensual" && (
+                  <span className="inline-block mt-2 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full" style={{ background: "var(--accent)", color: "#FBF1EF" }}>
+                    Más popular
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
+        {/* Detalle del plan seleccionado */}
+        <div className="rounded-3xl bg-paper border border-rule-soft p-7 shadow-lg">
           <ul className="flex flex-col gap-2.5 mb-6">
             {current.perks.map((perk, i) => (
               <li key={i} className="flex items-center gap-2.5 text-sm text-ink">
@@ -116,20 +158,21 @@ export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) 
               boxShadow: "0 8px 24px var(--accent-glow)",
             }}
           >
-            {loading ? "Redirigiendo a MercadoPago…" : `Activar ${current.name} →`}
+            {loading
+              ? "Redirigiendo a MercadoPago…"
+              : `Activar ${current.name} ${current.price} →`}
           </button>
 
           <p className="text-center text-[11px] text-ink-softer mt-3">
-            Ingresás tu tarjeta en MercadoPago · Cancelás cuando quieras
+            Ingresás tu tarjeta en MercadoPago · Sin permanencia · Cancelás cuando quieras
           </p>
         </div>
 
         <p className="text-center text-[11px] text-ink-softer mt-4">
           Al continuar aceptás los{" "}
-          <a href="#" className="underline">términos y condiciones</a>.
+          <a href="/terminos" className="underline">términos y condiciones</a>.
         </p>
 
-        {/* Salida: que nadie quede atrapado si no quiere pagar ahora */}
         <div className="flex items-center justify-center gap-4 mt-6 text-xs text-ink-softer">
           <Link href="/" className="underline hover:text-ink transition-colors">
             Volver al inicio

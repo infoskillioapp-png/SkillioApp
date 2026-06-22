@@ -31,6 +31,7 @@ export default async function IaPage() {
           subjects={subjects}
           credits={user.credits}
           plan={user.plan}
+          expiresAt={user.expires_at}
           freeGenerationsUsed={user.free_generations_used}
           history={history}
         />

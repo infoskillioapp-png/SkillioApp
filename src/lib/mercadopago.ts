@@ -40,14 +40,21 @@ export interface MpSubscription {
   init_point: string;
 }
 
-export function mpCreatePlan(reason: string, amount: number, backUrl: string): Promise<MpPlan> {
+// MP soporta frequency_type "months" | "days" (no "weeks").
+// Para semanal: frequency=7, frequency_type="days".
+export function mpCreatePlan(
+  reason: string,
+  amount: number,
+  backUrl: string,
+  opts: { frequency?: number; frequencyType?: "months" | "days" } = {},
+): Promise<MpPlan> {
   return mpFetch("/preapproval_plan", {
     method: "POST",
     body: JSON.stringify({
       reason,
       auto_recurring: {
-        frequency: 1,
-        frequency_type: "months",
+        frequency: opts.frequency ?? 1,
+        frequency_type: opts.frequencyType ?? "months",
         transaction_amount: amount,
         currency_id: "ARS",
       },

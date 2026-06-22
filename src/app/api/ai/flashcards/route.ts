@@ -3,13 +3,12 @@ import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import {
-  FREE_GENERATION_LIMIT,
   buildUserContent,
   chargeCredits,
-  consumeFreeGeneration,
   getNoteContent,
+  isPaidPlan,
   markActivationIfFirst,
-  modelForPlan,
+  modelForGeneration,
   saveAiOutput,
 } from "@/lib/ai/claude";
 
@@ -44,20 +43,16 @@ export async function POST(req: Request) {
     if (content.type === "unsupported")
       return NextResponse.json({ error: "tipo de archivo no soportado" }, { status: 415 });
 
-    const isPro = userRow.plan === "pro";
-    const model = modelForPlan(userRow.plan);
-    if (isPro) {
-      if (userRow.credits < COST)
-        return NextResponse.json(
-          { error: "insufficient_credits", cost: COST, available: userRow.credits },
-          { status: 402 },
-        );
-    } else if (userRow.free_generations_used >= FREE_GENERATION_LIMIT) {
+    const isPaid = isPaidPlan(userRow.plan, userRow.expires_at);
+    const isProCredits = userRow.plan === "pro";
+    const model = modelForGeneration(userRow.plan, userRow.expires_at, "flashcards");
+
+    if (isProCredits && userRow.credits < COST)
       return NextResponse.json(
-        { error: "limit_reached", limit: FREE_GENERATION_LIMIT },
+        { error: "insufficient_credits", cost: COST, available: userRow.credits },
         { status: 402 },
       );
-    }
+    // FREE y semanal siempre generan; gate visual en cliente.
 
     const userParts = await buildUserContent(content, USER_INSTRUCTION);
 
@@ -69,10 +64,8 @@ export async function POST(req: Request) {
     });
 
     let remaining = 0;
-    if (isPro) {
+    if (isProCredits) {
       remaining = await chargeCredits(userRow.id, COST);
-    } else {
-      await consumeFreeGeneration(userRow.id, userRow.free_generations_used);
     }
     const id = await saveAiOutput({
       user_id: userRow.id,
@@ -80,7 +73,7 @@ export async function POST(req: Request) {
       kind: "flashcards",
       title: result.object.deck_title || note.title,
       content: result.object,
-      credits_used: isPro ? COST : 0,
+      credits_used: isProCredits ? COST : 0,
       model,
       input_tokens: result.usage?.inputTokens ?? null,
       output_tokens: result.usage?.outputTokens ?? null,
@@ -93,6 +86,7 @@ export async function POST(req: Request) {
       output_id: id,
       deck: result.object,
       credits_remaining: remaining,
+      is_paid: isPaid,
       activation_event_id: activationEventId,
     });
   } catch (e) {

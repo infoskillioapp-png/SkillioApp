@@ -25,14 +25,11 @@ function verifySignature(req: NextRequest, dataId: string): boolean {
   return expected === v1;
 }
 
-// Plan único: cualquier suscripción activa es PRO.
 const PRO_FULL_CREDITS = 500;
-// Precio del plan PRO (ARS) — el valor que reportamos a Meta como compra.
-const PRO_PRICE_ARS = 16000;
+const PRO_PRICE_ARS = 15900;   // precio mensual actualizado
+const SEMANAL_PRICE_ARS = 4900;
+const SEMANAL_DAYS = 7;
 
-// Los external_reference que setea nuestra app son IDs de Clerk (user_...).
-// MP a veces trae basura en ese campo (ej "PLANBASICO", el default del plan),
-// así que solo confiamos en él si tiene la forma de un Clerk ID.
 function looksLikeClerkId(s: string | null | undefined): s is string {
   return typeof s === "string" && s.startsWith("user_");
 }
@@ -42,18 +39,15 @@ type Sb = ReturnType<typeof supabaseAdmin>;
 type MatchedUser = {
   id: string;
   email: string;
-  plan: "free" | "pro";
+  plan: "free" | "pro" | "semanal";
   credits: number;
   referred_by: string | null;
   mp_subscription_id: string | null;
+  expires_at: string | null;
 };
 
-const USER_COLS = "id, email, plan, credits, referred_by, mp_subscription_id";
+const USER_COLS = "id, email, plan, credits, referred_by, mp_subscription_id, expires_at";
 
-// Búsqueda robusta del usuario, por orden de confiabilidad:
-//   1) mp_subscription_id (lo guarda /pago-exitoso al activar — el más fiable)
-//   2) external_reference, solo si parece un Clerk ID
-//   3) payer_email
 async function findUser(
   sb: Sb,
   opts: { preapprovalId?: string | null; externalRef?: string | null; payerEmail?: string | null },
@@ -85,14 +79,17 @@ async function findUser(
   return { user: null, matchedBy: null };
 }
 
-// Activa (o renueva) PRO a partir de un pago APROBADO. El webhook es la fuente
-// de verdad: no depende de que el cliente vuelva a /pago-exitoso. Setea plan=pro
-// + créditos completos, vincula el mp_subscription_id si todavía no estaba, y
-// procesa el referido si es el primer pago. Idempotente (SETEA, no acumula).
-async function activateOrRenewPro(
+// Detecta si el plan MP es semanal.
+function isSemanalPlan(preapprovalPlanId: string | undefined): boolean {
+  const semanalId = process.env.MP_PLAN_ID_SEMANAL;
+  return !!semanalId && preapprovalPlanId === semanalId;
+}
+
+// Activa o renueva un plan pagado (pro o semanal). Idempotente.
+async function activateOrRenewPlan(
   sb: Sb,
   user: MatchedUser,
-  subscriptionId?: string | null,
+  opts: { subscriptionId?: string | null; planType: "pro" | "semanal" },
 ) {
   const { data: pendingReferral } = await sb
     .from("referrals")
@@ -103,25 +100,33 @@ async function activateOrRenewPro(
 
   const isFirstPayment = !!pendingReferral;
   const referralBonus = isFirstPayment ? 50 : 0;
-  const credits = PRO_FULL_CREDITS + referralBonus;
 
   const patch: Record<string, unknown> = {
-    plan: "pro",
-    credits,
+    plan: opts.planType,
     updated_at: new Date().toISOString(),
   };
-  // Vincula la suscripción si llega y todavía no la teníamos (clave para que las
-  // renovaciones futuras matcheen por mp_subscription_id).
-  if (subscriptionId && !user.mp_subscription_id) patch.mp_subscription_id = subscriptionId;
+
+  if (opts.planType === "semanal") {
+    patch.credits = 0;
+    // Extiende (o fija) expires_at desde ahora + 7 días
+    patch.expires_at = new Date(Date.now() + SEMANAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  } else {
+    patch.credits = PRO_FULL_CREDITS + referralBonus;
+    patch.expires_at = null;
+  }
+
+  if (opts.subscriptionId && !user.mp_subscription_id) {
+    patch.mp_subscription_id = opts.subscriptionId;
+  }
 
   const { error } = await sb.from("users").update(patch).eq("id", user.id);
   if (error) {
-    console.error(`[webhook] activateOrRenewPro update FALLÓ (user=${user.id}):`, error);
+    console.error(`[webhook] activateOrRenewPlan falló (user=${user.id}, plan=${opts.planType}):`, error);
     return;
   }
 
   console.log(
-    `[webhook] ${user.email} → PRO con ${credits} créditos (era ${user.plan}, referralBonus=${referralBonus}, sub=${subscriptionId ?? user.mp_subscription_id ?? "-"})`,
+    `[webhook] ${user.email} → ${opts.planType} (era ${user.plan}, sub=${opts.subscriptionId ?? user.mp_subscription_id ?? "-"})`,
   );
 
   if (isFirstPayment && pendingReferral) {
@@ -133,8 +138,6 @@ async function activateOrRenewPro(
   }
 }
 
-// Registra el cobro en el ledger de pagos (para el panel /admin). Idempotente:
-// onConflict mp_id evita duplicar ante reintentos del webhook.
 async function recordPayment(
   sb: Sb,
   opts: { user: MatchedUser; mpId: string; kind: string; amount?: number | null },
@@ -154,7 +157,6 @@ async function recordPayment(
   if (error) console.error("[webhook] recordPayment error:", error);
 }
 
-// Recompensa al referrer: 150 créditos cada 2 referidos convertidos.
 async function processReferrerReward(sb: Sb, referrerId: string) {
   const { count } = await sb
     .from("referrals")
@@ -180,9 +182,6 @@ async function processReferrerReward(sb: Sb, referrerId: string) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PREAPPROVAL: alta / baja de la suscripción.
-// "authorized" → activar PRO con 500 créditos (sin free_trial: acceso completo ya).
-//   En la práctica /pago-exitoso ya activa al volver el usuario; esto es respaldo.
-// "cancelled" / "paused" → bajar a free.
 // ─────────────────────────────────────────────────────────────────────────────
 async function handlePreapproval(subscriptionId: string) {
   const subscription = await mpGetSubscription(subscriptionId);
@@ -192,33 +191,20 @@ async function handlePreapproval(subscriptionId: string) {
     externalRef: subscription.external_reference,
     payerEmail: subscription.payer_email,
   };
+  const planType = isSemanalPlan(subscription.preapproval_plan_id) ? "semanal" : "pro";
 
   if (subscription.status === "authorized") {
-    const plan = "pro" as const;
     const { user, matchedBy } = await findUser(sb, lookup);
     if (!user) {
       console.warn(
-        `[webhook/preapproval] SIN MATCH (authorized) sub=${subscription.id} ext_ref=${subscription.external_reference} email="${subscription.payer_email}" — se activará vía /pago-exitoso`,
+        `[webhook/preapproval] SIN MATCH (authorized) sub=${subscription.id} ext_ref=${subscription.external_reference} email="${subscription.payer_email}"`,
       );
       return;
     }
     if (user.plan === "free") {
-      const { error } = await sb
-        .from("users")
-        .update({
-          plan,
-          mp_subscription_id: subscription.id,
-          credits: PRO_FULL_CREDITS,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-      if (error) {
-        console.error(`[webhook/preapproval] update FALLÓ (user=${user.id}, plan=${plan}):`, error);
-        return;
-      }
-      console.log(`[webhook/preapproval] ${user.email} activado plan=${plan} (matchedBy=${matchedBy})`);
+      await activateOrRenewPlan(sb, user, { subscriptionId: subscription.id, planType });
+      console.log(`[webhook/preapproval] ${user.email} → ${planType} (matchedBy=${matchedBy})`);
     } else if (!user.mp_subscription_id) {
-      // Ya estaba activo pero sin id guardado: lo persistimos para renovaciones.
       await sb
         .from("users")
         .update({ mp_subscription_id: subscription.id })
@@ -228,7 +214,7 @@ async function handlePreapproval(subscriptionId: string) {
     const { user, matchedBy } = await findUser(sb, lookup);
     if (!user) {
       console.warn(
-        `[webhook/preapproval] SIN MATCH (${subscription.status}) sub=${subscription.id} — no se pudo bajar a free`,
+        `[webhook/preapproval] SIN MATCH (${subscription.status}) sub=${subscription.id}`,
       );
       return;
     }
@@ -238,6 +224,7 @@ async function handlePreapproval(subscriptionId: string) {
         plan: "free",
         mp_subscription_id: null,
         credits: 0,
+        expires_at: null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
@@ -246,46 +233,57 @@ async function handlePreapproval(subscriptionId: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUBSCRIPTION_AUTHORIZED_PAYMENT: cobro recurrente de la suscripción
-// (primer cobro tras el trial de 24h y renovaciones mensuales).
-// Es ACÁ donde el usuario PRO recibe sus 500 créditos completos.
+// SUBSCRIPTION_AUTHORIZED_PAYMENT: cobro recurrente (renovación).
+// Pro: renueva 500 créditos. Semanal: extiende expires_at +7d.
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleAuthorizedPayment(authPaymentId: string) {
   const ap = await mpGetAuthorizedPayment(authPaymentId);
   const paid = ap.status === "processed" || ap.payment?.status === "approved";
   if (!paid) {
-    console.log(`[webhook/authpay] ${authPaymentId} aún no aprobado (status=${ap.status}, payment=${ap.payment?.status ?? "-"})`);
+    console.log(`[webhook/authpay] ${authPaymentId} no aprobado (status=${ap.status})`);
     return;
   }
   const sb = supabaseAdmin();
   const { user, matchedBy } = await findUser(sb, { preapprovalId: ap.preapproval_id });
   if (!user) {
-    console.warn(`[webhook/authpay] SIN MATCH preapproval=${ap.preapproval_id} (authPayment=${authPaymentId})`);
+    console.warn(`[webhook/authpay] SIN MATCH preapproval=${ap.preapproval_id}`);
     return;
   }
-  // Fuente de verdad: activa/renueva aunque el usuario esté en free (puede que
-  // /pago-exitoso nunca haya corrido).
-  await activateOrRenewPro(sb, user, ap.preapproval_id);
-  console.log(`[webhook/authpay] ${user.email} PRO + créditos (matchedBy=${matchedBy})`);
 
+  // Detectar si la suscripción es semanal (necesitamos el plan del preapproval)
+  let planType: "pro" | "semanal" = "pro";
+  if (ap.preapproval_id) {
+    try {
+      const sub = await mpGetSubscription(ap.preapproval_id);
+      planType = isSemanalPlan(sub.preapproval_plan_id) ? "semanal" : "pro";
+    } catch {
+      planType = user.plan === "semanal" ? "semanal" : "pro";
+    }
+  } else {
+    planType = user.plan === "semanal" ? "semanal" : "pro";
+  }
+
+  await activateOrRenewPlan(sb, user, { subscriptionId: ap.preapproval_id, planType });
+  console.log(`[webhook/authpay] ${user.email} ${planType} renovado (matchedBy=${matchedBy})`);
+
+  const amount = ap.transaction_amount ?? (planType === "semanal" ? SEMANAL_PRICE_ARS : PRO_PRICE_ARS);
   await recordPayment(sb, {
     user,
     mpId: `authpay_${authPaymentId}`,
     kind: "authorized_payment",
-    amount: ap.transaction_amount ?? PRO_PRICE_ARS,
+    amount,
   });
 
-  // CAPI: este es el cobro real (post-trial / renovación) → Purchase a Meta.
   await sendMetaPurchase({
     email: user.email,
-    value: PRO_PRICE_ARS,
+    value: amount,
     currency: "ARS",
     eventId: `purchase_${authPaymentId}`,
   });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PAYMENT: pago suelto (no recurrente). Lo dejamos por compatibilidad.
+// PAYMENT: pago suelto (compatibilidad).
 // ─────────────────────────────────────────────────────────────────────────────
 async function handlePayment(paymentId: string) {
   const payment = await mpGetPayment(paymentId);
@@ -299,25 +297,34 @@ async function handlePayment(paymentId: string) {
   });
   if (!user) {
     console.warn(
-      `[webhook/payment] SIN MATCH payment=${paymentId} preapproval=${payment.preapproval_id} email="${payment.payer?.email}"`,
+      `[webhook/payment] SIN MATCH payment=${paymentId} preapproval=${payment.preapproval_id}`,
     );
     return;
   }
-  // Fuente de verdad: activa/renueva aunque el usuario esté en free.
-  await activateOrRenewPro(sb, user, payment.preapproval_id);
-  console.log(`[webhook/payment] ${user.email} PRO + créditos (matchedBy=${matchedBy})`);
+
+  let planType: "pro" | "semanal" = "pro";
+  if (payment.preapproval_id) {
+    try {
+      const sub = await mpGetSubscription(payment.preapproval_id);
+      planType = isSemanalPlan(sub.preapproval_plan_id) ? "semanal" : "pro";
+    } catch {
+      planType = user.plan === "semanal" ? "semanal" : "pro";
+    }
+  }
+
+  await activateOrRenewPlan(sb, user, { subscriptionId: payment.preapproval_id, planType });
+  console.log(`[webhook/payment] ${user.email} ${planType} (matchedBy=${matchedBy})`);
 
   await recordPayment(sb, {
     user,
     mpId: `pay_${paymentId}`,
     kind: "payment",
-    amount: PRO_PRICE_ARS,
+    amount: planType === "semanal" ? SEMANAL_PRICE_ARS : PRO_PRICE_ARS,
   });
 
-  // CAPI: pago suelto aprobado → Purchase a Meta.
   await sendMetaPurchase({
     email: user.email,
-    value: PRO_PRICE_ARS,
+    value: planType === "semanal" ? SEMANAL_PRICE_ARS : PRO_PRICE_ARS,
     currency: "ARS",
     eventId: `purchase_${paymentId}`,
   });
@@ -334,14 +341,8 @@ export async function POST(req: NextRequest) {
 
     if (!dataId) return NextResponse.json({ ok: true });
 
-    // La firma es la PRIMERA barrera, pero si no coincide (ej. clave secreta
-    // desincronizada entre MP y Vercel) NO descartamos el evento: cada handler
-    // re-verifica el pago/suscripción pidiéndoselo a MP con NUESTRO access token
-    // (mpGetPayment/mpGetSubscription/...), que es la autorización real. Un
-    // webhook falso con un id inventado no matchea nada → no hace daño. Así una
-    // clave mal configurada nunca más pierde una venta.
     if (!verifySignature(req, dataId)) {
-      console.warn(`[webhooks/mercadopago] firma no coincide (type=${type}, id=${dataId}) — proceso igual vía re-fetch`);
+      console.warn(`[webhooks/mercadopago] firma no coincide (type=${type}, id=${dataId}) — proceso igual`);
       Sentry.captureMessage("mp_webhook_signature_mismatch", {
         level: "warning",
         extra: { type, dataId },

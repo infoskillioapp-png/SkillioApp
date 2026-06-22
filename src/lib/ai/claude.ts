@@ -11,14 +11,31 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 
 const BUCKET = "notes-uploads";
 
-export const MODEL = "claude-sonnet-4-6";              // PRO
-export const MODEL_FREE = "claude-haiku-4-5-20251001"; // free trial (3 gen): barato
-export const FREE_GENERATION_LIMIT = 3;
-const MAP_MODEL = MODEL_FREE; // modelo barato para el paso de mapeo
+export const MODEL = "claude-sonnet-4-6";              // planes pagos, razonamiento pesado
+export const MODEL_FREE = "claude-haiku-4-5-20251001"; // free + volumen (tarjetas/simulacro)
+export const FREE_GENERATION_LIMIT = 3;                // conservado para emails de nudge
+const MAP_MODEL = MODEL_FREE;
 
-/** Modelo a usar según el plan: PRO = Sonnet, free = Haiku. */
-export function modelForPlan(plan: string): string {
-  return plan === "pro" ? MODEL : MODEL_FREE;
+/** Devuelve true si el usuario tiene acceso pago activo (créditos o tiempo vigente). */
+export function isPaidPlan(plan: string, expiresAt: string | null): boolean {
+  if (plan === "pro") return true;
+  if (plan === "semanal") return !!expiresAt && new Date(expiresAt) > new Date();
+  return false;
+}
+
+/**
+ * Modelo según plan y tipo de generación.
+ * - free: Haiku para todo (barato, US$0.02/usuario)
+ * - pago + summarize: Sonnet (razonamiento pesado)
+ * - pago + flashcards/simulacro: Haiku (volumen, 48% más barato)
+ */
+export function modelForGeneration(
+  plan: string,
+  expiresAt: string | null,
+  kind: "summarize" | "flashcards" | "simulacro",
+): string {
+  if (!isPaidPlan(plan, expiresAt)) return MODEL_FREE;
+  return kind === "summarize" ? MODEL : MODEL_FREE;
 }
 
 // Umbral: si el texto supera esto, activamos map-reduce
@@ -34,7 +51,7 @@ export type NoteContent =
 export async function getNoteContent(noteId: string): Promise<{
   note: Note;
   content: NoteContent;
-  userRow: { id: string; credits: number; plan: string; free_generations_used: number };
+  userRow: { id: string; credits: number; plan: string; free_generations_used: number; expires_at: string | null };
 }> {
   const { userId } = await auth();
   if (!userId) throw new Error("unauthenticated");
@@ -43,7 +60,7 @@ export async function getNoteContent(noteId: string): Promise<{
 
   const { data: u } = await sb
     .from("users")
-    .select("id, credits, plan, free_generations_used")
+    .select("id, credits, plan, free_generations_used, expires_at")
     .eq("clerk_user_id", userId)
     .single();
   if (!u) throw new Error("user_not_found");
