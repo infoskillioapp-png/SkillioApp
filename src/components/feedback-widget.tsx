@@ -108,18 +108,18 @@ export function FeedbackWidget() {
       <div
         role="dialog"
         aria-label="Calificá la app"
-        className="fixed z-50 bottom-4 right-4 left-4 md:left-auto md:w-[340px] rounded-2xl shadow-2xl border border-rule-soft animate-skillio-fade-in"
-        style={{ background: "var(--paper)" }}
+        className="fixed z-50 bottom-4 right-4 left-4 md:left-auto md:bottom-auto md:w-[340px] rounded-2xl animate-skillio-fade-in"
+        style={{ background: "#fff", top: "50%", transform: "translateY(-50%)", boxShadow: "0 20px 50px rgba(72,56,142,.22)", border: "1px solid #eef0f6" }}
         onMouseEnter={onInteract}
         onTouchStart={onInteract}
       >
         {/* Header */}
         <div className="flex items-start justify-between px-5 pt-4 pb-0">
           <div>
-            <p className="font-display font-bold text-base text-ink leading-tight">
+            <p style={{ fontFamily:"var(--v3-po)", fontWeight:700, fontSize:15, color:"var(--v3-ink)", lineHeight:1.3 }}>
               ¿Cómo vas con Skillio?
             </p>
-            <p className="text-xs text-ink-soft mt-0.5">
+            <p style={{ fontSize:12, color:"var(--v3-muted)", marginTop:2 }}>
               30 segundos · Nos ayuda un montón
             </p>
           </div>
@@ -177,7 +177,7 @@ export function FeedbackWidget() {
                 onClick={handleSubmit}
                 disabled={!rating || loading}
                 className="flex-1 py-2.5 rounded-full font-display font-bold text-sm transition disabled:opacity-40"
-                style={{ background: "var(--accent)", color: "#FBF1EF" }}
+                style={{ background: "linear-gradient(135deg,#4f7dff,#8b5cf6)", color: "#fff" }}
               >
                 {loading ? "Enviando…" : "Enviar"}
               </button>

@@ -2,8 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { syncUserToSupabase } from "@/lib/sync-user";
 import { AppProviders } from "@/components/app-providers";
-import { ReferralNudge } from "@/components/referral-nudge";
-import { headers } from "next/headers";
 import { Sidebar } from "./_components/sidebar";
 import { Topbar } from "./_components/topbar";
 import { Booki } from "./_components/booki";
@@ -72,13 +70,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const reminders = buildReminders(upcomingEvents);
   const firstName = user.full_name?.split(" ")[0] ?? "estudiante";
 
-  const h = await headers();
-  const host = h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const referralUrl = user.referral_token
-    ? `${proto}://${host}/registro?ref=${user.referral_token}`
-    : `${proto}://${host}/registro`;
-
   return (
     <AppProviders offerStartedAt={user.offer_started_at}>
       <div className="v3-shell">
@@ -89,7 +80,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </div>
       <Booki firstName={firstName} reminders={reminders} />
-      <ReferralNudge referralUrl={referralUrl} />
     </AppProviders>
   );
 }
