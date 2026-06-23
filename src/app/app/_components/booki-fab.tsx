@@ -17,7 +17,8 @@ function getPage(pathname: string) {
   return PAGE_OPENERS.find((p) => pathname.startsWith(p.match)) ?? PAGE_OPENERS[PAGE_OPENERS.length - 1];
 }
 
-type Msg = { role: "user" | "assistant"; content: string };
+// isError=true → solo se muestra, no se envía a la API
+type Msg = { role: "user" | "assistant"; content: string; isError?: boolean };
 
 export function BookiFab({ firstName }: { firstName: string }) {
   const [open, setOpen] = useState(false);
@@ -44,10 +45,16 @@ export function BookiFab({ firstName }: { firstName: string }) {
     if (!text || loading) return;
     setInput("");
 
-    const newMessages: Msg[] = [...messages, { role: "user", content: text }];
-    setMessages(newMessages);
+    // Solo mandamos mensajes válidos a la API (sin errores de display)
+    const apiHistory = messages.filter(m => !m.isError);
+    const newMessages: Msg[] = [...apiHistory, { role: "user", content: text }];
+
+    setMessages((prev) => [
+      ...prev.filter(m => !m.isError), // limpia errores previos del display
+      { role: "user", content: text },
+      { role: "assistant", content: "" },
+    ]);
     setLoading(true);
-    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     try {
       const res = await fetch("/api/ai/booki-chat", {
@@ -57,12 +64,13 @@ export function BookiFab({ firstName }: { firstName: string }) {
       });
 
       let data: { text?: string; error?: string };
-      try { data = await res.json(); } catch { data = { error: `parse error (status ${res.status})` }; }
+      try { data = await res.json(); } catch { data = { error: `Error de conexión (${res.status})` }; }
 
       if (!res.ok || data.error) {
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: `ERROR: ${data.error ?? res.status}` };
+          // reemplaza el placeholder vacío con mensaje de error (marcado isError)
+          copy[copy.length - 1] = { role: "assistant", content: `Hubo un problema: ${data.error ?? res.status}`, isError: true };
           return copy;
         });
         return;
@@ -87,7 +95,7 @@ export function BookiFab({ firstName }: { firstName: string }) {
       const msg = e instanceof Error ? e.message : String(e);
       setMessages((prev) => {
         const copy = [...prev];
-        copy[copy.length - 1] = { role: "assistant", content: `CATCH: ${msg}` };
+        copy[copy.length - 1] = { role: "assistant", content: `Error de red: ${msg}`, isError: true };
         return copy;
       });
     } finally {
@@ -135,7 +143,11 @@ export function BookiFab({ firstName }: { firstName: string }) {
           <div className="bubble booki">{opener}</div>
 
           {messages.map((m, i) => (
-            <div key={i} className={`bubble ${m.role === "user" ? "user" : "booki"}`}>
+            <div
+              key={i}
+              className={`bubble ${m.role === "user" ? "user" : "booki"}`}
+              style={m.isError ? { background: "#fff1f2", color: "#c0392b", fontSize: 12 } : undefined}
+            >
               {m.content || (m.role === "assistant" && loading && i === messages.length - 1 ? (
                 <span className="btyping"><span /><span /><span /></span>
               ) : null)}
