@@ -10,9 +10,6 @@ type SearchParams = Promise<{ note_id?: string }>;
 type SummaryPoint = { emoji?: string; title: string; description: string; category?: string };
 type SummaryContent = { title?: string; intro?: string; points?: SummaryPoint[] };
 
-type MCQuestion = { kind: "multiple_choice"; question: string; options: string[]; correct: number; explanation: string };
-type TFQuestion = { kind: "true_false"; question: string; correct: boolean; explanation: string };
-type SimulacroContent = { title?: string; questions?: (MCQuestion | TFQuestion | { kind: "short_answer" })[] };
 
 export default async function ResumenPage({ searchParams }: { searchParams: SearchParams }) {
   const { userId } = await auth();
@@ -43,7 +40,6 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
   type SummaryWrapper = { data?: SummaryContent } & SummaryContent;
   const summaryWrapper = outputs?.find((o) => o.kind === "summary")?.content as SummaryWrapper | null;
   const summaryRaw: SummaryContent | null = summaryWrapper?.data ?? summaryWrapper ?? null;
-  const simulacroRaw = outputs?.find((o) => o.kind === "simulacro")?.content as SimulacroContent | null;
 
   const rawPoints: SummaryPoint[] = summaryRaw?.points ?? [];
 
@@ -57,22 +53,6 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
 
   const sections = Array.from(secMap.entries()).map(([name, points]) => ({ name, points }));
 
-  // Convertir preguntas de simulacro a formato de quiz (solo MC y TF)
-  const quizQuestions = (simulacroRaw?.questions ?? [])
-    .filter((q): q is MCQuestion | TFQuestion => q.kind === "multiple_choice" || q.kind === "true_false")
-    .map((q) => {
-      if (q.kind === "multiple_choice") {
-        return { pregunta: q.question, opciones: q.options, correcta: q.correct, explicacion: q.explanation };
-      } else {
-        return {
-          pregunta: q.question,
-          opciones: ["Verdadero", "Falso"],
-          correcta: q.correct ? 0 : 1,
-          explicacion: q.explanation,
-        };
-      }
-    });
-
   // URL del archivo original (para "Resumen completo")
   const { data: fileSignedUrl } = await sb.storage
     .from("notes-uploads")
@@ -84,7 +64,6 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     subjectName,
     intro: summaryRaw?.intro ?? "",
     sections: sections.length > 0 ? sections : [{ name: "Contenido", points: rawPoints }],
-    quizQuestions,
     fileUrl: fileSignedUrl?.signedUrl ?? null,
   };
 

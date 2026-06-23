@@ -53,23 +53,63 @@ export type ResumenData = {
   subjectName: string;
   intro: string;
   sections: SummarySection[];
-  quizQuestions: QuizQuestion[];
   fileUrl: string | null;
 };
 
 // ---- práctica rápida ----
 function PracticaQuiz({
-  questions,
+  point,
   topicName,
   onDone,
 }: {
-  questions: QuizQuestion[];
+  point: SummaryPoint;
   topicName: string;
   onDone: (correct: number, total: number, rect: DOMRect) => void;
 }) {
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [loadingQ, setLoadingQ] = useState(true);
+  const cacheRef = useRef<Map<string, QuizQuestion[]>>(new Map());
   const [current, setCurrent] = useState(0);
   const [answered, setAnswered] = useState<Record<number, { chosen: number; correct: boolean }>>({});
   const [finished, setFinished] = useState(false);
+
+  useEffect(() => {
+    const key = point.title;
+    if (cacheRef.current.has(key)) {
+      setQuestions(cacheRef.current.get(key)!);
+      setLoadingQ(false);
+      setCurrent(0);
+      setAnswered({});
+      setFinished(false);
+      return;
+    }
+    setLoadingQ(true);
+    setQuestions([]);
+    setCurrent(0);
+    setAnswered({});
+    setFinished(false);
+    fetch("/api/ai/practica-rapida", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: point.title, description: point.description, category: point.category }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.questions) {
+          cacheRef.current.set(key, d.questions);
+          setQuestions(d.questions);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingQ(false));
+  }, [point.title, point.description, point.category]);
+
+  if (loadingQ) return (
+    <div className="practica in" style={{ minHeight: 80, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <span className="btyping"><span /><span /><span /></span>
+      <span style={{ fontSize: 13, color: "var(--muted)" }}>Generando preguntas sobre este tema…</span>
+    </div>
+  );
 
   if (questions.length === 0) return null;
   const q = questions[current];
@@ -551,15 +591,13 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
             )}
           </div>
 
-          {/* práctica rápida */}
-          {data.quizQuestions.length > 0 && (
-            <PracticaQuiz
-              key={safeActiveIdx}
-              questions={data.quizQuestions.slice(safeActiveIdx * 2, safeActiveIdx * 2 + 2)}
-              topicName={point.title}
-              onDone={handleQuizDone}
-            />
-          )}
+          {/* práctica rápida — preguntas generadas dinámicamente por tema */}
+          <PracticaQuiz
+            key={`${data.noteId}-${safeActiveIdx}`}
+            point={point}
+            topicName={point.title}
+            onDone={handleQuizDone}
+          />
 
           {/* nav entre temas */}
           <div style={{ display: "flex", gap: 12, marginTop: 8, paddingBottom: 40 }}>

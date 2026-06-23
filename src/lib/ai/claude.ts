@@ -285,9 +285,10 @@ async function mapReduceText(text: string): Promise<string> {
 // usuario no divide nada a mano. Devuelve el texto condensado, o null si el PDF
 // es chico (→ se manda nativo) o no se pudo parsear.
 // ---------------------------------------------------------------------------
-const PDF_NATIVE_PAGE_LIMIT = 30; // <= esto: PDF nativo directo a Anthropic
-const PDF_CHUNK_PAGES = 25; // tamaño de cada trozo cuando hay que partir
-const PDF_MAX_PAGES = 400; // tope de seguridad (evita abusos / latencia extrema)
+const PDF_NATIVE_PAGE_LIMIT = 30;     // free: cap a estas páginas, sin map-reduce
+const PDF_PRO_NATIVE_LIMIT = 60;      // pro: nativo hasta aquí antes de map-reduce
+const PDF_CHUNK_PAGES = 25;           // tamaño de cada trozo en map-reduce
+const PDF_MAX_PAGES = 400;            // tope de seguridad
 
 const PDF_MAP_SYSTEM =
   "Sos un asistente académico. Resumí de forma EXHAUSTIVA los conceptos clave de esta parte de un apunte, preservando definiciones técnicas, fórmulas, nombres, fechas y datos exactos. No omitas nada importante. No agregues introducciones ni cierres: solo el contenido condensado.";
@@ -405,7 +406,26 @@ export async function buildUserContent(
       ];
     }
 
-    // PAID: PDF largo → auto-split con map-reduce. PDF chico → nativo.
+    // PAID: nativo hasta 60 páginas; map-reduce solo para PDFs muy grandes.
+    // Esto cubre ~95% de los apuntes universitarios reales sin condensación.
+    try {
+      const doc = await PDFDocument.load(pdfData, { ignoreEncryption: true });
+      if (doc.getPageCount() <= PDF_PRO_NATIVE_LIMIT) {
+        return [
+          {
+            type: "file" as const,
+            mediaType: "application/pdf" as const,
+            data: pdfData,
+            filename: content.fileName,
+            experimental_providerMetadata: {
+              anthropic: { cacheControl: { type: "ephemeral" } },
+            },
+          },
+          { type: "text" as const, text: instruction },
+        ];
+      }
+    } catch { /* no se pudo leer el doc, cae al map-reduce */ }
+
     const condensed = await maybeCondensePdf(content.data);
     if (condensed) {
       const finalText =
