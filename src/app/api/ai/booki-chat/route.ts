@@ -13,12 +13,19 @@ Reglas:
 - Nunca decís que sos una IA de Anthropic. Sos Booki, el profe de Skillio.
 - Usás emojis con moderación (1 por mensaje máx).`;
 
+// GET: endpoint de diagnóstico — abrí /api/ai/booki-chat en el browser
+export async function GET() {
+  const { userId } = await auth().catch(() => ({ userId: null }));
+  return NextResponse.json({ ok: true, userId: userId ?? "no-auth", ts: Date.now() });
+}
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-    const { messages, pageContext } = await req.json();
+    const body = await req.json();
+    const { messages, pageContext } = body;
     if (!Array.isArray(messages) || messages.length === 0)
       return NextResponse.json({ error: "messages required" }, { status: 400 });
 
@@ -33,7 +40,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ text: result.text.trim() });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "error";
+    const msg = e instanceof Error ? e.message : String(e);
     console.error("[api/ai/booki-chat]", e);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
