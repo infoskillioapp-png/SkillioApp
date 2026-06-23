@@ -106,6 +106,7 @@ export async function POST(req: Request) {
 
   const title = ((form.get("title") as string) || file.name).trim();
   const subject_id = (form.get("subject_id") as string) || null;
+  const segmentsRaw = form.get("segments") as string | null;
 
   const sb = supabaseAdmin();
 
@@ -130,7 +131,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "storage_failed" }, { status: 500 });
   }
 
-  // Insert row
+  // Segmentos: el PDF se sube UNA vez y se crean N notes con rangos de páginas
+  if (segmentsRaw) {
+    type Segment = { title: string; page_from: number; page_to: number };
+    let segments: Segment[];
+    try {
+      segments = JSON.parse(segmentsRaw);
+    } catch {
+      await sb.storage.from(BUCKET).remove([path]);
+      return NextResponse.json({ error: "invalid_segments" }, { status: 400 });
+    }
+
+    const inserted: unknown[] = [];
+    for (const seg of segments) {
+      const { data, error: insErr } = await sb
+        .from("notes")
+        .insert({
+          user_id: u.id,
+          subject_id: subject_id || null,
+          title: seg.title.trim() || title,
+          file_name: file.name,
+          file_path: path,
+          file_type: resolved.kind,
+          file_size_bytes: file.size,
+          page_from: seg.page_from,
+          page_to: seg.page_to,
+        })
+        .select("*")
+        .single();
+      if (insErr) {
+        console.error("[notes.upload] insert segment", insErr);
+        Sentry.captureException(insErr, { extra: { step: "insert_segment" } });
+      } else {
+        inserted.push(data);
+      }
+    }
+
+    if (!inserted.length) {
+      await sb.storage.from(BUCKET).remove([path]);
+      return NextResponse.json({ error: "insert_failed" }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, notes: inserted, note: inserted[0] });
+  }
+
+  // Insert row (apunte simple)
   const { data: inserted, error: insErr } = await sb
     .from("notes")
     .insert({

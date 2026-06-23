@@ -40,15 +40,18 @@ const SimulacroSchema = z.object({
   title: z.string().describe("Título del simulacro basado en el contenido del apunte"),
   questions: z
     .array(z.discriminatedUnion("kind", [MultipleChoice, TrueFalse, ShortAnswer]))
-    .min(5)
-    .max(10),
+    .min(3)
+    .max(20),
 });
 
 const SYSTEM_PROMPT =
-  "Sos un docente universitario que arma simulacros de examen en español rioplatense. Para cada apunte que recibís generás un examen mixto de 5 a 8 preguntas: opción múltiple, verdadero/falso, y desarrollo corto. Las preguntas deben evaluar comprensión y aplicación (no solo memorización). Las opciones de multiple choice deben tener exactamente 4 alternativas plausibles. Las explicaciones tienen que justificar por qué la respuesta es correcta y por qué las otras son incorrectas. Nunca inventes información que no esté en el apunte.";
+  "Sos un docente universitario que arma simulacros de examen en español rioplatense. Generás exámenes mixtos con preguntas de opción múltiple, verdadero/falso y desarrollo corto. Las preguntas deben evaluar comprensión y aplicación (no solo memorización). Las opciones de multiple choice deben tener exactamente 4 alternativas plausibles. Las explicaciones tienen que justificar por qué la respuesta es correcta y por qué las otras son incorrectas. Nunca inventes información que no esté en el apunte.";
 
-const USER_INSTRUCTION =
-  "Armá un simulacro de examen sobre este apunte. Mezclá tipos de pregunta (multiple_choice, true_false, short_answer). Devolvé SIEMPRE en español.";
+const USER_INSTRUCTION_FREE =
+  "Armá una muestra de 5 preguntas sobre los conceptos principales de este apunte. Mezclá tipos de pregunta (multiple_choice, true_false, short_answer). Devolvé SIEMPRE en español.";
+
+const USER_INSTRUCTION_PRO =
+  "Armá un simulacro completo de 20 preguntas sobre este apunte. Cubrí la mayor cantidad de temas y subtemas posible. Mezclá tipos de pregunta (multiple_choice, true_false, short_answer), con predominio de multiple_choice. Devolvé SIEMPRE en español.";
 
 export async function POST(req: Request) {
   try {
@@ -70,7 +73,8 @@ export async function POST(req: Request) {
         { status: 402 },
       );
 
-    const userParts = await buildUserContent(content, USER_INSTRUCTION);
+    const userInstruction = isPaid ? USER_INSTRUCTION_PRO : USER_INSTRUCTION_FREE;
+    const userParts = await buildUserContent(content, userInstruction, isPaid);
 
     const result = await generateObject({
       model: anthropic(model),

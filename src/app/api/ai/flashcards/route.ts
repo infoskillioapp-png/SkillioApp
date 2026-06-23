@@ -24,14 +24,17 @@ const FlashcardsSchema = z.object({
   deck_title: z
     .string()
     .describe("Título corto descriptivo del mazo basado en el apunte"),
-  cards: z.array(Flashcard).min(8).max(20),
+  cards: z.array(Flashcard).min(3).max(15),
 });
 
 const SYSTEM_PROMPT =
   "Sos un asistente de estudio en español rioplatense que arma mazos de flashcards para repetición espaciada. Para cada concepto importante creás una tarjeta con una pregunta clara al frente y una respuesta concisa al dorso. Las preguntas deben ser activas (no 'qué es X' sino 'cuál es la diferencia entre X e Y', 'cuándo se aplica X', 'qué pasa si...'). Nunca inventes información que no esté en el apunte.";
 
-const USER_INSTRUCTION =
-  "Generá entre 8 y 15 flashcards de alta calidad a partir de este apunte. Cubrí los conceptos centrales y agrupalos por subtema en `category` cuando tenga sentido. Devolvé SIEMPRE en español.";
+const USER_INSTRUCTION_FREE =
+  "Generá 5 flashcards de muestra sobre los conceptos más importantes de este apunte. Agrupalos por subtema en `category`. Devolvé SIEMPRE en español.";
+
+const USER_INSTRUCTION_PRO =
+  "Generá exactamente 15 flashcards de alta calidad a partir de este apunte. Cubrí todos los conceptos centrales y agrupalos por subtema en `category`. Devolvé SIEMPRE en español.";
 
 export async function POST(req: Request) {
   try {
@@ -54,7 +57,8 @@ export async function POST(req: Request) {
       );
     // FREE y semanal siempre generan; gate visual en cliente.
 
-    const userParts = await buildUserContent(content, USER_INSTRUCTION);
+    const userInstruction = isPaid ? USER_INSTRUCTION_PRO : USER_INSTRUCTION_FREE;
+    const userParts = await buildUserContent(content, userInstruction, isPaid);
 
     const result = await generateObject({
       model: anthropic(model),

@@ -2,6 +2,7 @@
 
 import { useClerk } from "@clerk/nextjs";
 import Link from "next/link";
+import { useState } from "react";
 
 type Props = {
   name: string;
@@ -28,6 +29,21 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
   const { signOut } = useClerk();
   const initial = name.trim().charAt(0).toUpperCase();
   const isPro = plan === "pro" || plan === "semanal" || plan === "free_trial";
+  const canCancel = plan === "pro" || plan === "semanal";
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+
+  async function handleCancel() {
+    if (!confirmCancel) { setConfirmCancel(true); return; }
+    setCancelling(true);
+    try {
+      const res = await fetch("/api/subscription/cancel", { method: "POST" });
+      if (res.ok) { setCancelled(true); setConfirmCancel(false); }
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   return (
     <div className="perfil-wrap">
@@ -89,6 +105,48 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
             </svg>
             Ver planes PRO
           </Link>
+        </div>
+      )}
+
+      {/* cancelar suscripción */}
+      {canCancel && (
+        <div className="perfil-section in" style={{ marginBottom: 16 }}>
+          <h3>Suscripción</h3>
+          {cancelled ? (
+            <div style={{ padding: "16px 20px", fontSize: 13.5, color: "#16a34a" }}>
+              ✓ Tu suscripción fue cancelada. Seguirás con acceso hasta que venza el período actual.
+            </div>
+          ) : (
+            <div className="perfil-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+              {confirmCancel ? (
+                <>
+                  <span style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
+                    ¿Estás seguro? Perderás acceso PRO al vencer el período actual.
+                  </span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      className="praction danger"
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                    >
+                      {cancelling ? "Cancelando…" : "Sí, cancelar"}
+                    </button>
+                    <button
+                      className="praction"
+                      onClick={() => setConfirmCancel(false)}
+                      disabled={cancelling}
+                    >
+                      Volver
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button className="praction danger" onClick={handleCancel}>
+                  Cancelar suscripción
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

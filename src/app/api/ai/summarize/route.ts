@@ -140,7 +140,7 @@ export async function POST(req: Request) {
       );
     // FREE y semanal siempre generan; el gate visual es content-lock en el cliente.
 
-    const userParts = await buildUserContent(content, FORMAT_PROMPTS[format]);
+    const userParts = await buildUserContent(content, FORMAT_PROMPTS[format], isPaid);
 
     let payload: unknown;
     let usage: { inputTokens?: number; outputTokens?: number } | undefined;

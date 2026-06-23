@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { PdfSplitter } from "./pdf-splitter";
+
+const PDF_PAGE_LIMIT = 30;
 
 type Tab = "file" | "text" | "yt" | "drive";
 
@@ -12,6 +15,8 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   const [textInput, setTextInput] = useState("");
   const [ytUrl, setYtUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [splitterFile, setSplitterFile] = useState<File | null>(null);
+  const [splitterPages, setSplitterPages] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -24,6 +29,28 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   }, [onClose]);
 
   async function uploadFile(file: File) {
+    const isPdf =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
+
+    if (isPdf) {
+      setUploading(true);
+      try {
+        const buf = await file.arrayBuffer();
+        const res = await fetch("/api/notes/pdf-info", { method: "POST", body: buf });
+        if (res.ok) {
+          const { pages } = await res.json();
+          if (pages > PDF_PAGE_LIMIT) {
+            setSplitterFile(file);
+            setSplitterPages(pages);
+            return;
+          }
+        }
+      } finally {
+        setUploading(false);
+      }
+    }
+
     setUploading(true);
     try {
       const form = new FormData();
@@ -98,18 +125,31 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
     <div
       id="upModal"
       className="show"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) { setSplitterFile(null); onClose(); } }}
     >
       <div className="um-card">
         <div className="um-head">
-          <h3>Creá tu estudio desde:</h3>
-          <button className="um-x" onClick={onClose} aria-label="Cerrar">
+          <h3>{splitterFile ? "Dividir apunte" : "Creá tu estudio desde:"}</h3>
+          <button className="um-x" onClick={() => { setSplitterFile(null); onClose(); }} aria-label="Cerrar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
 
+        {/* Vista divisor de PDF */}
+        {splitterFile && (
+          <div style={{ padding: "0 4px 4px" }}>
+            <PdfSplitter
+              file={splitterFile}
+              totalPages={splitterPages}
+              onBack={() => setSplitterFile(null)}
+            />
+          </div>
+        )}
+
+        {/* Vista normal */}
+        {!splitterFile && <>
         <div className="um-tabs">
           {TABS.map((t) => (
             <button
@@ -186,6 +226,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
         )}
 
         <div className="um-foot">Cada set puede incluir hasta 10 fuentes.</div>
+        </>}
       </div>
     </div>
   );

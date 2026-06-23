@@ -78,8 +78,29 @@ export async function getNoteContent(noteId: string): Promise<{
   const dl = await sb.storage.from(BUCKET).download(typedNote.file_path);
   if (dl.error || !dl.data) throw new Error("storage_download_failed");
 
-  const arr = new Uint8Array(await dl.data.arrayBuffer());
+  let arr = new Uint8Array(await dl.data.arrayBuffer());
   const mime = dl.data.type || "";
+
+  // Divisor de PDFs: si el apunte tiene rango de páginas, extraemos solo ese fragmento
+  if (
+    (typedNote.file_type === "pdf" || mime === "application/pdf") &&
+    typedNote.page_from != null &&
+    typedNote.page_to != null
+  ) {
+    try {
+      const fullDoc = await PDFDocument.load(arr, { ignoreEncryption: true });
+      const sub = await PDFDocument.create();
+      const from0 = typedNote.page_from - 1; // pdf-lib es 0-indexed
+      const to0 = Math.min(typedNote.page_to - 1, fullDoc.getPageCount() - 1);
+      const indices = Array.from({ length: to0 - from0 + 1 }, (_, k) => from0 + k);
+      const pages = await sub.copyPages(fullDoc, indices);
+      pages.forEach((p) => sub.addPage(p));
+      const saved = await sub.save();
+      arr = new Uint8Array(saved.buffer as ArrayBuffer);
+    } catch (e) {
+      console.warn("[getNoteContent] no se pudo slicear el PDF, se usa completo:", e);
+    }
+  }
 
   let content: NoteContent;
   if (typedNote.file_type === "pdf" || mime === "application/pdf") {
@@ -341,14 +362,50 @@ async function maybeCondensePdf(bytes: Uint8Array): Promise<string | null> {
 // buildUserContent — construye el content para el mensaje de usuario.
 // Para PDFs e imágenes: pasa el binario directo con cache control.
 // Para texto largo: aplica map-reduce antes de mandarlo al modelo final.
+//
+// isPaid: false → usuarios free/semanal. Se limitan a las primeras
+// PDF_NATIVE_PAGE_LIMIT páginas sin map-reduce (barato, ~$0.03/llamada con
+// caché). true → usuarios pro con map-reduce completo para PDFs grandes.
 // ---------------------------------------------------------------------------
 export async function buildUserContent(
   content: NoteContent,
   instruction: string,
+  isPaid = true,
 ) {
   if (content.type === "pdf") {
-    // PDF largo → auto-split: lo troceamos y condensamos a texto (el usuario no
-    // divide nada). PDF chico → nativo (Anthropic lo procesa directo).
+    let pdfData = content.data;
+
+    if (!isPaid) {
+      // FREE: cap a las primeras PDF_NATIVE_PAGE_LIMIT páginas, sin map-reduce.
+      // Esto garantiza que el costo por llamada sea siempre < $0.04.
+      try {
+        const doc = await PDFDocument.load(pdfData, { ignoreEncryption: true });
+        if (doc.getPageCount() > PDF_NATIVE_PAGE_LIMIT) {
+          const sub = await PDFDocument.create();
+          const indices = Array.from({ length: PDF_NATIVE_PAGE_LIMIT }, (_, k) => k);
+          const pages = await sub.copyPages(doc, indices);
+          pages.forEach((p) => sub.addPage(p));
+          const saved = await sub.save();
+          pdfData = new Uint8Array(saved.buffer as ArrayBuffer);
+        }
+      } catch (e) {
+        console.warn("[buildUserContent] free PDF cap failed:", e);
+      }
+      return [
+        {
+          type: "file" as const,
+          mediaType: "application/pdf" as const,
+          data: pdfData,
+          filename: content.fileName,
+          experimental_providerMetadata: {
+            anthropic: { cacheControl: { type: "ephemeral" } },
+          },
+        },
+        { type: "text" as const, text: instruction },
+      ];
+    }
+
+    // PAID: PDF largo → auto-split con map-reduce. PDF chico → nativo.
     const condensed = await maybeCondensePdf(content.data);
     if (condensed) {
       const finalText =

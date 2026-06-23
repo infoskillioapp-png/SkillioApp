@@ -51,6 +51,9 @@ export type Note = {
   comm_subject: string | null;
   comm_year: number | null;
   comm_month: number | null;
+  // Divisor de PDFs: si está seteado, solo procesar este rango de páginas
+  page_from: number | null;
+  page_to: number | null;
 };
 
 /** Paleta de colores para Materias y eventos */
