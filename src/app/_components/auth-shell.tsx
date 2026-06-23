@@ -13,6 +13,7 @@ export function AuthShell({ step, title, lead, children, footerLink }: Props) {
   return (
     <>
       <style>{`
+        /* ── Animaciones ── */
         @keyframes bookiBounce {
           0%, 100% { transform: translateY(0px); }
           50%       { transform: translateY(-18px); }
@@ -34,23 +35,105 @@ export function AuthShell({ step, title, lead, children, footerLink }: Props) {
           50%       { transform: translateY(-16px) scale(1.06); }
         }
         .auth-bounce { animation: bookiBounce 2.4s ease-in-out infinite; }
-        .auth-floatA { animation: floatA 3.1s ease-in-out infinite; }
-        .auth-floatB { animation: floatB 3.8s ease-in-out infinite; }
-        .auth-floatC { animation: floatC 2.7s ease-in-out infinite; }
-        .auth-floatD { animation: floatD 4.2s ease-in-out infinite; }
+        .auth-fA     { animation: floatA 3.1s ease-in-out infinite; }
+        .auth-fB     { animation: floatB 3.8s ease-in-out infinite; }
+        .auth-fC     { animation: floatC 2.7s ease-in-out infinite; }
+        .auth-fD     { animation: floatD 4.2s ease-in-out infinite; }
+
+        /* ── Strip Clerk card chrome ── */
+        .cl-card, .cl-cardBox {
+          background: transparent !important;
+          box-shadow: none !important;
+          border: none !important;
+          padding: 0 !important;
+        }
+        .cl-header  { display: none !important; }
+        .cl-footer  { display: none !important; }
+
+        /* ── Panel ilustración: oculto mobile, visible desktop ── */
+        .auth-illustration { display: none; }
+        @media (min-width: 768px) {
+          .auth-illustration { display: block; }
+        }
       `}</style>
 
       <div style={{
-        position: "fixed", inset: 0, display: "flex",
+        position: "fixed", inset: 0, display: "flex", flexDirection: "row",
         background: "radial-gradient(1100px 560px at 78% -8%, #f1ecff, transparent), radial-gradient(900px 520px at -5% 105%, #e9f0ff, transparent), #eef0fb",
         overflow: "hidden",
       }}>
 
-        {/* ── PANEL IZQUIERDO — FORM ── */}
+        {/* ── IZQUIERDA — ILUSTRACIÓN ── */}
+        <div className="auth-illustration" style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+
+          {/* Booki — centro, bouncing */}
+          <div className="auth-bounce" style={{
+            position: "absolute", top: "50%", left: "50%",
+            transform: "translate(-50%, -54%)", zIndex: 2,
+          }}>
+            <Image
+              src="/booki%20con%20libros%20login.png"
+              alt="Booki"
+              width={320} height={360}
+              style={{ width: 320, height: "auto", filter: "drop-shadow(0 24px 40px rgba(100,50,200,.22))" }}
+              priority
+            />
+          </div>
+
+          {/* Argolla grande — arriba izquierda */}
+          <div className="auth-fA" style={{ position: "absolute", top: "10%", left: "8%", width: 110, zIndex: 3 }}>
+            <Image src="/argolla%20login.png" alt="" width={110} height={110} style={{ width: 110, height: "auto" }} />
+          </div>
+
+          {/* Argolla pequeña — abajo derecha */}
+          <div className="auth-fC" style={{ position: "absolute", bottom: "14%", right: "10%", width: 64, zIndex: 3 }}>
+            <Image src="/argolla%20login.png" alt="" width={64} height={64} style={{ width: 64, height: "auto", opacity: 0.82 }} />
+          </div>
+
+          {/* Argolla mediana — abajo izquierda */}
+          <div className="auth-fB" style={{ position: "absolute", bottom: "22%", left: "5%", width: 80, zIndex: 3 }}>
+            <Image src="/argolla%20login.png" alt="" width={80} height={80} style={{ width: 80, height: "auto", opacity: 0.68 }} />
+          </div>
+
+          {/* Cubo grande — arriba derecha */}
+          <div className="auth-fB" style={{ position: "absolute", top: "8%", right: "14%", width: 90, zIndex: 3 }}>
+            <Image src="/cubo%20login.png" alt="" width={90} height={90} style={{ width: 90, height: "auto" }} />
+          </div>
+
+          {/* Cubo mediano — izquierda media */}
+          <div className="auth-fC" style={{ position: "absolute", top: "44%", left: "4%", width: 62, zIndex: 3 }}>
+            <Image src="/cubo%20login.png" alt="" width={62} height={62} style={{ width: 62, height: "auto", opacity: 0.88 }} />
+          </div>
+
+          {/* Cubo pequeño — abajo centro */}
+          <div className="auth-fA" style={{ position: "absolute", bottom: "8%", left: "38%", width: 46, zIndex: 3 }}>
+            <Image src="/cubo%20login.png" alt="" width={46} height={46} style={{ width: 46, height: "auto", opacity: 0.72 }} />
+          </div>
+
+          {/* Bola grande — arriba centro-izq */}
+          <div className="auth-fD" style={{ position: "absolute", top: "18%", left: "22%", width: 72, zIndex: 3 }}>
+            <Image src="/bola%20login.png" alt="" width={72} height={72} style={{ width: 72, height: "auto" }} />
+          </div>
+
+          {/* Bola pequeña — derecha media */}
+          <div className="auth-fA" style={{ position: "absolute", top: "55%", right: "6%", width: 48, zIndex: 3 }}>
+            <Image src="/bola%20login.png" alt="" width={48} height={48} style={{ width: 48, height: "auto", opacity: 0.78 }} />
+          </div>
+
+          {/* Bola mini — abajo izquierda */}
+          <div className="auth-fC" style={{ position: "absolute", bottom: "10%", left: "28%", width: 36, zIndex: 3 }}>
+            <Image src="/bola%20login.png" alt="" width={36} height={36} style={{ width: 36, height: "auto", opacity: 0.62 }} />
+          </div>
+        </div>
+
+        {/* ── DERECHA — FORM ── */}
         <div style={{
-          flex: "0 0 auto", width: "min(480px, 100%)",
+          flex: "0 0 auto",
+          width: "min(480px, 100%)",
           display: "flex", flexDirection: "column",
-          padding: "32px 48px", overflowY: "auto", position: "relative", zIndex: 2,
+          padding: "32px 48px",
+          overflowY: "auto",
+          position: "relative", zIndex: 2,
         }}>
           <div style={{
             fontFamily: "var(--po)", fontWeight: 700, fontSize: 11,
@@ -63,7 +146,7 @@ export function AuthShell({ step, title, lead, children, footerLink }: Props) {
           <div style={{ paddingTop: 40, paddingBottom: 40 }}>
             <h1 style={{
               fontFamily: "var(--po)", fontWeight: 800,
-              fontSize: "clamp(34px, 4vw, 46px)", letterSpacing: "-0.03em",
+              fontSize: "clamp(32px, 3.5vw, 44px)", letterSpacing: "-0.03em",
               lineHeight: 1.05, color: "#1f2347", marginBottom: 10,
             }}>
               {title}
@@ -90,73 +173,6 @@ export function AuthShell({ step, title, lead, children, footerLink }: Props) {
           </div>
         </div>
 
-        {/* ── PANEL DERECHO — ILUSTRACIÓN (solo desktop) ── */}
-        <div style={{
-          flex: 1, position: "relative", overflow: "hidden",
-          display: "none",
-        }} className="md:block">
-
-          {/* Booki central — bouncing */}
-          <div className="auth-bounce" style={{
-            position: "absolute", top: "50%", left: "50%",
-            transform: "translate(-50%, -54%)",
-            zIndex: 2,
-          }}>
-            <Image
-              src="/booki%20con%20libros%20login.png"
-              alt="Booki"
-              width={320} height={360}
-              style={{ width: 320, height: "auto", filter: "drop-shadow(0 24px 40px rgba(100,50,200,.22))" }}
-              priority
-            />
-          </div>
-
-          {/* Argolla grande — arriba izquierda */}
-          <div className="auth-floatA" style={{ position: "absolute", top: "10%", left: "8%", width: 110 }}>
-            <Image src="/argolla%20login.png" alt="" width={110} height={110} style={{ width: 110, height: "auto" }} />
-          </div>
-
-          {/* Argolla pequeña — abajo derecha */}
-          <div className="auth-floatC" style={{ position: "absolute", bottom: "14%", right: "10%", width: 64 }}>
-            <Image src="/argolla%20login.png" alt="" width={64} height={64} style={{ width: 64, height: "auto", opacity: 0.85 }} />
-          </div>
-
-          {/* Argolla mediana — abajo izquierda */}
-          <div className="auth-floatB" style={{ position: "absolute", bottom: "22%", left: "5%", width: 80 }}>
-            <Image src="/argolla%20login.png" alt="" width={80} height={80} style={{ width: 80, height: "auto", opacity: 0.7 }} />
-          </div>
-
-          {/* Cubo grande — arriba derecha */}
-          <div className="auth-floatB" style={{ position: "absolute", top: "8%", right: "12%", width: 90 }}>
-            <Image src="/cubo%20login.png" alt="" width={90} height={90} style={{ width: 90, height: "auto" }} />
-          </div>
-
-          {/* Cubo mediano — izquierda media */}
-          <div className="auth-floatC" style={{ position: "absolute", top: "45%", left: "4%", width: 64 }}>
-            <Image src="/cubo%20login.png" alt="" width={64} height={64} style={{ width: 64, height: "auto", opacity: 0.9 }} />
-          </div>
-
-          {/* Cubo pequeño — abajo centro */}
-          <div className="auth-floatA" style={{ position: "absolute", bottom: "8%", left: "38%", width: 46 }}>
-            <Image src="/cubo%20login.png" alt="" width={46} height={46} style={{ width: 46, height: "auto", opacity: 0.75 }} />
-          </div>
-
-          {/* Bola grande — arriba centro-izquierda */}
-          <div className="auth-floatD" style={{ position: "absolute", top: "18%", left: "22%", width: 72 }}>
-            <Image src="/bola%20login.png" alt="" width={72} height={72} style={{ width: 72, height: "auto" }} />
-          </div>
-
-          {/* Bola pequeña — derecha media */}
-          <div className="auth-floatA" style={{ position: "absolute", top: "55%", right: "6%", width: 48 }}>
-            <Image src="/bola%20login.png" alt="" width={48} height={48} style={{ width: 48, height: "auto", opacity: 0.8 }} />
-          </div>
-
-          {/* Bola mini — abajo izquierda */}
-          <div className="auth-floatC" style={{ position: "absolute", bottom: "10%", left: "28%", width: 36 }}>
-            <Image src="/bola%20login.png" alt="" width={36} height={36} style={{ width: 36, height: "auto", opacity: 0.65 }} />
-          </div>
-
-        </div>
       </div>
     </>
   );
