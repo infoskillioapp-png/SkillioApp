@@ -8,7 +8,7 @@ export default function LoginPage() {
       step="Acceso"
       title={
         <>
-          Bienvenido <em className="italic text-accent">de nuevo.</em>
+          Bienvenido <em style={{ fontStyle: "italic", color: "#9655E5" }}>de nuevo.</em>
         </>
       }
       lead="Continuá tu racha. Hoy es tu día más productivo de la semana."
@@ -17,7 +17,8 @@ export default function LoginPage() {
           ¿No tenés cuenta?{" "}
           <Link
             href="/registro"
-            className="underline underline-offset-2 text-ink hover:text-accent transition"
+            style={{ color: "#1f2347", textDecoration: "underline", textUnderlineOffset: 2 }}
+            className="hover:text-[#9655E5] transition"
           >
             Registrate gratis
           </Link>
@@ -30,6 +31,17 @@ export default function LoginPage() {
         signUpUrl="/registro"
         fallbackRedirectUrl="/app"
         appearance={{
+          variables: {
+            colorPrimary: "#9655E5",
+            colorText: "#1f2347",
+            colorTextSecondary: "#8487a6",
+            colorBackground: "transparent",
+            colorInputBackground: "transparent",
+            colorInputText: "#1f2347",
+            borderRadius: "14px",
+            fontFamily: '"Inter", -apple-system, system-ui, sans-serif',
+            fontSize: "15px",
+          },
           elements: {
             rootBox: "w-full",
             cardBox: "w-full shadow-none border-none",
@@ -37,21 +49,24 @@ export default function LoginPage() {
             header: "hidden",
             footer: "hidden",
             socialButtonsBlockButton:
-              "border border-rule bg-paper-warm text-ink rounded-full hover:border-ink-soft transition normal-case font-medium",
-            socialButtonsBlockButtonText: "text-ink",
-            dividerLine: "bg-rule",
+              "!border !border-[#eef0f6] !bg-white !text-[#1f2347] !rounded-xl !font-medium !normal-case hover:!border-[#9655E5] transition",
+            socialButtonsBlockButtonText: "!text-[#1f2347]",
+            dividerLine: "!bg-[#eef0f6]",
             dividerText:
-              "text-ink-soft text-[10.5px] tracking-[0.14em] uppercase font-semibold",
+              "!text-[#8487a6] !text-[10.5px] !tracking-[0.14em] !uppercase !font-semibold",
             formFieldLabel:
-              "text-[10.5px] tracking-[0.14em] uppercase text-ink-soft font-semibold",
+              "!text-[10.5px] !tracking-[0.14em] !uppercase !text-[#8487a6] !font-semibold",
             formFieldInput:
-              "bg-transparent border-0 border-b border-rule rounded-none px-0 py-2 focus:border-accent focus:ring-0 text-base text-ink",
+              "!bg-transparent !border-0 !border-b !border-[#eef0f6] !rounded-none !px-0 !py-2 !text-base !text-[#1f2347] focus:!border-[#9655E5] focus:!ring-0 focus:!shadow-none",
             formButtonPrimary:
-              "bg-ink text-bg hover:bg-accent hover:text-bg font-display font-semibold rounded-full normal-case text-sm shadow-none",
-            identityPreviewEditButton: "text-accent",
-            formResendCodeLink: "text-accent",
+              "!bg-[#9655E5] !text-white hover:!bg-[#7c3fcf] !font-semibold !rounded-full !normal-case !text-sm !shadow-none",
+            identityPreviewEditButton: "!text-[#9655E5]",
+            formResendCodeLink: "!text-[#9655E5]",
+            footerActionLink: "!text-[#9655E5]",
+            alternativeMethodsBlockButton:
+              "!border !border-[#eef0f6] !text-[#1f2347] !rounded-xl !normal-case hover:!border-[#9655E5]",
           },
-          layout: { socialButtonsPlacement: "bottom" },
+          layout: { socialButtonsPlacement: "top" },
         }}
       />
     </AuthShell>
