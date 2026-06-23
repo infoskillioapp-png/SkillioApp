@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isPaidPlan } from "@/lib/ai/claude";
+import { isDemoNoteId, getDemoSimulacro } from "@/lib/demo-content";
 import { SimulacroClient } from "./_components/simulacro-client";
 import type { SimulacroData, SimQuestion } from "./_components/simulacro-client";
 
@@ -18,6 +19,12 @@ export default async function SimulacroPage({ searchParams }: { searchParams: Se
 
   const { note_id } = await searchParams;
   if (!note_id) redirect("/app");
+
+  if (isDemoNoteId(note_id)) {
+    const demoData = getDemoSimulacro(note_id);
+    if (!demoData) redirect("/app");
+    return <SimulacroClient data={demoData} isPro={false} />;
+  }
 
   const sb = supabaseAdmin();
 

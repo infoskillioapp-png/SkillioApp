@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isPaidPlan } from "@/lib/ai/claude";
+import { isDemoNoteId, getDemoTarjetas } from "@/lib/demo-content";
 import { TarjetasClient } from "./_components/tarjetas-client";
 import type { TarjetasData } from "./_components/tarjetas-client";
 
@@ -17,6 +18,12 @@ export default async function TarjetasPage({ searchParams }: { searchParams: Sea
 
   const { note_id } = await searchParams;
   if (!note_id) redirect("/app");
+
+  if (isDemoNoteId(note_id)) {
+    const demoData = getDemoTarjetas(note_id);
+    if (!demoData) redirect("/app");
+    return <TarjetasClient data={demoData} isPro={false} />;
+  }
 
   const sb = supabaseAdmin();
 

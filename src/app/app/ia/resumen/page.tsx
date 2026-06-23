@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isPaidPlan } from "@/lib/ai/claude";
+import { isDemoNoteId, getDemoResumen } from "@/lib/demo-content";
 import { ResumenClient } from "./_components/resumen-client";
 import type { ResumenData } from "./_components/resumen-client";
 
@@ -17,6 +18,13 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
 
   const { note_id } = await searchParams;
   if (!note_id) redirect("/app");
+
+  // Demo: contenido hardcodeado, cero tokens, carga instantánea
+  if (isDemoNoteId(note_id)) {
+    const demoData = getDemoResumen(note_id);
+    if (!demoData) redirect("/app");
+    return <ResumenClient data={demoData} isPro={false} isDemo />;
+  }
 
   const sb = supabaseAdmin();
 

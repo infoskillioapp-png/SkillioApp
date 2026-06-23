@@ -383,7 +383,7 @@ function ResumenSidebar({
 }
 
 // ---- componente principal ----
-export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boolean }) {
+export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenData; isPro: boolean; isDemo?: boolean }) {
   // allPoints con indices de sección para sync con espacio mapa
   const allPoints: { point: SummaryPoint; secName: string; secIdx: number; pointIdx: number }[] = [];
   data.sections.forEach((sec, si) => {
@@ -470,13 +470,32 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
 
       {showPaywall && <SalePopup ctx="resumen" onClose={() => setShowPaywall(false)} />}
 
+      {/* banner demo */}
+      {isDemo && (
+        <div style={{
+          background: "linear-gradient(90deg,#7c3aed,#4f7dff)",
+          color: "#fff", padding: "10px 20px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 12, flexWrap: "wrap", fontSize: 13,
+        }}>
+          <span>✨ Estás viendo una demo — subí tu propio apunte para generar tu set de estudio.</span>
+          <Link href="/app/materias" style={{
+            background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.35)",
+            color: "#fff", padding: "6px 14px", borderRadius: 10,
+            fontWeight: 700, fontSize: 12, whiteSpace: "nowrap",
+          }}>
+            Subir mi apunte →
+          </Link>
+        </div>
+      )}
+
       {/* topbar */}
       <div className="rtopbar">
-        <Link href={`/app/ia?note_id=${data.noteId}`} className="back">
+        <Link href={isDemo ? "/app/materias" : `/app/ia?note_id=${data.noteId}`} className="back">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M11 18l-6-6 6-6" />
           </svg>
-          Volver
+          {isDemo ? "Inicio" : "Volver"}
         </Link>
         <div className="crumb-r">{data.subjectName} · <b>Resumen</b></div>
         <div className="rfiles">
@@ -629,6 +648,45 @@ export function ResumenClient({ data, isPro }: { data: ResumenData; isPro: boole
             ) : null}
           </div>
         </main>
+
+        {/* Demo: CTA para explorar tarjetas y simulacro */}
+        {isDemo && (
+          <div style={{
+            margin: "0 0 32px", padding: "20px 20px",
+            background: "linear-gradient(135deg,rgba(124,58,237,.07),rgba(79,125,255,.07))",
+            border: "1.5px solid rgba(124,58,237,.18)", borderRadius: 20,
+          }}>
+            <div style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>
+              ¿Querés ver las tarjetas y el simulacro de este tema?
+            </div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
+              Explorá las otras herramientas de esta demo o subí tu propio apunte para generar todo desde cero.
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href={`/app/ia/tarjetas?note_id=${data.noteId}`} style={{
+                padding: "10px 18px", borderRadius: 12,
+                background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
+                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13,
+              }}>
+                🃏 Ver tarjetas
+              </Link>
+              <Link href={`/app/ia/simulacro?note_id=${data.noteId}`} style={{
+                padding: "10px 18px", borderRadius: 12,
+                background: "linear-gradient(135deg,#ff5d79,#e4264f)",
+                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13,
+              }}>
+                📝 Hacer simulacro
+              </Link>
+              <Link href="/app/materias" style={{
+                padding: "10px 18px", borderRadius: 12,
+                background: "#f3f4fb", color: "var(--muted)",
+                fontFamily: "var(--po)", fontWeight: 600, fontSize: 13,
+              }}>
+                Subir mi apunte →
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

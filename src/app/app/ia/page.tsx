@@ -11,6 +11,10 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
   if (!userId) redirect("/login");
 
   const { note_id, gen } = await searchParams;
+
+  // Demo: redirigir directo al resumen (el espacio no tiene sentido sin note real)
+  if (note_id?.startsWith("demo-")) redirect(`/app/ia/resumen?note_id=${note_id}`);
+
   const sb = supabaseAdmin();
 
   const { data: userRow } = await sb.from("users").select("id").eq("clerk_user_id", userId).single();

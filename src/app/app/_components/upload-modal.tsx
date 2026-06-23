@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { PdfSplitter } from "./pdf-splitter";
+import { DEMO_TOPICS } from "@/lib/demo-content";
+import type { DemoTopic } from "@/lib/demo-content";
 
 const PDF_PAGE_LIMIT = 30;
 
@@ -17,6 +19,8 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   const [uploading, setUploading] = useState(false);
   const [splitterFile, setSplitterFile] = useState<File | null>(null);
   const [splitterPages, setSplitterPages] = useState(0);
+  const [demoLoading, setDemoLoading] = useState<DemoTopic | null>(null);
+  const [demoPct, setDemoPct] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -65,6 +69,21 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
     } finally {
       setUploading(false);
     }
+  }
+
+  async function startDemo(topic: DemoTopic) {
+    setDemoLoading(topic);
+    setDemoPct(0);
+    // Animación de carga falsa: 0→95 en ~1.8s, luego navega
+    const steps = [15, 30, 52, 71, 88, 95];
+    for (let i = 0; i < steps.length; i++) {
+      await new Promise((r) => setTimeout(r, 300));
+      setDemoPct(steps[i]);
+    }
+    await new Promise((r) => setTimeout(r, 400));
+    setDemoLoading(null);
+    onClose();
+    router.push(`/app/ia/resumen?note_id=demo-${topic}`);
   }
 
   async function uploadText() {
@@ -186,9 +205,43 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
                 </svg>
                 {uploading ? "Subiendo…" : "Seleccionar archivo"}
               </button>
-              <button className="um-demo-link" onClick={() => { onClose(); router.push("/app/ia?demo=1"); }}>
-                ¿No tenés un apunte a mano? Usá el nuestro de prueba
-              </button>
+              {/* Demo pills */}
+              {demoLoading ? (
+                <div style={{ marginTop: 16, textAlign: "center" }}>
+                  <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+                    Generando tu set de estudio… <b>{demoPct}%</b>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 99, background: "#eceefb", overflow: "hidden", maxWidth: 260, margin: "0 auto" }}>
+                    <div style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#8b5cf6,#4f7dff)", width: `${demoPct}%`, transition: "width .3s ease" }} />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, textAlign: "center" }}>
+                    ¿No tenés un apunte a mano? Probá con uno nuestro:
+                  </div>
+                  <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center" }}>
+                    {DEMO_TOPICS.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => startDemo(t.id)}
+                        style={{
+                          padding: "6px 13px", borderRadius: 99,
+                          background: "rgba(139,92,246,.08)",
+                          border: "1px solid rgba(139,92,246,.2)",
+                          color: "var(--ink)", fontSize: 12, fontWeight: 500,
+                          cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
+                          transition: "background .15s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(139,92,246,.16)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(139,92,246,.08)")}
+                      >
+                        {t.emoji} {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
