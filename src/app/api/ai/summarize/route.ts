@@ -6,6 +6,7 @@ import {
   buildUserContent,
   chargeCredits,
   getNoteContent,
+  isFreeGenerationAllowed,
   isPaidPlan,
   markActivationIfFirst,
   modelForGeneration,
@@ -138,7 +139,11 @@ export async function POST(req: Request) {
         { error: "insufficient_credits", cost: COST, available: userRow.credits },
         { status: 402 },
       );
-    // FREE y semanal siempre generan; el gate visual es content-lock en el cliente.
+    // FREE: 1 suite de por vida. Segundo intento → paywall.
+    if (userRow.plan === "free") {
+      const allowed = await isFreeGenerationAllowed(userRow.id);
+      if (!allowed) return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
+    }
 
     const userParts = await buildUserContent(content, FORMAT_PROMPTS[format], isPaid);
 

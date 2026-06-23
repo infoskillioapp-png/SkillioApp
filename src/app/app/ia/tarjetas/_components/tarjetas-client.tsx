@@ -5,7 +5,7 @@ import Link from "next/link";
 import { SalePopup } from "@/components/sale-popup";
 
 const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
-const FREE_LIMIT = 3;
+const FREE_LIMIT = 3; // tarjetas interactivas; la 4ta se muestra blureada
 
 function confettiBurst(x: number, y: number) {
   const lay = document.getElementById("confetti-layer");
@@ -140,7 +140,9 @@ function LockedScreen({
 // ---- main ----
 export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boolean }) {
   const allCards = data.flashcards;
-  const visibleCards = isPro ? allCards : allCards.slice(0, FREE_LIMIT);
+  const interactiveCards = isPro ? allCards : allCards.slice(0, FREE_LIMIT);
+  const blurCard = !isPro && allCards.length > FREE_LIMIT ? allCards[FREE_LIMIT] : null;
+  const visibleCards = interactiveCards;
   const lockedCount = isPro ? 0 : Math.max(0, allCards.length - FREE_LIMIT);
 
   const [cards, setCards] = useState(visibleCards);
@@ -148,7 +150,7 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
   const [flipped, setFlipped] = useState(false);
   const [animating, setAnimating] = useState(false);
   const [stats, setStats] = useState({ no: 0, mid: 0, yes: 0 });
-  const [phase, setPhase] = useState<"session" | "locked" | "result">("session");
+  const [phase, setPhase] = useState<"session" | "blur_preview" | "locked" | "result">("session");
   const [resultData, setResultData] = useState({ pct: 0, yes: 0, mid: 0, no: 0, total: 0 });
   const [showPaywall, setShowPaywall] = useState(false);
   const rstatRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
@@ -172,8 +174,10 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
     if (idx < N - 1) {
       advance();
     } else {
-      // Si free y hay tarjetas bloqueadas, mostrar pantalla de lock
-      if (!isPro && lockedCount > 0) {
+      // Terminó las interactivas: si hay blur card la muestra, si no va al resultado
+      if (!isPro && blurCard) {
+        setPhase("blur_preview");
+      } else if (!isPro && lockedCount > 0) {
         setPhase("locked");
       } else {
         finish(newStats);
@@ -311,6 +315,50 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
               </button>
             </div>
           </>
+        )}
+
+        {/* ---- blur preview (4ta tarjeta bloqueada) ---- */}
+        {phase === "blur_preview" && blurCard && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 20px", gap: 16 }}>
+            <p style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", maxWidth: "30ch" }}>
+              Acá hay una tarjeta más esperándote — y muchas más con PRO.
+            </p>
+            <div style={{ position: "relative", width: "100%", maxWidth: 400 }}>
+              {/* tarjeta blureada */}
+              <div style={{ filter: "blur(5px)", pointerEvents: "none", userSelect: "none" }}>
+                <div className="fflash" style={{ background: "#fff", borderRadius: 22, padding: "28px 24px", boxShadow: "0 4px 24px rgba(0,0,0,.10)" }}>
+                  <div className="feyebrow" style={{ fontSize: 11, color: "var(--muted)", marginBottom: 8 }}>{blurCard.category ?? data.noteTitle}</div>
+                  <div className="fbig" style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>{blurCard.front}</div>
+                </div>
+              </div>
+              {/* overlay paywall */}
+              <div style={{
+                position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 10,
+                borderRadius: 22, background: "rgba(255,255,255,.55)", backdropFilter: "blur(2px)",
+              }}>
+                <div style={{ fontSize: 28 }}>🔒</div>
+                <button
+                  onClick={() => setShowPaywall(true)}
+                  style={{
+                    padding: "11px 22px", borderRadius: 13,
+                    background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
+                    color: "#fff", border: "none",
+                    fontFamily: "var(--po)", fontWeight: 700, fontSize: 14,
+                    cursor: "pointer", boxShadow: "0 8px 20px rgba(99,38,210,.28)",
+                  }}
+                >
+                  ⚡ Desbloquear tarjetas
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={() => finish(stats)}
+              style={{ fontSize: 13, color: "var(--muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+            >
+              Ver mi resultado →
+            </button>
+          </div>
         )}
 
         {/* ---- locked ---- */}

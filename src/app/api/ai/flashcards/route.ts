@@ -6,6 +6,7 @@ import {
   buildUserContent,
   chargeCredits,
   getNoteContent,
+  isFreeGenerationAllowed,
   isPaidPlan,
   markActivationIfFirst,
   modelForGeneration,
@@ -31,7 +32,7 @@ const SYSTEM_PROMPT =
   "Sos un asistente de estudio en español rioplatense que arma mazos de flashcards para repetición espaciada. Para cada concepto importante creás una tarjeta con una pregunta clara al frente y una respuesta concisa al dorso. Las preguntas deben ser activas (no 'qué es X' sino 'cuál es la diferencia entre X e Y', 'cuándo se aplica X', 'qué pasa si...'). Nunca inventes información que no esté en el apunte.";
 
 const USER_INSTRUCTION_FREE =
-  "Generá 5 flashcards de muestra sobre los conceptos más importantes de este apunte. Agrupalos por subtema en `category`. Devolvé SIEMPRE en español.";
+  "Generá exactamente 4 flashcards de muestra sobre los conceptos más importantes de este apunte. Agrupalos por subtema en `category`. Devolvé SIEMPRE en español.";
 
 const USER_INSTRUCTION_PRO =
   "Generá exactamente 15 flashcards de alta calidad a partir de este apunte. Cubrí todos los conceptos centrales y agrupalos por subtema en `category`. Devolvé SIEMPRE en español.";
@@ -55,7 +56,10 @@ export async function POST(req: Request) {
         { error: "insufficient_credits", cost: COST, available: userRow.credits },
         { status: 402 },
       );
-    // FREE y semanal siempre generan; gate visual en cliente.
+    if (userRow.plan === "free") {
+      const allowed = await isFreeGenerationAllowed(userRow.id);
+      if (!allowed) return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
+    }
 
     const userInstruction = isPaid ? USER_INSTRUCTION_PRO : USER_INSTRUCTION_FREE;
     const userParts = await buildUserContent(content, userInstruction, isPaid);

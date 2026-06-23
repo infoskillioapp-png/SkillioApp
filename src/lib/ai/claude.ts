@@ -206,6 +206,21 @@ export async function markActivationIfFirst(userId: string): Promise<string | nu
   return eventId;
 }
 
+/**
+ * Gate para usuarios free: devuelve true si pueden generar (no tienen ningún
+ * ai_output previo). Una vez que completaron su 1 suite, queda bloqueado.
+ * No hay race condition: todos los calls paralelos del mismo suite pasan (0 outputs),
+ * y el segundo intento los encuentra todos bloqueados (3 outputs).
+ */
+export async function isFreeGenerationAllowed(userId: string): Promise<boolean> {
+  const sb = supabaseAdmin();
+  const { count } = await sb
+    .from("ai_outputs")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+  return (count ?? 0) === 0;
+}
+
 export async function saveAiOutput(opts: {
   user_id: string;
   note_id: string | null;

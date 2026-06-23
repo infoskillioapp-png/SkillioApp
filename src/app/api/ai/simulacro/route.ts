@@ -6,6 +6,7 @@ import {
   buildUserContent,
   chargeCredits,
   getNoteContent,
+  isFreeGenerationAllowed,
   isPaidPlan,
   markActivationIfFirst,
   modelForGeneration,
@@ -48,7 +49,7 @@ const SYSTEM_PROMPT =
   "Sos un docente universitario que arma simulacros de examen en español rioplatense. Generás exámenes mixtos con preguntas de opción múltiple, verdadero/falso y desarrollo corto. Las preguntas deben evaluar comprensión y aplicación (no solo memorización). Las opciones de multiple choice deben tener exactamente 4 alternativas plausibles. Las explicaciones tienen que justificar por qué la respuesta es correcta y por qué las otras son incorrectas. Nunca inventes información que no esté en el apunte.";
 
 const USER_INSTRUCTION_FREE =
-  "Armá una muestra de 5 preguntas sobre los conceptos principales de este apunte. Mezclá tipos de pregunta (multiple_choice, true_false, short_answer). Devolvé SIEMPRE en español.";
+  "Armá exactamente 4 preguntas de muestra sobre los conceptos principales de este apunte. Mezclá tipos de pregunta (multiple_choice, true_false, short_answer). Devolvé SIEMPRE en español.";
 
 const USER_INSTRUCTION_PRO =
   "Armá un simulacro completo de 20 preguntas sobre este apunte. Cubrí la mayor cantidad de temas y subtemas posible. Mezclá tipos de pregunta (multiple_choice, true_false, short_answer), con predominio de multiple_choice. Devolvé SIEMPRE en español.";
@@ -72,6 +73,10 @@ export async function POST(req: Request) {
         { error: "insufficient_credits", cost: COST, available: userRow.credits },
         { status: 402 },
       );
+    if (userRow.plan === "free") {
+      const allowed = await isFreeGenerationAllowed(userRow.id);
+      if (!allowed) return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
+    }
 
     const userInstruction = isPaid ? USER_INSTRUCTION_PRO : USER_INSTRUCTION_FREE;
     const userParts = await buildUserContent(content, userInstruction, isPaid);

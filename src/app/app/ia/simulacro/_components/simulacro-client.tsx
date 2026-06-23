@@ -84,6 +84,7 @@ function ScoreRing({ ok, total }: { ok: number; total: number }) {
 export function SimulacroClient({ data, isPro }: { data: SimulacroData; isPro: boolean }) {
   const allNormalized = data.questions.map(normalizeQuestion);
   const visibleNormalized = isPro ? allNormalized : allNormalized.slice(0, FREE_LIMIT);
+  const blurQuestion = !isPro && allNormalized.length > FREE_LIMIT ? allNormalized[FREE_LIMIT] : null;
   const lockedCount = isPro ? 0 : Math.max(0, allNormalized.length - FREE_LIMIT);
 
   const [phase, setPhase] = useState<"intro" | "exam" | "result">("intro");
@@ -358,6 +359,40 @@ export function SimulacroClient({ data, isPro }: { data: SimulacroData; isPro: b
                   </div>
                 );
               })}
+
+              {/* Pregunta blureada — preview de lo que está bloqueado */}
+              {blurQuestion && (
+                <div style={{ position: "relative", marginTop: 8 }}>
+                  <div style={{ filter: "blur(4px)", pointerEvents: "none", userSelect: "none" }}
+                    className="rv bad">
+                    <div className="rvq">
+                      <span className="tag">?</span>
+                      <div>{order.length + 1}. {blurQuestion.question}</div>
+                    </div>
+                    <div className="rans">
+                      <span className="yo">Hay más preguntas esperándote</span>
+                    </div>
+                  </div>
+                  <div style={{
+                    position: "absolute", inset: 0, display: "flex",
+                    alignItems: "center", justifyContent: "center",
+                    borderRadius: 14, background: "rgba(255,255,255,.5)", backdropFilter: "blur(2px)",
+                  }}>
+                    <button
+                      onClick={() => setShowPaywall(true)}
+                      style={{
+                        padding: "10px 20px", borderRadius: 12,
+                        background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
+                        color: "#fff", border: "none",
+                        fontFamily: "var(--po)", fontWeight: 700, fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      🔒 Desbloquear simulacro completo
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="rowbtns" style={{ marginTop: 18 }}>
