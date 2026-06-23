@@ -1,4 +1,5 @@
-import { streamText } from "ai";
+import { NextResponse } from "next/server";
+import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { auth } from "@clerk/nextjs/server";
 
@@ -13,21 +14,27 @@ Reglas:
 - Usás emojis con moderación (1 por mensaje máx).`;
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return new Response("unauthenticated", { status: 401 });
+  try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  const { messages, pageContext } = await req.json();
-  if (!Array.isArray(messages) || messages.length === 0)
-    return new Response("messages required", { status: 400 });
+    const { messages, pageContext } = await req.json();
+    if (!Array.isArray(messages) || messages.length === 0)
+      return NextResponse.json({ error: "messages required" }, { status: 400 });
 
-  const system = pageContext ? `${SYSTEM}\n\nContexto de la página actual: ${pageContext}` : SYSTEM;
+    const system = pageContext ? `${SYSTEM}\n\nContexto de la página actual: ${pageContext}` : SYSTEM;
 
-  const result = streamText({
-    model: anthropic("claude-haiku-4-5-20251001"),
-    system,
-    messages,
-    maxOutputTokens: 300,
-  });
+    const result = await generateText({
+      model: anthropic("claude-haiku-4-5-20251001"),
+      system,
+      messages,
+      maxOutputTokens: 300,
+    });
 
-  return result.toTextStreamResponse();
+    return NextResponse.json({ text: result.text.trim() });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "error";
+    console.error("[api/ai/booki-chat]", e);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

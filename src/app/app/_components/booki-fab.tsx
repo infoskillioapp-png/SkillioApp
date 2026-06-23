@@ -47,8 +47,6 @@ export function BookiFab({ firstName }: { firstName: string }) {
     const newMessages: Msg[] = [...messages, { role: "user", content: text }];
     setMessages(newMessages);
     setLoading(true);
-
-    // placeholder para el stream
     setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     try {
@@ -58,7 +56,9 @@ export function BookiFab({ firstName }: { firstName: string }) {
         body: JSON.stringify({ messages: newMessages, pageContext: page.context }),
       });
 
-      if (!res.ok || !res.body) {
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = { role: "assistant", content: "Uy, algo salió mal. Probá de vuelta." };
@@ -67,21 +67,21 @@ export function BookiFab({ firstName }: { firstName: string }) {
         return;
       }
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let full = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        full += decoder.decode(value, { stream: true });
-        const snap = full;
+      // efecto typewriter
+      const full: string = data.text ?? "";
+      let i = 0;
+      setLoading(false);
+      const iv = setInterval(() => {
+        i += 3;
+        const chunk = full.slice(0, i);
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: snap };
+          copy[copy.length - 1] = { role: "assistant", content: chunk };
           return copy;
         });
-      }
+        if (i >= full.length) clearInterval(iv);
+      }, 16);
+      return;
     } catch {
       setMessages((prev) => {
         const copy = [...prev];
