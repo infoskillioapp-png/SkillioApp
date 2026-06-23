@@ -56,12 +56,13 @@ export function BookiFab({ firstName }: { firstName: string }) {
         body: JSON.stringify({ messages: newMessages, pageContext: page.context }),
       });
 
-      const data = await res.json();
+      let data: { text?: string; error?: string };
+      try { data = await res.json(); } catch { data = { error: `parse error (status ${res.status})` }; }
 
       if (!res.ok || data.error) {
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: "Uy, algo salió mal. Probá de vuelta." };
+          copy[copy.length - 1] = { role: "assistant", content: `ERROR: ${data.error ?? res.status}` };
           return copy;
         });
         return;
@@ -82,10 +83,11 @@ export function BookiFab({ firstName }: { firstName: string }) {
         if (i >= full.length) clearInterval(iv);
       }, 16);
       return;
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       setMessages((prev) => {
         const copy = [...prev];
-        copy[copy.length - 1] = { role: "assistant", content: "Uy, algo salió mal. Probá de vuelta." };
+        copy[copy.length - 1] = { role: "assistant", content: `CATCH: ${msg}` };
         return copy;
       });
     } finally {
