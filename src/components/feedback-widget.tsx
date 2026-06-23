@@ -3,14 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-const SHOW_DELAY = 10_000;   // 10s para mostrar
-const AUTO_CLOSE = 30_000;   // 30s para cerrar si no interactuó
-const STORAGE_KEY = "skillio_feedback_done";
-const COOLDOWN_DAYS = 7;
+const SHOW_DELAY   = 12_000;  // 12s antes de auto-abrir
+const STORAGE_KEY  = "skillio_feedback_ts";
+const COOLDOWN_MS  = 7 * 24 * 60 * 60 * 1000; // 1 semana
+
+const PANEL_W = 284; // ancho del panel en px
+const TAB_W   = 30;  // ancho de la solapa en px
 
 function StarIcon({ filled }: { filled: boolean }) {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+    <svg width="24" height="24" viewBox="0 0 24 24"
+      fill={filled ? "#F4C969" : "none"}
+      stroke={filled ? "#F4C969" : "#c2c4d8"}
+      strokeWidth="1.6">
       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
     </svg>
   );
@@ -18,63 +23,25 @@ function StarIcon({ filled }: { filled: boolean }) {
 
 export function FeedbackWidget() {
   const pathname = usePathname();
-  const [visible, setVisible] = useState(false);
+  const [open, setOpen]         = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [hovered, setHovered] = useState(0);
-  const [comment, setComment] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(30);
-  const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const interacted = useRef(false);
+  const [rating, setRating]     = useState(0);
+  const [hovered, setHovered]   = useState(0);
+  const [comment, setComment]   = useState("");
+  const [loading, setLoading]   = useState(false);
 
+  // Auto-abrir una vez por semana
   useEffect(() => {
-    const done = localStorage.getItem(STORAGE_KEY);
-    if (done) {
-      const last = Number(done);
-      if (Date.now() - last < COOLDOWN_DAYS * 24 * 60 * 60 * 1000) return;
-    }
-
-    const showTimer = setTimeout(() => setVisible(true), SHOW_DELAY);
-    return () => clearTimeout(showTimer);
+    const last = Number(localStorage.getItem(STORAGE_KEY) ?? "0");
+    if (Date.now() - last < COOLDOWN_MS) return;
+    const t = setTimeout(() => setOpen(true), SHOW_DELAY);
+    return () => clearTimeout(t);
   }, []);
 
-  // Iniciar auto-close cuando aparece
-  useEffect(() => {
-    if (!visible || submitted) return;
-
-    setCountdown(30);
-    countdownRef.current = setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          clearInterval(countdownRef.current!);
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
-
-    autoCloseRef.current = setTimeout(() => {
-      if (!interacted.current) dismiss();
-    }, AUTO_CLOSE);
-
-    return () => {
-      clearTimeout(autoCloseRef.current!);
-      clearInterval(countdownRef.current!);
-    };
-  }, [visible, submitted]);
-
-  function onInteract() {
-    interacted.current = true;
-    clearTimeout(autoCloseRef.current!);
-    clearInterval(countdownRef.current!);
-    setCountdown(0);
-  }
-
-  function dismiss() {
-    setVisible(false);
-    localStorage.setItem(STORAGE_KEY, String(Date.now()));
+  function close() {
+    setOpen(false);
+    // Guardar timestamp para no volver a auto-abrir hasta la próxima semana
+    if (!submitted) localStorage.setItem(STORAGE_KEY, String(Date.now()));
   }
 
   async function handleSubmit() {
@@ -88,72 +55,121 @@ export function FeedbackWidget() {
       });
       setSubmitted(true);
       localStorage.setItem(STORAGE_KEY, String(Date.now()));
-      setTimeout(() => setVisible(false), 2500);
+      setTimeout(() => { setOpen(false); setSubmitted(false); setRating(0); setComment(""); }, 2200);
     } finally {
       setLoading(false);
     }
   }
 
-  if (!visible) return null;
-
   return (
-    <>
-      {/* Overlay solo en mobile para cerrar tocando afuera */}
-      <div
-        className="fixed inset-0 z-40 md:hidden"
-        onClick={dismiss}
-        aria-hidden
-      />
+    <div
+      style={{
+        position: "fixed",
+        top: "50%",
+        transform: "translateY(-50%)",
+        // cuando está cerrado solo asoma la solapa (TAB_W px), el panel queda fuera de pantalla
+        right: open ? 0 : -(PANEL_W),
+        zIndex: 200,
+        display: "flex",
+        alignItems: "stretch",
+        transition: "right .32s cubic-bezier(.4,0,.2,1)",
+        pointerEvents: "auto",
+      }}
+    >
+      {/* ---- Solapa lateral siempre visible ---- */}
+      <button
+        onClick={() => (open ? close() : setOpen(true))}
+        aria-label="Abrir feedback"
+        style={{
+          width: TAB_W,
+          minHeight: 96,
+          background: "#fff",
+          border: "1px solid #e8eaf2",
+          borderRight: "none",
+          borderRadius: "10px 0 0 10px",
+          boxShadow: "-3px 0 14px rgba(80,40,160,.10)",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+          flexShrink: 0,
+          transition: "background .15s",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#f5f3ff")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+      >
+        <span style={{
+          writingMode: "vertical-lr",
+          transform: "rotate(180deg)",
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#8b5cf6",
+          letterSpacing: ".06em",
+          userSelect: "none",
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#8b5cf6">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          Feedback
+        </span>
+      </button>
 
+      {/* ---- Panel ---- */}
       <div
-        role="dialog"
-        aria-label="Calificá la app"
-        className="fixed z-50 bottom-4 right-4 left-4 md:left-auto md:bottom-auto md:w-[340px] rounded-2xl animate-skillio-fade-in"
-        style={{ background: "#fff", top: "50%", transform: "translateY(-50%)", boxShadow: "0 20px 50px rgba(72,56,142,.22)", border: "1px solid #eef0f6" }}
-        onMouseEnter={onInteract}
-        onTouchStart={onInteract}
+        style={{
+          width: PANEL_W,
+          background: "#fff",
+          borderRadius: "0 0 0 16px",
+          boxShadow: "-6px 0 32px rgba(72,56,142,.14)",
+          border: "1px solid #eef0f6",
+          borderRight: "none",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-5 pt-4 pb-0">
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "16px 18px 10px" }}>
           <div>
-            <p style={{ fontFamily:"var(--po)", fontWeight:700, fontSize:15, color:"var(--ink)", lineHeight:1.3 }}>
+            <div style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, color: "var(--ink)", lineHeight: 1.3 }}>
               ¿Cómo vas con Skillio?
-            </p>
-            <p style={{ fontSize:12, color:"var(--muted)", marginTop:2 }}>
-              30 segundos · Nos ayuda un montón
-            </p>
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 2 }}>
+              30 seg · Nos ayuda a mejorar
+            </div>
           </div>
           <button
-            onClick={dismiss}
-            className="text-ink-softer hover:text-ink transition ml-3 mt-0.5 flex-shrink-0"
+            onClick={close}
             aria-label="Cerrar"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: "2px 4px", lineHeight: 1, fontSize: 18, borderRadius: 6 }}
+          >×</button>
         </div>
 
         {submitted ? (
-          <div className="px-5 py-6 text-center">
-            <div className="text-3xl mb-2">🎉</div>
-            <p className="font-display font-bold text-base text-ink">¡Gracias por tu feedback!</p>
-            <p className="text-xs text-ink-soft mt-1">Nos ayudás a mejorar la app.</p>
+          <div style={{ padding: "20px 18px 24px", textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
+            <div style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: 4 }}>¡Gracias por tu feedback!</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>Nos ayudás a mejorar la app.</div>
           </div>
         ) : (
-          <div className="px-5 py-4 flex flex-col gap-3">
+          <div style={{ padding: "4px 18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
             {/* Estrellas */}
             <div
-              className="flex gap-1 justify-center"
+              style={{ display: "flex", gap: 4, justifyContent: "center" }}
               onMouseLeave={() => setHovered(0)}
             >
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}
-                  onClick={() => { onInteract(); setRating(n); }}
-                  onMouseEnter={() => { onInteract(); setHovered(n); }}
-                  className="transition-transform hover:scale-110 active:scale-95"
-                  style={{ color: (hovered || rating) >= n ? "#F4C969" : "var(--rule)" }}
+                  onClick={() => setRating(n)}
+                  onMouseEnter={() => setHovered(n)}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 2, lineHeight: 1, transition: "transform .1s" }}
+                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(.9)")}
+                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
                   aria-label={`${n} estrella${n > 1 ? "s" : ""}`}
                 >
                   <StarIcon filled={(hovered || rating) >= n} />
@@ -164,32 +180,53 @@ export function FeedbackWidget() {
             {/* Comentario */}
             <textarea
               value={comment}
-              onChange={(e) => { onInteract(); setComment(e.target.value); }}
+              onChange={(e) => setComment(e.target.value)}
               placeholder="Contanos qué mejorarías (opcional)…"
-              rows={2}
+              rows={3}
               maxLength={1000}
-              className="w-full text-sm bg-transparent border border-rule rounded-xl px-3 py-2 text-ink placeholder:text-ink-softer resize-none focus:outline-none focus:border-accent transition"
+              style={{
+                width: "100%",
+                fontSize: 13,
+                background: "#faf8ff",
+                border: "1px solid var(--line)",
+                borderRadius: 12,
+                padding: "9px 11px",
+                color: "var(--ink)",
+                resize: "none",
+                outline: "none",
+                fontFamily: "inherit",
+                lineHeight: 1.5,
+                boxSizing: "border-box",
+                transition: "border-color .15s",
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--violet)")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--line)")}
             />
 
-            {/* Footer */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSubmit}
-                disabled={!rating || loading}
-                className="flex-1 py-2.5 rounded-full font-display font-bold text-sm transition disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg,#4f7dff,#8b5cf6)", color: "#fff" }}
-              >
-                {loading ? "Enviando…" : "Enviar"}
-              </button>
-              {countdown > 0 && (
-                <span className="text-xs text-ink-softer tabular-nums w-8 text-right">
-                  {countdown}s
-                </span>
-              )}
-            </div>
+            {/* Botón enviar */}
+            <button
+              onClick={handleSubmit}
+              disabled={!rating || loading}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: 12,
+                background: "linear-gradient(135deg,#4f7dff,#8b5cf6)",
+                color: "#fff",
+                fontFamily: "var(--po)",
+                fontWeight: 700,
+                fontSize: 13.5,
+                border: "none",
+                cursor: rating ? "pointer" : "default",
+                opacity: !rating || loading ? 0.45 : 1,
+                transition: "opacity .15s",
+              }}
+            >
+              {loading ? "Enviando…" : "Enviar"}
+            </button>
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

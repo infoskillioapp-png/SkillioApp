@@ -25,9 +25,20 @@ export async function POST(req: Request) {
     if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
     const body = await req.json();
-    const { messages, pageContext } = body;
-    if (!Array.isArray(messages) || messages.length === 0)
+    const { messages: rawMessages, pageContext } = body;
+    if (!Array.isArray(rawMessages) || rawMessages.length === 0)
       return NextResponse.json({ error: "messages required" }, { status: 400 });
+
+    // Tipado explícito para evitar problemas con el SDK
+    const messages = rawMessages
+      .filter((m: { role?: string; content?: string }) => m.role && typeof m.content === "string")
+      .map((m: { role: string; content: string }) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
+
+    if (messages.length === 0)
+      return NextResponse.json({ error: "no valid messages" }, { status: 400 });
 
     const system = pageContext ? `${SYSTEM}\n\nContexto de la página actual: ${pageContext}` : SYSTEM;
 
