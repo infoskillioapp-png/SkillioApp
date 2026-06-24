@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { IconArrow, IconCheck, IconHeart, SkillioMark, CTAMicro } from "./landing-top";
 import { SectionHeader } from "./landing-mid";
 
@@ -82,33 +82,91 @@ function Avatar({ src, name, color }: { src: string; name: string; color: string
   );
 }
 
+function MetricCounter({ to, format, active }: { to: number; format: (n: number) => string; active: boolean }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!active) { setVal(0); return; }
+    const steps = 50;
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setVal(Math.round((i / steps) * to));
+      if (i >= steps) clearInterval(id);
+    }, 30);
+    return () => clearInterval(id);
+  }, [active, to]);
+  return <>{format(val)}</>;
+}
+
 export function Testimonios() {
   const [active, setActive] = useState(0);
+  const [dotKey, setDotKey] = useState(0);
+  const [sectionIn, setSectionIn] = useState(false);
+  const [metricActive, setMetricActive] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const autoTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const items = [
-    { src: "sofi.jpg",  name: "Sofi R.",  handle: "@Sofir_uba",   uni: "UBA · Medicina",         color: "var(--accent)",   quote: "Anatomía con 8 en 3 días. El resumen me salvó una semana entera de lectura. ¡Amo esta app! #SkillioWorks" },
-    { src: "mati.jpg",  name: "Mati P.",  handle: "@MatiP_dev",   uni: "UTN · Sistemas",          color: "#4a6b8a",         quote: "El simulacro fue casi idéntico al parcial real. Cero nervios y aprobé Sistemas Operativos. #Gracias" },
-    { src: "luchi.jpg", name: "Luchi G.", handle: "@LuchiG_der",  uni: "UNC · Derecho",           color: "#4a7c59",         quote: "Las flashcards con repaso espaciado me salvaron en el final. Por fin me quedan las cosas en la cabeza." },
-    { src: "juli.jpg",  name: "Juli M.",  handle: "@JuliM_psi",   uni: "Siglo 21 · Psicología",   color: "#7c3fcf",         quote: "Tiraba la foto del apunte y tenía el resumen al toque. Dejé de procrastinar leyendo 200 páginas." },
-    { src: "fran.jpg",  name: "Fran D.",  handle: "@FranD_eco",   uni: "UCC · Económicas",        color: "#4a6b8a",         quote: "Subí el PDF de 180 páginas y en minutos sabía exactamente qué estudiar. Recursaba esa materia." },
-    { src: "cami.jpg",  name: "Cami T.",  handle: "@CamiT_uba",   uni: "UBA · Abogacía",          color: "var(--accent)",   quote: "Estudio la mitad del tiempo y me va mejor. Lo recomendé a toda mi comisión. ¡Una joya!" },
+    { src: "sofi.jpg",  name: "Sofi R.",  handle: "@Sofir_uba",  uni: "UBA - Medicina",       color: "var(--accent)", quote: "Anatomia con 8 en 3 dias. El resumen me salvo una semana entera de lectura. Amo esta app! #SkillioWorks" },
+    { src: "mati.jpg",  name: "Mati P.",  handle: "@MatiP_dev",  uni: "UTN - Sistemas",        color: "#4a6b8a",       quote: "El simulacro fue casi identico al parcial real. Cero nervios y aprobe Sistemas Operativos. #Gracias" },
+    { src: "luchi.jpg", name: "Luchi G.", handle: "@LuchiG_der", uni: "UNC - Derecho",         color: "#4a7c59",       quote: "Las flashcards con repaso espaciado me salvaron en el final. Por fin me quedan las cosas en la cabeza." },
+    { src: "juli.jpg",  name: "Juli M.",  handle: "@JuliM_psi",  uni: "Siglo 21 - Psicologia", color: "#7c3fcf",       quote: "Tiraba la foto del apunte y tenia el resumen al toque. Deje de procrastinar leyendo 200 paginas." },
+    { src: "fran.jpg",  name: "Fran D.",  handle: "@FranD_eco",  uni: "UCC - Economicas",      color: "#4a6b8a",       quote: "Subi el PDF de 180 paginas y en minutos sabia exactamente que estudiar. Recursaba esa materia." },
+    { src: "cami.jpg",  name: "Cami T.",  handle: "@CamiT_uba",  uni: "UBA - Abogacia",        color: "var(--accent)", quote: "Estudio la mitad del tiempo y me va mejor. Lo recomende a toda mi comision. Una joya!" },
   ];
+
+  const metrics = [
+    { to: 1200, format: (n: number) => "+" + (n >= 1000 ? "1." + String(Math.round(n % 1000)).padStart(3, "0") : String(n)), label: "estudiantes activos" },
+    { to: 12,   format: (n: number) => n + "k+",                                                                               label: "apuntes generados" },
+    { to: 35,   format: (n: number) => (n / 10).toFixed(1) + "k",                                                              label: "simulacros hechos" },
+  ];
+
+  const scrollToCard = useCallback((i: number) => {
+    if (!trackRef.current) return;
+    trackRef.current.scrollTo({ left: i * (trackRef.current.clientWidth * 0.85 + 16), behavior: "smooth" });
+  }, []);
+
+  const startAuto = useCallback(() => {
+    if (autoTimer.current) clearInterval(autoTimer.current);
+    setDotKey(k => k + 1);
+    autoTimer.current = setInterval(() => {
+      setActive(prev => {
+        const next = (prev + 1) % items.length;
+        scrollToCard(next);
+        return next;
+      });
+      setDotKey(k => k + 1);
+    }, 4000);
+  }, [items.length, scrollToCard]);
+
+  useEffect(() => {
+    startAuto();
+    return () => { if (autoTimer.current) clearInterval(autoTimer.current); };
+  }, [startAuto]);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setSectionIn(true); setTimeout(() => setMetricActive(true), 400); obs.disconnect(); } },
+      { threshold: 0.2 }
+    );
+    if (sectionRef.current) obs.observe(sectionRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   const onScroll = () => {
     if (!trackRef.current) return;
-    const { scrollLeft, clientWidth } = trackRef.current;
-    const cardW = clientWidth * 0.85 + 16;
-    setActive(Math.min(Math.round(scrollLeft / cardW), items.length - 1));
-  };
-
-  const scrollTo = (i: number) => {
-    if (!trackRef.current) return;
-    trackRef.current.scrollTo({ left: i * (trackRef.current.clientWidth * 0.85 + 16), behavior: "smooth" });
+    const cardW = trackRef.current.clientWidth * 0.85 + 16;
+    const newActive = Math.min(Math.round(trackRef.current.scrollLeft / cardW), items.length - 1);
+    if (newActive !== active) {
+      if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
+      setActive(newActive);
+      startAuto();
+    }
   };
 
   return (
-    <section className="section" style={{ background: "#F5F0FF", padding: "72px 0", overflow: "hidden" }}>
+    <section ref={sectionRef} className="section" style={{ background: "linear-gradient(180deg, #F5F0FF 0%, #E4DEFF 100%)", padding: "72px 0", overflow: "hidden" }}>
 
       {/* Encabezado */}
       <div className="reveal" style={{ textAlign: "center", padding: "0 24px", marginBottom: 36 }}>
@@ -119,19 +177,13 @@ export function Testimonios() {
           Estudiantes que ya <em className="gradient-text" style={{ fontStyle: "italic", fontWeight: 800 }}>aprobaron</em> con Skillio
         </h2>
         <p style={{ marginTop: 14, fontSize: 16.5, lineHeight: 1.55, color: "var(--ink-soft)", maxWidth: 440, margin: "14px auto 0" }}>
-          Resultados reales, no promesas. Esto es lo que pasa cuando estudiás distinto.
+          Resultados reales, no promesas. Esto es lo que pasa cuando estudias distinto.
         </p>
       </div>
 
       {/* Carrusel */}
       <div style={{ position: "relative" }}>
-        {/* Flecha prev */}
-        <button
-          onClick={() => scrollTo(Math.max(0, active - 1))}
-          disabled={active === 0}
-          aria-label="Anterior"
-          className="testi-arrow testi-arrow-left"
-        >‹</button>
+        <button onClick={() => { scrollToCard(Math.max(0, active - 1)); startAuto(); }} disabled={active === 0} aria-label="Anterior" className="testi-arrow testi-arrow-left">&#8249;</button>
 
         <div
           ref={trackRef}
@@ -139,8 +191,8 @@ export function Testimonios() {
           className="testimonios-track"
           style={{
             display: "flex", overflowX: "auto", gap: 16,
-            paddingLeft: "7.5vw", paddingRight: "7.5vw", paddingBottom: 10,
-            scrollSnapType: "x mandatory",
+            paddingLeft: "7.5vw", paddingRight: "7.5vw", paddingBottom: 12,
+            scrollSnapType: "x mandatory", overscrollBehavior: "contain",
             scrollbarWidth: "none", msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"],
           }}
         >
@@ -148,16 +200,29 @@ export function Testimonios() {
             <div
               key={i}
               style={{
-                flexShrink: 0, width: "min(85vw, 340px)",
-                scrollSnapAlign: "center",
+                flexShrink: 0, width: "min(85vw, 340px)", scrollSnapAlign: "center",
                 background: "#fff", borderRadius: 20, padding: 24,
-                boxShadow: "0 2px 20px rgba(134,92,184,0.10), 0 1px 4px rgba(134,92,184,0.06)",
                 display: "flex", flexDirection: "column", gap: 14,
+                transform: active === i ? "scale(1.02)" : "scale(0.96)",
+                opacity: active === i ? 1 : 0.72,
+                boxShadow: active === i
+                  ? "0 10px 40px rgba(134,92,184,0.20), 0 2px 8px rgba(134,92,184,0.10)"
+                  : "0 2px 12px rgba(134,92,184,0.07)",
+                transition: "transform 320ms cubic-bezier(0.34,1.56,0.64,1), opacity 320ms ease, box-shadow 320ms ease",
               }}
             >
-              {/* Avatar + nombre */}
+              {/* Avatar con ring + pop-in */}
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <Avatar src={it.src} name={it.name} color={it.color} />
+                <div
+                  className={sectionIn ? "testi-avatar-in" : "testi-avatar-wrap"}
+                  style={{ animationDelay: `${i * 70}ms`, flexShrink: 0 }}
+                >
+                  <div style={{ background: "linear-gradient(135deg, #865CB8, #A67EFF)", borderRadius: "50%", padding: 2 }}>
+                    <div style={{ background: "#fff", borderRadius: "50%", padding: 1 }}>
+                      <Avatar src={it.src} name={it.name} color={it.color} />
+                    </div>
+                  </div>
+                </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", lineHeight: 1.2 }}>{it.name}</div>
                   <div style={{ fontSize: 12.5, color: "var(--ink-softer)", marginTop: 1 }}>{it.handle}</div>
@@ -165,52 +230,58 @@ export function Testimonios() {
                 </div>
               </div>
 
-              {/* Estrellas */}
-              <div style={{ fontSize: 19, letterSpacing: 1, lineHeight: 1 }}>⭐⭐⭐⭐⭐</div>
+              <div style={{ fontSize: 19, letterSpacing: 1, lineHeight: 1 }}>&#11088;&#11088;&#11088;&#11088;&#11088;</div>
 
-              {/* Testimonio */}
-              <p style={{ margin: 0, fontSize: 15, lineHeight: 1.65, color: "var(--ink)" }}>{it.quote}</p>
+              {/* Quote con fade al centrarse */}
+              <p
+                key={active === i ? "a" : "i"}
+                className={active === i ? "testi-quote-active" : ""}
+                style={{ margin: 0, fontSize: 15, lineHeight: 1.65, color: "var(--ink)" }}
+              >
+                {it.quote}
+              </p>
             </div>
           ))}
         </div>
 
-        {/* Flecha next */}
-        <button
-          onClick={() => scrollTo(Math.min(items.length - 1, active + 1))}
-          disabled={active === items.length - 1}
-          aria-label="Siguiente"
-          className="testi-arrow testi-arrow-right"
-        >›</button>
+        <button onClick={() => { scrollToCard(Math.min(items.length - 1, active + 1)); startAuto(); }} disabled={active === items.length - 1} aria-label="Siguiente" className="testi-arrow testi-arrow-right">&#8250;</button>
       </div>
 
-      {/* Dots */}
+      {/* Dots con progreso */}
       <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 20 }}>
         {items.map((_, i) => (
           <button
             key={i}
-            onClick={() => scrollTo(i)}
-            aria-label={`Ir al testimonio ${i + 1}`}
+            onClick={() => { scrollToCard(i); startAuto(); }}
+            aria-label={"Ir al testimonio " + (i + 1)}
             style={{
-              width: active === i ? 24 : 8, height: 8,
+              position: "relative", overflow: "hidden",
+              width: active === i ? 28 : 8, height: 8,
               borderRadius: 999, border: "none", cursor: "pointer", padding: 0,
               background: active === i ? "var(--accent)" : "rgba(134,92,184,0.22)",
               transition: "width 0.3s ease, background 0.3s ease",
             }}
-          />
+          >
+            {active === i && <span key={dotKey} className="dot-progress" />}
+          </button>
         ))}
       </div>
 
-      {/* Hint swipe — solo mobile */}
       <p className="testi-hint" style={{ textAlign: "center", fontSize: 13, color: "var(--ink-softer)", marginTop: 10 }}>
-        Deslizá horizontal 👉
+        Desliza horizontal &#x1F449;
       </p>
 
-      {/* Métricas */}
+      {/* Metricas con halo diagonal y contador */}
       <div style={{ display: "flex", justifyContent: "center", gap: "20px 48px", marginTop: 52, flexWrap: "wrap", textAlign: "center", padding: "0 24px" }}>
-        {[["+1.200", "estudiantes activos"], ["12k+", "apuntes generados"], ["3.5k", "simulacros hechos"]].map(([n, l]) => (
-          <div key={l}>
-            <div className="gradient-text" style={{ fontFamily: "var(--font-roboto)", fontSize: 40, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em" }}>{n}</div>
-            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6 }}>{l}</div>
+        {metrics.map((m, i) => (
+          <div key={i} style={{ position: "relative" }}>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <div className="metric-halo" />
+              <div className="gradient-text" style={{ fontFamily: "var(--font-roboto)", fontSize: 40, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em", position: "relative", zIndex: 1 }}>
+                <MetricCounter to={m.to} format={m.format} active={metricActive} />
+              </div>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6 }}>{m.label}</div>
           </div>
         ))}
       </div>
@@ -223,20 +294,62 @@ export function Testimonios() {
 
       <style>{`
         .testimonios-track::-webkit-scrollbar { display: none; }
+
+        /* Avatar pop-in con ring */
+        .testi-avatar-wrap { opacity: 0; }
+        @keyframes avatarPop {
+          0%   { transform: scale(0.5); opacity: 0; }
+          70%  { transform: scale(1.12); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .testi-avatar-in { animation: avatarPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+        /* Quote fade cuando la card esta centrada */
+        @keyframes quoteIn {
+          from { opacity: 0; transform: translateY(5px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .testi-quote-active { animation: quoteIn 0.35s ease both; }
+
+        /* Dot progreso (se llena en 4s) */
+        @keyframes dotFill {
+          from { transform: scaleX(0); }
+          to   { transform: scaleX(1); }
+        }
+        .dot-progress {
+          position: absolute; inset: 0; border-radius: 999px;
+          background: rgba(255,255,255,0.45);
+          transform-origin: left; pointer-events: none;
+          animation: dotFill 4s linear both;
+        }
+
+        /* Halo diagonal en numeros */
+        .metric-halo {
+          position: absolute;
+          inset: -10px -14px;
+          background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(166,126,255,0.40) 45%, transparent 68%);
+          border-radius: 14px;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        /* Flechas desktop */
         .testi-arrow {
-          display: none;
-          position: absolute; top: 50%; transform: translateY(-50%);
+          display: none; position: absolute; top: 50%; transform: translateY(-50%);
           z-index: 2; width: 40px; height: 40px; border-radius: 50%;
           background: rgba(255,255,255,0.9); border: 1px solid rgba(134,92,184,0.2);
-          font-size: 24px; line-height: 1; cursor: pointer; color: var(--accent);
-          box-shadow: 0 2px 12px rgba(134,92,184,0.15);
-          transition: opacity 150ms ease;
+          font-size: 24px; cursor: pointer; color: var(--accent);
+          box-shadow: 0 2px 12px rgba(134,92,184,0.15); transition: opacity 150ms ease;
         }
-        .testi-arrow:disabled { opacity: 0.3; cursor: default; }
+        .testi-arrow:disabled { opacity: 0.28; cursor: default; }
         .testi-arrow-left  { left: 8px; }
         .testi-arrow-right { right: 8px; }
-        @media (min-width: 640px) { .testi-arrow { display: grid; place-items: center; } }
-        @media (min-width: 640px) { .testi-hint { display: none; } }
+        @media (min-width: 640px) { .testi-arrow { display: grid; place-items: center; } .testi-hint { display: none; } }
+
+        @media (prefers-reduced-motion: reduce) {
+          .testi-avatar-wrap { opacity: 1 !important; }
+          .testi-avatar-in, .testi-quote-active, .dot-progress { animation: none !important; }
+        }
       `}</style>
     </section>
   );
