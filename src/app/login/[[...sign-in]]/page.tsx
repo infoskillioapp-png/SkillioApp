@@ -43,9 +43,9 @@ export default function LoginPage() {
             fontSize: "15px",
           },
           elements: {
-            rootBox: "w-full",
-            cardBox: "w-full shadow-none border-none",
-            card: "shadow-none bg-transparent border-none p-0",
+            rootBox: { width: "100%" },
+            cardBox: { width: "100%", boxShadow: "none", border: "none", background: "transparent" },
+            card: { boxShadow: "none", border: "none", background: "transparent", padding: 0 },
             header: "hidden",
             footer: "hidden",
             socialButtonsBlockButton:

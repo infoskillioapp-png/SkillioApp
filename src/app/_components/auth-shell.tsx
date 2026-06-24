@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
 
 type Props = {
   step: string;
@@ -36,14 +35,23 @@ export function AuthShell({ step, title, lead, children, footerLink }: Props) {
         overflow: "hidden",
       }}>
 
-        {/* ── IZQUIERDA — IMAGEN DE FONDO ── */}
-        <div className="auth-illustration" style={{ flex: 1, position: "relative" }}>
-          <Image
-            src="/fondo-login-skillio.webp"
-            alt=""
-            fill
-            priority
-            style={{ objectFit: "cover", objectPosition: "center" }}
+        {/* ── IZQUIERDA — VIDEO BOOKI ── */}
+        <div className="auth-illustration" style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video
+            src="/booki-animado.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              objectPosition: "center",
+              position: "absolute",
+              inset: 0,
+            }}
           />
         </div>
 
