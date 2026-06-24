@@ -23,7 +23,7 @@ export default async function SimulacroPage({ searchParams }: { searchParams: Se
   if (isDemoNoteId(note_id)) {
     const demoData = getDemoSimulacro(note_id);
     if (!demoData) redirect("/app");
-    return <SimulacroClient data={demoData} isPro={false} />;
+    return <SimulacroClient data={demoData} isPro={true} />;
   }
 
   const sb = supabaseAdmin();

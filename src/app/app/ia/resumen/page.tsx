@@ -23,7 +23,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
   if (isDemoNoteId(note_id)) {
     const demoData = getDemoResumen(note_id);
     if (!demoData) redirect("/app");
-    return <ResumenClient data={demoData} isPro={false} isDemo />;
+    return <ResumenClient data={demoData} isPro={true} isDemo />;
   }
 
   const sb = supabaseAdmin();

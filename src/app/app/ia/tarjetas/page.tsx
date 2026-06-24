@@ -22,7 +22,7 @@ export default async function TarjetasPage({ searchParams }: { searchParams: Sea
   if (isDemoNoteId(note_id)) {
     const demoData = getDemoTarjetas(note_id);
     if (!demoData) redirect("/app");
-    return <TarjetasClient data={demoData} isPro={false} />;
+    return <TarjetasClient data={demoData} isPro={true} />;
   }
 
   const sb = supabaseAdmin();
