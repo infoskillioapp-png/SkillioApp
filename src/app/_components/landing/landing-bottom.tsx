@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { IconArrow, IconCheck, IconHeart, SkillioMark, CTAMicro } from "./landing-top";
 import { SectionHeader } from "./landing-mid";
 
@@ -83,51 +83,161 @@ function Avatar({ src, name, color }: { src: string; name: string; color: string
 }
 
 export function Testimonios() {
+  const [active, setActive] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+
   const items = [
-    { src: "sofi.jpg", name: "Sofi R.", uni: "UBA · Medicina", color: "var(--accent)", quote: "Aprobé Anatomía con 8 estudiando 3 días. Los resúmenes me ahorraron una semana de leer." },
-    { src: "mati.jpg", name: "Mati P.", uni: "UTN · Sistemas", color: "#4a6b8a", quote: "El simulacro fue casi igual al parcial real. Llegué sin nervios y pasé Sistemas Operativos." },
-    { src: "luchi.jpg", name: "Luchi G.", uni: "UNC · Derecho", color: "#4a7c59", quote: "Las flashcards con repaso me salvaron en el final. Por fin me quedan las cosas." },
-    { src: "juli.jpg", name: "Juli M.", uni: "Siglo 21 · Psicología", color: "var(--accent-2)", quote: "Tiraba la foto del apunte y tenía el resumen al toque. Dejé de procrastinar leyendo." },
-    { src: "fran.jpg", name: "Fran D.", uni: "UCC · Económicas", color: "#4a6b8a", quote: "Subí el PDF de 180 páginas y en minutos sabía qué estudiar. Recursaba esa materia." },
-    { src: "cami.jpg", name: "Cami T.", uni: "UBA · Abogacía", color: "var(--accent)", quote: "Estudio la mitad del tiempo y me va mejor. Lo recomendé a toda mi comisión." },
+    { src: "sofi.jpg",  name: "Sofi R.",  handle: "@Sofir_uba",   uni: "UBA · Medicina",         color: "var(--accent)",   quote: "Anatomía con 8 en 3 días. El resumen me salvó una semana entera de lectura. ¡Amo esta app! #SkillioWorks" },
+    { src: "mati.jpg",  name: "Mati P.",  handle: "@MatiP_dev",   uni: "UTN · Sistemas",          color: "#4a6b8a",         quote: "El simulacro fue casi idéntico al parcial real. Cero nervios y aprobé Sistemas Operativos. #Gracias" },
+    { src: "luchi.jpg", name: "Luchi G.", handle: "@LuchiG_der",  uni: "UNC · Derecho",           color: "#4a7c59",         quote: "Las flashcards con repaso espaciado me salvaron en el final. Por fin me quedan las cosas en la cabeza." },
+    { src: "juli.jpg",  name: "Juli M.",  handle: "@JuliM_psi",   uni: "Siglo 21 · Psicología",   color: "#7c3fcf",         quote: "Tiraba la foto del apunte y tenía el resumen al toque. Dejé de procrastinar leyendo 200 páginas." },
+    { src: "fran.jpg",  name: "Fran D.",  handle: "@FranD_eco",   uni: "UCC · Económicas",        color: "#4a6b8a",         quote: "Subí el PDF de 180 páginas y en minutos sabía exactamente qué estudiar. Recursaba esa materia." },
+    { src: "cami.jpg",  name: "Cami T.",  handle: "@CamiT_uba",   uni: "UBA · Abogacía",          color: "var(--accent)",   quote: "Estudio la mitad del tiempo y me va mejor. Lo recomendé a toda mi comisión. ¡Una joya!" },
   ];
+
+  const onScroll = () => {
+    if (!trackRef.current) return;
+    const { scrollLeft, clientWidth } = trackRef.current;
+    const cardW = clientWidth * 0.85 + 16;
+    setActive(Math.min(Math.round(scrollLeft / cardW), items.length - 1));
+  };
+
+  const scrollTo = (i: number) => {
+    if (!trackRef.current) return;
+    trackRef.current.scrollTo({ left: i * (trackRef.current.clientWidth * 0.85 + 16), behavior: "smooth" });
+  };
+
   return (
-    <section className="section" style={{ background: "var(--bg-2)" }}>
-      <div className="container-x">
-        <SectionHeader
-          eyebrow="Prueba social"
-          title={<>Estudiantes que ya <span className="gradient-text">aprobaron</span> con Skillio</>}
-          sub="Resultados reales, no promesas. Esto es lo que pasa cuando estudiás distinto."
-        />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18, marginTop: 44 }}>
+    <section className="section" style={{ background: "#F5F0FF", padding: "72px 0", overflow: "hidden" }}>
+
+      {/* Encabezado */}
+      <div className="reveal" style={{ textAlign: "center", padding: "0 24px", marginBottom: 36 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 14 }}>
+          Prueba Social
+        </div>
+        <h2 className="h-section" style={{ margin: "0 auto", maxWidth: 560 }}>
+          Estudiantes que ya <em className="gradient-text" style={{ fontStyle: "italic", fontWeight: 800 }}>aprobaron</em> con Skillio
+        </h2>
+        <p style={{ marginTop: 14, fontSize: 16.5, lineHeight: 1.55, color: "var(--ink-soft)", maxWidth: 440, margin: "14px auto 0" }}>
+          Resultados reales, no promesas. Esto es lo que pasa cuando estudiás distinto.
+        </p>
+      </div>
+
+      {/* Carrusel */}
+      <div style={{ position: "relative" }}>
+        {/* Flecha prev */}
+        <button
+          onClick={() => scrollTo(Math.max(0, active - 1))}
+          disabled={active === 0}
+          aria-label="Anterior"
+          className="testi-arrow testi-arrow-left"
+        >‹</button>
+
+        <div
+          ref={trackRef}
+          onScroll={onScroll}
+          className="testimonios-track"
+          style={{
+            display: "flex", overflowX: "auto", gap: 16,
+            paddingLeft: "7.5vw", paddingRight: "7.5vw", paddingBottom: 10,
+            scrollSnapType: "x mandatory",
+            scrollbarWidth: "none", msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"],
+          }}
+        >
           {items.map((it, i) => (
-            <div key={i} className="card reveal" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-              <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.55, color: "var(--ink)" }}>“{it.quote}”</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "auto" }}>
+            <div
+              key={i}
+              style={{
+                flexShrink: 0, width: "min(85vw, 340px)",
+                scrollSnapAlign: "center",
+                background: "#fff", borderRadius: 20, padding: 24,
+                boxShadow: "0 2px 20px rgba(134,92,184,0.10), 0 1px 4px rgba(134,92,184,0.06)",
+                display: "flex", flexDirection: "column", gap: 14,
+              }}
+            >
+              {/* Avatar + nombre */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <Avatar src={it.src} name={it.name} color={it.color} />
                 <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--ink)" }}>{it.name}</div>
-                  <div style={{ fontSize: 12.5, color: "var(--ink-softer)" }}>{it.uni}</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", lineHeight: 1.2 }}>{it.name}</div>
+                  <div style={{ fontSize: 12.5, color: "var(--ink-softer)", marginTop: 1 }}>{it.handle}</div>
+                  <div style={{ fontSize: 12, color: "var(--ink-softer)", marginTop: 2 }}>{it.uni}</div>
                 </div>
               </div>
+
+              {/* Estrellas */}
+              <div style={{ fontSize: 19, letterSpacing: 1, lineHeight: 1 }}>⭐⭐⭐⭐⭐</div>
+
+              {/* Testimonio */}
+              <p style={{ margin: 0, fontSize: 15, lineHeight: 1.65, color: "var(--ink)" }}>{it.quote}</p>
             </div>
           ))}
         </div>
-        {/* Métricas + universidades */}
-        <div style={{ display: "flex", justifyContent: "center", gap: "20px 48px", marginTop: 48, flexWrap: "wrap", textAlign: "center" }}>
-          {[["+1.200", "estudiantes activos"], ["12k+", "apuntes compartidos"], ["3.5k", "pregunteros"]].map(([n, l]) => (
-            <div key={l}>
-              <div className="gradient-text" style={{ fontFamily: "var(--font-roboto)", fontSize: 40, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em" }}>{n}</div>
-              <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6 }}>{l}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px 24px", marginTop: 28, flexWrap: "wrap", opacity: 0.6 }}>
-          {["UBA", "UNC", "UTN", "Siglo 21", "UCC"].map((u) => (
-            <span key={u} style={{ fontFamily: "var(--font-roboto)", fontWeight: 800, fontSize: 17, color: "var(--ink-soft)", letterSpacing: "-0.02em" }}>{u}</span>
-          ))}
-        </div>
+
+        {/* Flecha next */}
+        <button
+          onClick={() => scrollTo(Math.min(items.length - 1, active + 1))}
+          disabled={active === items.length - 1}
+          aria-label="Siguiente"
+          className="testi-arrow testi-arrow-right"
+        >›</button>
       </div>
+
+      {/* Dots */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 20 }}>
+        {items.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => scrollTo(i)}
+            aria-label={`Ir al testimonio ${i + 1}`}
+            style={{
+              width: active === i ? 24 : 8, height: 8,
+              borderRadius: 999, border: "none", cursor: "pointer", padding: 0,
+              background: active === i ? "var(--accent)" : "rgba(134,92,184,0.22)",
+              transition: "width 0.3s ease, background 0.3s ease",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Hint swipe — solo mobile */}
+      <p className="testi-hint" style={{ textAlign: "center", fontSize: 13, color: "var(--ink-softer)", marginTop: 10 }}>
+        Deslizá horizontal 👉
+      </p>
+
+      {/* Métricas */}
+      <div style={{ display: "flex", justifyContent: "center", gap: "20px 48px", marginTop: 52, flexWrap: "wrap", textAlign: "center", padding: "0 24px" }}>
+        {[["+1.200", "estudiantes activos"], ["12k+", "apuntes generados"], ["3.5k", "simulacros hechos"]].map(([n, l]) => (
+          <div key={l}>
+            <div className="gradient-text" style={{ fontFamily: "var(--font-roboto)", fontSize: 40, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em" }}>{n}</div>
+            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6 }}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px 24px", marginTop: 28, flexWrap: "wrap", opacity: 0.55, padding: "0 24px" }}>
+        {["UBA", "UNC", "UTN", "Siglo 21", "UCC"].map((u) => (
+          <span key={u} style={{ fontFamily: "var(--font-roboto)", fontWeight: 800, fontSize: 17, color: "var(--ink-soft)", letterSpacing: "-0.02em" }}>{u}</span>
+        ))}
+      </div>
+
+      <style>{`
+        .testimonios-track::-webkit-scrollbar { display: none; }
+        .testi-arrow {
+          display: none;
+          position: absolute; top: 50%; transform: translateY(-50%);
+          z-index: 2; width: 40px; height: 40px; border-radius: 50%;
+          background: rgba(255,255,255,0.9); border: 1px solid rgba(134,92,184,0.2);
+          font-size: 24px; line-height: 1; cursor: pointer; color: var(--accent);
+          box-shadow: 0 2px 12px rgba(134,92,184,0.15);
+          transition: opacity 150ms ease;
+        }
+        .testi-arrow:disabled { opacity: 0.3; cursor: default; }
+        .testi-arrow-left  { left: 8px; }
+        .testi-arrow-right { right: 8px; }
+        @media (min-width: 640px) { .testi-arrow { display: grid; place-items: center; } }
+        @media (min-width: 640px) { .testi-hint { display: none; } }
+      `}</style>
     </section>
   );
 }
