@@ -246,11 +246,13 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
       id="top"
       style={{
         position: "relative",
-        minHeight: "100svh",
+        height: "100svh",
+        maxHeight: "100svh",
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "center",
         overflow: "hidden",
+        paddingTop: "clamp(72px, 16svh, 160px)",
       }}
     >
       {/* Video de fondo */}
