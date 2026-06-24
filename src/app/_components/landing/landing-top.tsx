@@ -117,7 +117,7 @@ export const SkillioMark = ({ color = "var(--ink)", size = 26 }: { color?: strin
     <svg width={size} height={size} viewBox="0 0 52 52" fill="none">
       <defs>
         <linearGradient id="sm-brand" x1="5" y1="2" x2="47" y2="50" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#7c3fcf" />
+          <stop offset="0%" stopColor="#865CB8" />
           <stop offset="100%" stopColor="#9655E5" />
         </linearGradient>
         <linearGradient id="sm-gloss" x1="0" y1="0" x2="0" y2="1">
@@ -164,7 +164,7 @@ export function Navbar({ onCTA }: { onCTA: () => void }) {
   return (
     <header style={{
       position: "sticky", top: 0, zIndex: 50,
-      background: scrolled ? "rgba(248,247,255,0.92)" : "transparent",
+      background: scrolled ? "rgba(240,237,255,0.92)" : "transparent",
       backdropFilter: scrolled ? "saturate(140%) blur(10px)" : "none",
       borderBottom: scrolled ? "1px solid rgba(53,56,49,0.06)" : "1px solid transparent",
       transition: "background .2s, border-color .2s",
@@ -254,7 +254,7 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         }
         .hero-bg-veil {
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
-          background: radial-gradient(ellipse 100% 70% at 50% 40%, rgba(248,247,255,0.10) 0%, rgba(248,247,255,0.50) 60%, var(--bg) 100%);
+          background: radial-gradient(ellipse 100% 70% at 50% 40%, rgba(240,237,255,0.08) 0%, rgba(240,237,255,0.50) 60%, var(--bg) 100%);
         }
       `}</style>
       <div className="container-x" style={{ position: "relative", zIndex: 2 }}>

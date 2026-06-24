@@ -327,7 +327,7 @@ function FooterCol({ title, links }: { title: string; links: [string, string][] 
 
 export function Footer() {
   return (
-    <footer style={{ background: "#12143a", color: "#f8f7ff", paddingTop: 64, paddingBottom: 28, marginTop: 40 }}>
+    <footer style={{ background: "#1a0f38", color: "#F0EDFF", paddingTop: 64, paddingBottom: 28, marginTop: 40 }}>
       <div className="container-x">
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr repeat(3, 1fr)", gap: 40 }} className="footer-grid">
           <div>
