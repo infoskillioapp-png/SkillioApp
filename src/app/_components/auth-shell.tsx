@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
 
 type Props = {
   step: string;
@@ -13,32 +12,39 @@ export function AuthShell({ step, title, lead, children, footerLink }: Props) {
   return (
     <>
       <style>{`
-        /* ── Animaciones ── */
-        @keyframes bookiBounce {
-          0%, 100% { transform: translateY(0px); }
-          50%       { transform: translateY(-18px); }
+        /* ── SALTO real: impulso rápido, peak, caída, impacto ── */
+        @keyframes bookiJump {
+          0%   { transform: translateY(0px)   scaleX(1.06) scaleY(0.94); }
+          12%  { transform: translateY(-20px)  scaleX(0.97) scaleY(1.03); }
+          35%  { transform: translateY(-70px)  scaleX(0.94) scaleY(1.06); }
+          55%  { transform: translateY(-70px)  scaleX(0.94) scaleY(1.06); }
+          78%  { transform: translateY(-6px)   scaleX(0.98) scaleY(1.02); }
+          88%  { transform: translateY(0px)    scaleX(1.10) scaleY(0.90); }
+          94%  { transform: translateY(-18px)  scaleX(0.97) scaleY(1.03); }
+          100% { transform: translateY(0px)    scaleX(1.06) scaleY(0.94); }
         }
+        /* ── Elementos: flotación suave y orgánica ── */
         @keyframes floatA {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50%       { transform: translateY(-14px) rotate(6deg); }
+          0%, 100% { transform: translateY(0px) rotate(-4deg); }
+          50%       { transform: translateY(-22px) rotate(6deg); }
         }
         @keyframes floatB {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50%       { transform: translateY(-20px) rotate(-8deg); }
+          0%, 100% { transform: translateY(0px) rotate(8deg); }
+          50%       { transform: translateY(-30px) rotate(-6deg); }
         }
         @keyframes floatC {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50%       { transform: translateY(-10px) rotate(12deg); }
+          50%       { transform: translateY(-18px) rotate(14deg); }
         }
         @keyframes floatD {
-          0%, 100% { transform: translateY(0px) scale(1); }
-          50%       { transform: translateY(-16px) scale(1.06); }
+          0%, 100% { transform: translateY(0px) scale(1) rotate(3deg); }
+          50%       { transform: translateY(-25px) scale(1.08) rotate(-3deg); }
         }
-        .auth-bounce { animation: bookiBounce 2.4s ease-in-out infinite; }
-        .auth-fA     { animation: floatA 3.1s ease-in-out infinite; }
-        .auth-fB     { animation: floatB 3.8s ease-in-out infinite; }
-        .auth-fC     { animation: floatC 2.7s ease-in-out infinite; }
-        .auth-fD     { animation: floatD 4.2s ease-in-out infinite; }
+        .auth-jump { animation: bookiJump 1.9s cubic-bezier(0.28, 0, 0.72, 1) infinite; }
+        .auth-fA   { animation: floatA 3.4s ease-in-out infinite; }
+        .auth-fB   { animation: floatB 4.1s ease-in-out infinite; }
+        .auth-fC   { animation: floatC 2.8s ease-in-out infinite; }
+        .auth-fD   { animation: floatD 3.7s ease-in-out infinite; }
 
         /* ── Strip Clerk card chrome ── */
         .cl-card, .cl-cardBox {
@@ -47,10 +53,10 @@ export function AuthShell({ step, title, lead, children, footerLink }: Props) {
           border: none !important;
           padding: 0 !important;
         }
-        .cl-header  { display: none !important; }
-        .cl-footer  { display: none !important; }
+        .cl-header { display: none !important; }
+        .cl-footer { display: none !important; }
 
-        /* ── Panel ilustración: oculto mobile, visible desktop ── */
+        /* ── Ilustración: oculta mobile, visible desktop ── */
         .auth-illustration { display: none; }
         @media (min-width: 768px) {
           .auth-illustration { display: block; }
@@ -66,70 +72,72 @@ export function AuthShell({ step, title, lead, children, footerLink }: Props) {
         {/* ── IZQUIERDA — ILUSTRACIÓN ── */}
         <div className="auth-illustration" style={{ flex: 1, position: "relative", overflow: "hidden" }}>
 
-          {/* Booki — centro, bouncing */}
-          <div className="auth-bounce" style={{
+          {/* Booki — grande, centrado, saltando */}
+          <div className="auth-jump" style={{
             position: "absolute", top: "50%", left: "50%",
-            transform: "translate(-50%, -54%)", zIndex: 2,
+            transform: "translate(-50%, -50%)",
+            zIndex: 2, width: "55%", maxWidth: 480,
           }}>
-            <Image
-              src="/booki%20con%20libros%20login.png"
-              alt="Booki"
-              width={320} height={360}
-              style={{ width: 320, height: "auto", filter: "drop-shadow(0 24px 40px rgba(100,50,200,.22))" }}
-              priority
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/booki%20inicio%20de%20sesion.png"
+              alt="Booki saltando"
+              style={{ width: "100%", height: "auto" }}
             />
           </div>
 
-          {/* Argolla grande — arriba izquierda */}
-          <div className="auth-fA" style={{ position: "absolute", top: "10%", left: "8%", width: 110, zIndex: 3 }}>
-            <Image src="/argolla%20login.png" alt="" width={110} height={110} style={{ width: 110, height: "auto" }} />
+          {/* ── ARGOLLAS ── */}
+          <div className="auth-fA" style={{ position: "absolute", top: "7%", left: "6%", width: "16%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/argolla%20login.png" alt="" style={{ width: "100%", height: "auto" }} />
+          </div>
+          <div className="auth-fC" style={{ position: "absolute", top: "28%", right: "4%", width: "11%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/argolla%20login.png" alt="" style={{ width: "100%", height: "auto", opacity: 0.82 }} />
+          </div>
+          <div className="auth-fB" style={{ position: "absolute", bottom: "15%", left: "4%", width: "13%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/argolla%20login.png" alt="" style={{ width: "100%", height: "auto", opacity: 0.72 }} />
+          </div>
+          <div className="auth-fD" style={{ position: "absolute", bottom: "8%", right: "14%", width: "8%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/argolla%20login.png" alt="" style={{ width: "100%", height: "auto", opacity: 0.65 }} />
           </div>
 
-          {/* Argolla pequeña — abajo derecha */}
-          <div className="auth-fC" style={{ position: "absolute", bottom: "14%", right: "10%", width: 64, zIndex: 3 }}>
-            <Image src="/argolla%20login.png" alt="" width={64} height={64} style={{ width: 64, height: "auto", opacity: 0.82 }} />
+          {/* ── CUBOS ── */}
+          <div className="auth-fB" style={{ position: "absolute", top: "6%", right: "10%", width: "13%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/cubo%20login.png" alt="" style={{ width: "100%", height: "auto" }} />
+          </div>
+          <div className="auth-fC" style={{ position: "absolute", top: "48%", left: "3%", width: "9%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/cubo%20login.png" alt="" style={{ width: "100%", height: "auto", opacity: 0.85 }} />
+          </div>
+          <div className="auth-fA" style={{ position: "absolute", bottom: "6%", left: "34%", width: "7%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/cubo%20login.png" alt="" style={{ width: "100%", height: "auto", opacity: 0.7 }} />
           </div>
 
-          {/* Argolla mediana — abajo izquierda */}
-          <div className="auth-fB" style={{ position: "absolute", bottom: "22%", left: "5%", width: 80, zIndex: 3 }}>
-            <Image src="/argolla%20login.png" alt="" width={80} height={80} style={{ width: 80, height: "auto", opacity: 0.68 }} />
+          {/* ── BOLAS ── */}
+          <div className="auth-fD" style={{ position: "absolute", top: "20%", left: "18%", width: "10%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/bola%20login.png" alt="" style={{ width: "100%", height: "auto" }} />
+          </div>
+          <div className="auth-fA" style={{ position: "absolute", top: "62%", right: "5%", width: "7%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/bola%20login.png" alt="" style={{ width: "100%", height: "auto", opacity: 0.78 }} />
+          </div>
+          <div className="auth-fC" style={{ position: "absolute", bottom: "12%", left: "24%", width: "6%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/bola%20login.png" alt="" style={{ width: "100%", height: "auto", opacity: 0.62 }} />
           </div>
 
-          {/* Cubo grande — arriba derecha */}
-          <div className="auth-fB" style={{ position: "absolute", top: "8%", right: "14%", width: 90, zIndex: 3 }}>
-            <Image src="/cubo%20login.png" alt="" width={90} height={90} style={{ width: 90, height: "auto" }} />
-          </div>
-
-          {/* Cubo mediano — izquierda media */}
-          <div className="auth-fC" style={{ position: "absolute", top: "44%", left: "4%", width: 62, zIndex: 3 }}>
-            <Image src="/cubo%20login.png" alt="" width={62} height={62} style={{ width: 62, height: "auto", opacity: 0.88 }} />
-          </div>
-
-          {/* Cubo pequeño — abajo centro */}
-          <div className="auth-fA" style={{ position: "absolute", bottom: "8%", left: "38%", width: 46, zIndex: 3 }}>
-            <Image src="/cubo%20login.png" alt="" width={46} height={46} style={{ width: 46, height: "auto", opacity: 0.72 }} />
-          </div>
-
-          {/* Bola grande — arriba centro-izq */}
-          <div className="auth-fD" style={{ position: "absolute", top: "18%", left: "22%", width: 72, zIndex: 3 }}>
-            <Image src="/bola%20login.png" alt="" width={72} height={72} style={{ width: 72, height: "auto" }} />
-          </div>
-
-          {/* Bola pequeña — derecha media */}
-          <div className="auth-fA" style={{ position: "absolute", top: "55%", right: "6%", width: 48, zIndex: 3 }}>
-            <Image src="/bola%20login.png" alt="" width={48} height={48} style={{ width: 48, height: "auto", opacity: 0.78 }} />
-          </div>
-
-          {/* Bola mini — abajo izquierda */}
-          <div className="auth-fC" style={{ position: "absolute", bottom: "10%", left: "28%", width: 36, zIndex: 3 }}>
-            <Image src="/bola%20login.png" alt="" width={36} height={36} style={{ width: 36, height: "auto", opacity: 0.62 }} />
-          </div>
         </div>
 
         {/* ── DERECHA — FORM ── */}
         <div style={{
           flex: "0 0 auto",
-          width: "min(480px, 100%)",
+          width: "min(460px, 100%)",
           display: "flex", flexDirection: "column",
           padding: "32px 48px",
           overflowY: "auto",
