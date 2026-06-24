@@ -354,10 +354,10 @@ export function Demo() {
             Prueba en vivo · sin registrarte
           </div>
           <h2 className="h-section" style={{ margin: 0, color: "#fff" }}>
-            La <span className="gradient-text">magia</span> en 5 segundos
+            Mirá cómo funciona
           </h2>
           <p style={{ marginTop: 14, fontSize: 17, lineHeight: 1.55, color: "rgba(255,255,255,0.72)" }}>
-            Elegí un tema y tocá Generar. Sin cuenta, sin tarjeta. Esto es exactamente lo que recibe un usuario PRO.
+            Seleccioná el apunte de ejemplo y generá, la IA hará el trabajo por vos, listo para estudiar.
           </p>
         </div>
 
@@ -380,7 +380,7 @@ export function Demo() {
               </div>
               <span className="mono" style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>skillio.app/generar</span>
             </div>
-            <span className="badge"><IconSparkles size={12} /> Powered by Claude</span>
+            <span className="badge"><IconSparkles size={12} /> IA generativa</span>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.05fr)" }} className="demo-grid">
