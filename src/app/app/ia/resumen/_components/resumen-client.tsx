@@ -14,7 +14,7 @@ const KX_COLORS = [
 ];
 
 const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
-const FREE_LIMIT = 3;
+const FREE_LIMIT = 2;
 const ESPACIO_KEY = "skillio_tema_";
 
 function confettiBurst(x: number, y: number) {
@@ -325,6 +325,48 @@ function ResumenSidebar({
 
   return (
     <aside className="rside in">
+      <style>{`
+        @keyframes lockShimmer {
+          0%   { background-position: -250% center; }
+          100% { background-position: 250% center; }
+        }
+        @keyframes lockPulse {
+          0%, 100% { box-shadow: 0 0 0px rgba(150,85,229,0), inset 0 0 0px rgba(150,85,229,0); }
+          50%       { box-shadow: 0 0 14px rgba(150,85,229,.35), inset 0 0 8px rgba(150,85,229,.08); }
+        }
+        @keyframes lockIconBounce {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50%       { transform: translateY(-3px) scale(1.15); }
+        }
+        .t-item-locked {
+          cursor: pointer;
+          border-radius: 12px;
+          background: linear-gradient(135deg, rgba(255,255,255,.55) 0%, rgba(240,235,255,.45) 100%);
+          backdrop-filter: blur(6px);
+          border: 1px solid rgba(150,85,229,.18) !important;
+          animation: lockPulse 2.6s ease-in-out infinite;
+          transition: transform .15s;
+        }
+        .t-item-locked:hover {
+          transform: translateY(-1px);
+          border-color: rgba(150,85,229,.4) !important;
+        }
+        .t-item-locked .t-name {
+          background: linear-gradient(90deg, #1f2347 15%, #9655E5 35%, #c084fc 50%, #9655E5 65%, #1f2347 85%);
+          background-size: 250% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: lockShimmer 2.8s linear infinite;
+          font-weight: 700 !important;
+        }
+        .t-item-locked .lock-icon {
+          animation: lockIconBounce 2.2s ease-in-out infinite;
+          display: inline-block;
+          font-size: 13px;
+        }
+      `}</style>
+
       <h2 className="po">
         Temas
         {!isPro && totalPoints > FREE_LIMIT && (
@@ -357,20 +399,21 @@ function ResumenSidebar({
             return (
               <div
                 key={pi}
-                className={`t-item${isDone ? " done" : ""}${isActive ? " on" : ""}${isLocked ? " locked" : ""}`}
+                className={`t-item${isDone ? " done" : ""}${isActive ? " on" : ""}${isLocked ? " t-item-locked" : ""}`}
                 onClick={() => {
                   if (isLocked) { onLocked(); return; }
                   onSelect(gIdx);
                 }}
-                style={isLocked ? { opacity: 0.5, cursor: "pointer" } : {}}
               >
                 <span className="t-dot">
-                  {isLocked ? "🔒" : (isDone ? "✓" : "")}
+                  {isLocked
+                    ? <span className="lock-icon">🔒</span>
+                    : (isDone ? "✓" : "")}
                 </span>
                 <div>
                   <div className="t-name">{pt.emoji ? `${pt.emoji} ${pt.title}` : pt.title}</div>
-                  <div className="t-sub">
-                    {isLocked ? "Requiere PRO" : isDone ? "Dominado · 100%" : isActive ? "En progreso" : "Sin empezar"}
+                  <div className="t-sub" style={isLocked ? { color: "#9655E5", fontWeight: 600, fontSize: 11 } : {}}>
+                    {isLocked ? "✨ Desbloqueá con PRO" : isDone ? "Dominado · 100%" : isActive ? "En progreso" : "Sin empezar"}
                   </div>
                 </div>
               </div>
