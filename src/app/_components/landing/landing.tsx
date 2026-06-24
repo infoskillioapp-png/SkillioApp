@@ -4,8 +4,8 @@ import "./landing.css";
 import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar, HeroText, IconArrow, CTAMicro } from "./landing-top";
-import { Features, HowItWorks, Demo, Toolkit, Problema } from "./landing-mid";
-import { Community, Pricing, FAQ, FinalCTA, Footer, Testimonios, Transformacion } from "./landing-bottom";
+import { HowItWorks, Demo } from "./landing-mid";
+import { Pricing, FAQ, FinalCTA, Footer, Testimonios } from "./landing-bottom";
 import MeshBackground from "./MeshBackground";
 
 function useReveal() {
@@ -79,13 +79,8 @@ export function LandingPage() {
         <HeroText onCTA={onCTA} />
         <Demo />
         <CTAPost onCTA={onCTA} />
-        <Problema />
         <HowItWorks />
-        <Features />
-        <Toolkit />
-        <Community onCTA={onCTA} />
         <Testimonios />
-        <Transformacion />
         <Pricing onCTA={onCTA} />
         <FAQ />
         <FinalCTA onCTA={onCTA} />

@@ -286,9 +286,9 @@ export function Demo() {
     <section className="section" style={{ position: "relative" }}>
       <div className="container-x">
         <SectionHeader
-          eyebrow="Probalo ahora"
-          title={<>Pegá un apunte, mirá la <span className="gradient-text">magia</span></>}
-          sub="Sin registrarte. Sin descargas. Esto es exactamente lo que recibe un usuario PRO."
+          eyebrow="Prueba en vivo · sin registrarte"
+          title={<>La <span className="gradient-text">magia</span> en 5 segundos</>}
+          sub="Elegí un tema y tocá Generar. Sin cuenta, sin tarjeta. Esto es exactamente lo que recibe un usuario PRO."
         />
         <div className="card" style={{ marginTop: 42, padding: 0, overflow: "hidden", borderRadius: 24 }}>
           {/* Toolbar */}

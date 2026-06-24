@@ -269,12 +269,12 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         </div>
 
         <h1 className="h-display" style={{ textAlign: "center", margin: "0 auto", maxWidth: 920 }}>
-          Estudiá la mitad.<br /><span className="gradient-text">Aprobá</span> igual.
+          Aprobá tu parcial<br />estudiando la <span className="gradient-text">mitad</span>.
         </h1>
 
         <p style={{ textAlign: "center", margin: "22px auto 0", fontSize: "clamp(16px, 1.7vw, 20px)", lineHeight: 1.55, color: "#4A2418", maxWidth: 600 }}>
-          Subí tu apunte, PDF o una foto y en segundos tenés el resumen, las flashcards
-          y el simulacro de tu parcial. Listo para estudiar.
+          Subí tu apunte, PDF o foto. En segundos tenés resumen, flashcards y simulacro.
+          Sin tarjeta. Sin registro. Probalo abajo.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 28 }}>
