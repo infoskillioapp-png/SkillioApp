@@ -104,7 +104,6 @@ function AnimCounter({ to, active, delay }: { to: number; active: boolean; delay
 }
 
 export function HowItWorks() {
-  const [expanded, setExpanded] = useState<number | null>(null);
   const [active, setActive] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -118,9 +117,9 @@ export function HowItWorks() {
   }, []);
 
   const steps = [
-    { n: 1, title: "Subí tu material", body: "PDF, foto del pizarrón, una hoja escaneada o texto. Si lo podés leer vos, lo lee Skillio.", extra: "Subís una foto del pizarrón o tu PDF y Skillio arranca solo. Sin copiar, sin pegar nada.", Icon: IconUpload },
-    { n: 2, title: "La IA lo convierte", body: "En resumen, flashcards y simulacro de parcial. En segundos, no en horas.", extra: "Elegís qué querés: resumen, puntos clave o flashcards. La IA lo genera al instante.", Icon: IconBolt },
-    { n: 3, title: "Estudiás y llegás listo", body: "Repasás con repetición espaciada, hacés el simulacro y entrás al parcial con todo.", extra: "Hacé el simulacro antes de la fecha y llegás con todo repasado. Sin sorpresas.", Icon: IconTrophy },
+    { n: 1, title: "Subí tu material", body: "PDF, foto del pizarrón, una hoja escaneada o texto. Si lo podés leer vos, lo lee Skillio.", Icon: IconUpload },
+    { n: 2, title: "La IA lo convierte", body: "En resumen, flashcards y simulacro de parcial. En segundos, no en horas.", Icon: IconBolt },
+    { n: 3, title: "Estudiás y llegás listo", body: "Repasás con repetición espaciada, hacés el simulacro y entrás al parcial con todo.", Icon: IconTrophy },
   ];
 
   return (
@@ -148,10 +147,9 @@ export function HowItWorks() {
           {steps.map((s, i) => (
             <div
               key={i}
-              className={`reveal how-card${expanded === i ? " how-card-expanded" : ""}`}
-              onClick={() => setExpanded(expanded === i ? null : i)}
+              className="reveal how-card"
               style={{
-                borderRadius: 22, padding: 28, position: "relative", cursor: "pointer",
+                borderRadius: 22, padding: 28, position: "relative",
                 background: "rgba(255,255,255,0.42)",
                 backdropFilter: "blur(18px) saturate(160%)",
                 WebkitBackdropFilter: "blur(18px) saturate(160%)",
@@ -183,9 +181,6 @@ export function HowItWorks() {
               <h3 className="h-card" style={{ margin: "0 0 10px", fontSize: 22 }}>{s.title}</h3>
               <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--ink-soft)" }}>{s.body}</p>
 
-              {/* Detalle expandible (mobile tap) */}
-              <div className="how-card-extra">{s.extra}</div>
-              <div className="how-card-hint">Tocá para {expanded === i ? "cerrar" : "ver más"}</div>
             </div>
           ))}
         </div>
@@ -230,13 +225,7 @@ export function HowItWorks() {
         .how-connector-active { transform: scaleX(1) !important; }
         @media (min-width: 821px) { .how-connector-wrap { display: block; } }
 
-        /* Expandible mobile */
-        .how-card-extra { max-height: 0; overflow: hidden; opacity: 0; font-size: 14px; color: var(--ink-soft); line-height: 1.55; transition: max-height 0.35s ease, opacity 0.3s ease, margin-top 0.3s ease; margin-top: 0; }
-        .how-card-expanded .how-card-extra { max-height: 100px; opacity: 1; margin-top: 10px; }
-        .how-card-hint { font-size: 11px; color: rgba(134,92,184,0.55); margin-top: 14px; text-align: right; }
-        @media (min-width: 821px) { .how-card-hint { display: none; } }
-
-        @media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
           .how-orb { animation: none !important; }
           .step-num, .step-icon { transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important; }
           .how-connector-line { transition: none !important; }
