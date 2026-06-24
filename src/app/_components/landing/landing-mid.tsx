@@ -101,12 +101,19 @@ export function HowItWorks() {
         <SectionHeader
           eyebrow="Cómo funciona"
           title={<>De 200 páginas a parcial aprobado<br />en <span className="gradient-text">tres pasos</span></>}
-          sub="Sin curva de aprendizaje. Si sabés usar WhatsApp, sabés usar Skillio."
+          sub="Sin curva de aprendizaje, seguí el tour guiado dentro de la app y estás listo para empezar a aprobar."
         />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 50 }}>
           {steps.map((s, i) => (
-            <div key={i} className="reveal" style={{ background: "var(--paper)", borderRadius: 22, padding: 28, position: "relative", border: "1px solid rgba(53,56,49,0.06)" }}>
-              <div style={{ position: "absolute", top: 22, right: 22, fontFamily: "var(--font-serif)", fontSize: 48, color: "var(--bg-2)", lineHeight: 0.8 }}>{s.n}</div>
+            <div key={i} className="reveal" style={{
+              borderRadius: 22, padding: 28, position: "relative",
+              background: "rgba(255,255,255,0.42)",
+              backdropFilter: "blur(18px) saturate(160%)",
+              WebkitBackdropFilter: "blur(18px) saturate(160%)",
+              border: "1px solid rgba(255,255,255,0.72)",
+              boxShadow: "0 4px 28px rgba(134,92,184,0.10), inset 0 1px 0 rgba(255,255,255,0.85)",
+            }}>
+              <div style={{ position: "absolute", top: 22, right: 22, fontFamily: "var(--font-serif)", fontSize: 48, color: "rgba(134,92,184,0.12)", lineHeight: 0.8 }}>{s.n}</div>
               <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--accent)", color: "white", display: "grid", placeItems: "center", marginBottom: 22 }}>
                 <s.Icon size={24} />
               </div>
@@ -115,9 +122,8 @@ export function HowItWorks() {
             </div>
           ))}
         </div>
-        {/* GIF antes/después: apunte desordenado → material de estudio ordenado */}
         <div style={{ maxWidth: 900, margin: "44px auto 0" }} className="reveal">
-          <MediaSlot src="antes-despues.mp4" label="Video antes / después · apunte caótico → resumen + flashcards ordenados" ratio="16 / 9" />
+          <MediaSlot src="precarga.mp4" label="Tour guiado · onboarding en segundos" ratio="16 / 9" />
         </div>
       </div>
     </section>
