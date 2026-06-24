@@ -117,8 +117,8 @@ export const SkillioMark = ({ color = "var(--ink)", size = 26 }: { color?: strin
     <svg width={size} height={size} viewBox="0 0 52 52" fill="none">
       <defs>
         <linearGradient id="sm-brand" x1="5" y1="2" x2="47" y2="50" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#7A2818" />
-          <stop offset="100%" stopColor="#C85C42" />
+          <stop offset="0%" stopColor="#7c3fcf" />
+          <stop offset="100%" stopColor="#9655E5" />
         </linearGradient>
         <linearGradient id="sm-gloss" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="white" stopOpacity={0.20} />
@@ -164,7 +164,7 @@ export function Navbar({ onCTA }: { onCTA: () => void }) {
   return (
     <header style={{
       position: "sticky", top: 0, zIndex: 50,
-      background: scrolled ? "rgba(251,241,239,0.92)" : "transparent",
+      background: scrolled ? "rgba(248,247,255,0.92)" : "transparent",
       backdropFilter: scrolled ? "saturate(140%) blur(10px)" : "none",
       borderBottom: scrolled ? "1px solid rgba(53,56,49,0.06)" : "1px solid transparent",
       transition: "background .2s, border-color .2s",
@@ -211,7 +211,7 @@ export function CTAMicro({ light = false, center = true }: { light?: boolean; ce
 export function MediaSlot({ src, label, ratio = "16 / 10" }: { src: string; label: string; ratio?: string }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div style={{ position: "relative", width: "100%", aspectRatio: ratio, borderRadius: 22, overflow: "hidden", background: "var(--paper-warm)", border: "1px solid rgba(53,56,49,0.08)", boxShadow: "0 24px 52px -24px rgba(165,64,45,.25)" }}>
+    <div style={{ position: "relative", width: "100%", aspectRatio: ratio, borderRadius: 22, overflow: "hidden", background: "var(--paper-warm)", border: "1px solid rgba(53,56,49,0.08)", boxShadow: "0 24px 52px -24px rgba(150,85,229,.25)" }}>
       {!failed ? (
         <video
           src={"/landing/" + src}
@@ -226,7 +226,7 @@ export function MediaSlot({ src, label, ratio = "16 / 10" }: { src: string; labe
         />
       ) : (
         <div className="grid-bg fade" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, textAlign: "center", padding: 24 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(165,64,45,0.10)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(150,85,229,0.10)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
             <IconSparkles size={26} />
           </div>
           <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>{label}</div>
@@ -254,7 +254,7 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         }
         .hero-bg-veil {
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
-          background: radial-gradient(ellipse 100% 70% at 50% 40%, rgba(251,239,231,0.15) 0%, rgba(251,239,231,0.55) 60%, var(--bg) 100%);
+          background: radial-gradient(ellipse 100% 70% at 50% 40%, rgba(248,247,255,0.10) 0%, rgba(248,247,255,0.50) 60%, var(--bg) 100%);
         }
       `}</style>
       <div className="container-x" style={{ position: "relative", zIndex: 2 }}>
@@ -269,7 +269,7 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
           Aprobá tu parcial<br />estudiando la <span className="gradient-text">mitad</span>.
         </h1>
 
-        <p style={{ textAlign: "center", margin: "22px auto 0", fontSize: "clamp(16px, 1.7vw, 20px)", lineHeight: 1.55, color: "#4A2418", maxWidth: 600 }}>
+        <p style={{ textAlign: "center", margin: "22px auto 0", fontSize: "clamp(16px, 1.7vw, 20px)", lineHeight: 1.55, color: "#4a4d6a", maxWidth: 600 }}>
           Subí tu apunte, PDF o foto. En segundos tenés resumen, flashcards y simulacro.
           Sin tarjeta. Sin registro. Probalo abajo.
         </p>

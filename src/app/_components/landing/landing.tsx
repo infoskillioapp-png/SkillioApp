@@ -38,7 +38,7 @@ function StickyMobileCTA({ onCTA }: { onCTA: () => void }) {
       id="sticky-cta"
       style={{
         position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 90,
-        background: "rgba(251,241,239,0.94)", backdropFilter: "saturate(140%) blur(10px)",
+        background: "rgba(248,247,255,0.94)", backdropFilter: "saturate(140%) blur(10px)",
         borderTop: "1px solid rgba(53,56,49,0.08)", padding: "10px 16px calc(10px + env(safe-area-inset-bottom))",
         boxShadow: "0 -6px 24px -12px rgba(53,56,49,0.25)",
       }}

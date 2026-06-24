@@ -187,7 +187,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
 
         <div className="pricing-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginTop: 46, maxWidth: 820, marginLeft: "auto", marginRight: "auto", alignItems: "stretch" }}>
           {/* ── PRO — plan real, recomendado ── */}
-          <div style={{ background: "var(--accent)", color: "#fff", borderRadius: 24, padding: 32, border: "1.5px solid var(--accent)", position: "relative", boxShadow: "0 24px 48px -20px rgba(165,64,45,0.5)", transform: "scale(1.02)", zIndex: 2 }}>
+          <div style={{ background: "var(--accent)", color: "#fff", borderRadius: 24, padding: 32, border: "1.5px solid var(--accent)", position: "relative", boxShadow: "0 24px 48px -20px rgba(150,85,229,0.5)", transform: "scale(1.02)", zIndex: 2 }}>
             <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", padding: "5px 14px", borderRadius: 999, background: "var(--ink)", color: "white", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>⭐ El más elegido</span>
             <div style={{ fontFamily: "var(--font-serif)", fontSize: 32, letterSpacing: "-0.02em", lineHeight: 1 }}>PRO</div>
             <div style={{ marginTop: 6, fontSize: 14, opacity: 0.8 }}>Todo lo que necesitás para aprobar</div>
@@ -315,7 +315,7 @@ export function FinalCTA({ onCTA }: { onCTA: () => void }) {
 function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div>
-      <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", color: "rgba(251,241,239,0.55)", marginBottom: 16 }}>{title}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", color: "rgba(248,247,255,0.55)", marginBottom: 16 }}>{title}</div>
       <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         {links.map(([label, href], i) => (
           <li key={i}><a href={href} className="footer-link">{label}</a></li>
@@ -327,19 +327,19 @@ function FooterCol({ title, links }: { title: string; links: [string, string][] 
 
 export function Footer() {
   return (
-    <footer style={{ background: "#22241e", color: "#fbf1ef", paddingTop: 64, paddingBottom: 28, marginTop: 40 }}>
+    <footer style={{ background: "#12143a", color: "#f8f7ff", paddingTop: 64, paddingBottom: 28, marginTop: 40 }}>
       <div className="container-x">
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr repeat(3, 1fr)", gap: 40 }} className="footer-grid">
           <div>
-            <SkillioMark color="#fbf1ef" size={28} />
-            <p style={{ marginTop: 14, fontSize: 14, color: "rgba(251,241,239,0.6)", lineHeight: 1.55, maxWidth: 320 }}>
+            <SkillioMark color="#f8f7ff" size={28} />
+            <p style={{ marginTop: 14, fontSize: 14, color: "rgba(248,247,255,0.6)", lineHeight: 1.55, maxWidth: 320 }}>
               Tu copiloto de estudio. Hecho en Argentina 🇦🇷 por estudiantes para estudiantes.
             </p>
             <div style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ padding: "10px 14px", borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 10, border: "1px solid rgba(255,255,255,0.08)" }}>
                 <div style={{ width: 24, height: 24, borderRadius: 999, background: "#00b1ea", display: "grid", placeItems: "center", color: "white", fontSize: 13, fontWeight: 700 }}>M</div>
                 <div>
-                  <div style={{ fontSize: 11, color: "rgba(251,241,239,0.5)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Pasarela segura</div>
+                  <div style={{ fontSize: 11, color: "rgba(248,247,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Pasarela segura</div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>Mercado Pago</div>
                 </div>
               </div>
@@ -350,7 +350,7 @@ export function Footer() {
           <FooterCol title="Legal" links={[["Términos y condiciones", "/terminos"], ["Política de privacidad", "/privacidad"], ["Política de cookies", "/privacidad#cookies"], ["Seguridad", "/privacidad#seguridad"]]} />
         </div>
         <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "40px 0 24px" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontSize: 13, color: "rgba(251,241,239,0.5)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontSize: 13, color: "rgba(248,247,255,0.5)" }}>
           <div>© 2026 Skillio · Argentina</div>
           <div style={{ display: "flex", gap: 16 }}>
             <a href="#" className="footer-link">Instagram</a>

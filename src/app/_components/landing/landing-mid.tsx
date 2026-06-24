@@ -36,7 +36,7 @@ export function Problema() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14, marginTop: 38 }}>
           {dolores.map((d, i) => (
             <div key={i} className="card reveal" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-              <span style={{ flex: "0 0 30px", height: 30, borderRadius: 999, background: "rgba(165,64,45,0.10)", color: "var(--accent)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <span style={{ flex: "0 0 30px", height: 30, borderRadius: 999, background: "rgba(150,85,229,0.10)", color: "var(--accent)", display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <IconX size={14} stroke={2.5} />
               </span>
               <span style={{ fontSize: 15.5, lineHeight: 1.4, color: "var(--ink)", fontWeight: 500 }}>{d}</span>
@@ -71,7 +71,7 @@ export function Features() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18, marginTop: 42 }}>
           {items.map((it, i) => (
             <div key={i} className="card lift reveal" style={{ padding: 28, display: "flex", flexDirection: "column", gap: 18 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 13, display: "grid", placeItems: "center", background: "rgba(165,64,45,0.10)", color: "var(--accent)" }}>
+              <div style={{ width: 48, height: 48, borderRadius: 13, display: "grid", placeItems: "center", background: "rgba(150,85,229,0.10)", color: "var(--accent)" }}>
                 <it.Icon size={26} />
               </div>
               <div>
@@ -196,7 +196,7 @@ const CANNED: DemoSet[] = [
 function DemoEmpty({ mode }: { mode: DemoMode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "40px 20px", color: "var(--ink-softer)" }}>
-      <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(165,64,45,0.08)", color: "var(--accent)", display: "grid", placeItems: "center", marginBottom: 16 }}>
+      <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(150,85,229,0.08)", color: "var(--accent)", display: "grid", placeItems: "center", marginBottom: 16 }}>
         <IconSparkles size={28} />
       </div>
       <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--ink)" }}>
@@ -227,7 +227,7 @@ function FlashcardDeck({ cards }: { cards: { q: string; a: string }[] }) {
   if (!card) return null;
   return (
     <div>
-      <div onClick={() => setFlipped((f) => !f)} style={{ background: "var(--paper)", borderRadius: 16, padding: 28, minHeight: 180, cursor: "pointer", border: "1.5px solid rgba(165,64,45,0.25)", display: "flex", flexDirection: "column", justifyContent: "center", gap: 8, position: "relative" }}>
+      <div onClick={() => setFlipped((f) => !f)} style={{ background: "var(--paper)", borderRadius: 16, padding: 28, minHeight: 180, cursor: "pointer", border: "1.5px solid rgba(150,85,229,0.25)", display: "flex", flexDirection: "column", justifyContent: "center", gap: 8, position: "relative" }}>
         <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>{flipped ? "Respuesta" : "Pregunta"}</div>
         <div style={{ fontFamily: flipped ? "var(--font-sans)" : "var(--font-serif)", fontSize: flipped ? 16 : 22, lineHeight: 1.4, color: "var(--ink)" }}>{flipped ? card.a : card.q}</div>
         <div style={{ position: "absolute", bottom: 12, right: 16, fontSize: 11, color: "var(--ink-softer)" }}>Tocá para {flipped ? "ver pregunta" : "ver respuesta"}</div>
@@ -366,7 +366,7 @@ function AgendaCard() {
     <div className="card" style={{ padding: 28, display: "flex", flexDirection: "column", gap: 18, gridRow: "span 2" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(165,64,45,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(150,85,229,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
           </div>
           <div>
@@ -379,7 +379,7 @@ function AgendaCard() {
       <div style={{ background: "var(--paper-warm)", borderRadius: 16, padding: 16, border: "1px solid rgba(53,56,49,0.05)" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: 12 }}>
           {["L", "M", "X", "J", "V", "S", "D"].map((d, i) => (
-            <div key={i} style={{ aspectRatio: "1", display: "grid", placeItems: "center", borderRadius: 10, fontSize: 13, fontWeight: 600, background: i === 2 ? "var(--accent)" : i === 4 ? "rgba(165,64,45,0.12)" : "transparent", color: i === 2 ? "white" : i === 4 ? "var(--accent)" : "var(--ink-soft)", border: i === 1 ? "1.5px solid var(--accent)" : "1px solid transparent" }}>
+            <div key={i} style={{ aspectRatio: "1", display: "grid", placeItems: "center", borderRadius: 10, fontSize: 13, fontWeight: 600, background: i === 2 ? "var(--accent)" : i === 4 ? "rgba(150,85,229,0.12)" : "transparent", color: i === 2 ? "white" : i === 4 ? "var(--accent)" : "var(--ink-soft)", border: i === 1 ? "1.5px solid var(--accent)" : "1px solid transparent" }}>
               <div style={{ textAlign: "center", lineHeight: 1.1 }}><div style={{ fontSize: 10, opacity: 0.7 }}>{d}</div><div>{14 + i}</div></div>
             </div>
           ))}
@@ -390,7 +390,7 @@ function AgendaCard() {
             { day: "Viernes", title: "Entregar TP · Estadística", time: "23:59", accent: false },
             { day: "Lunes próximo", title: "Repaso flashcards · Histología", time: "auto", accent: false },
           ].map((ev, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: ev.accent ? "rgba(165,64,45,0.08)" : "var(--paper)", borderRadius: 10, borderLeft: "3px solid " + (ev.accent ? "var(--accent)" : "rgba(53,56,49,0.2)") }}>
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: ev.accent ? "rgba(150,85,229,0.08)" : "var(--paper)", borderRadius: 10, borderLeft: "3px solid " + (ev.accent ? "var(--accent)" : "rgba(53,56,49,0.2)") }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 11, color: "var(--ink-softer)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{ev.day}</div>
                 <div style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600 }}>{ev.title}</div>
@@ -419,7 +419,7 @@ function PomodoroCard() {
   return (
     <div className="card" style={{ padding: 28, display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(165,64,45,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(150,85,229,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8" /><path d="M12 5c0-2 1.5-3 3-3M12 5c0-2-1.5-3-3-3" /><path d="M12 5v3" /></svg>
         </div>
         <div>
@@ -453,7 +453,7 @@ function LogrosCard() {
   return (
     <div className="card" style={{ padding: 28 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(165,64,45,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(150,85,229,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
           <IconTrophy size={20} />
         </div>
         <div style={{ flex: 1 }}>
@@ -463,7 +463,7 @@ function LogrosCard() {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {logros.map((l, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: l.unlocked ? "rgba(165,64,45,0.06)" : "var(--paper-warm)", borderRadius: 12, border: "1px solid rgba(53,56,49,0.05)" }}>
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: l.unlocked ? "rgba(150,85,229,0.06)" : "var(--paper-warm)", borderRadius: 12, border: "1px solid rgba(53,56,49,0.05)" }}>
             <div style={{ width: 36, height: 36, borderRadius: 999, background: l.unlocked ? "var(--accent)" : "var(--bg-2)", color: l.unlocked ? "white" : "var(--ink-softer)", display: "grid", placeItems: "center", fontSize: 14 }}>
               {l.unlocked ? "✓" : "🔒"}
             </div>
@@ -491,7 +491,7 @@ function MateriasCard() {
   return (
     <div className="card" style={{ padding: 28 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(165,64,45,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(150,85,229,0.1)", color: "var(--accent)", display: "grid", placeItems: "center" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
         </div>
         <div>
