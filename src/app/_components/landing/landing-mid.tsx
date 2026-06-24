@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { IconDoc, IconExam, IconFlash, IconUpload, IconBolt, IconTrophy, IconSparkles, IconX, MediaSlot } from "./landing-top";
 
@@ -193,16 +193,31 @@ const CANNED: DemoSet[] = [
   },
 ];
 
+function TypingText({ text, speed = 14 }: { text: string; speed?: number }) {
+  const [displayed, setDisplayed] = useState("");
+  useEffect(() => {
+    setDisplayed("");
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) clearInterval(id);
+    }, speed);
+    return () => clearInterval(id);
+  }, [text, speed]);
+  return <>{displayed}</>;
+}
+
 function DemoEmpty({ mode }: { mode: DemoMode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "40px 20px", color: "var(--ink-softer)" }}>
-      <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(150,85,229,0.08)", color: "var(--accent)", display: "grid", placeItems: "center", marginBottom: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "40px 20px", color: "rgba(255,255,255,0.5)" }}>
+      <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.7)", display: "grid", placeItems: "center", marginBottom: 16 }}>
         <IconSparkles size={28} />
       </div>
-      <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--ink)" }}>
+      <div style={{ fontSize: 15.5, fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>
         {mode === "puntos" ? "Puntos clave aparecerán acá" : mode === "resumen" ? "Tu resumen aparecerá acá" : "Tus flashcards aparecerán acá"}
       </div>
-      <div style={{ fontSize: 13.5, marginTop: 6 }}>Tocá <b>Generar con IA</b> para ver la magia</div>
+      <div style={{ fontSize: 13.5, marginTop: 6, color: "rgba(255,255,255,0.5)" }}>Tocá <b style={{ color: "rgba(255,255,255,0.8)" }}>Generar con IA</b> para ver la magia</div>
     </div>
   );
 }
@@ -213,7 +228,7 @@ function DemoLoading({ mode }: { mode: DemoMode }) {
       {[...Array(mode === "flashcards" ? 3 : 5)].map((_, i) => (
         <div key={i} className="shimmer" style={{ height: mode === "flashcards" ? 64 : 14, borderRadius: mode === "flashcards" ? 12 : 6, width: i === 0 ? "70%" : i === 4 ? "55%" : "100%" }} />
       ))}
-      <div style={{ fontSize: 12, color: "var(--ink-softer)", marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
         <span className="dot-pulse">●</span> Procesando con Claude...
       </div>
     </div>
@@ -221,21 +236,55 @@ function DemoLoading({ mode }: { mode: DemoMode }) {
 }
 
 function FlashcardDeck({ cards }: { cards: { q: string; a: string }[] }) {
-  const [i, setI] = useState(0);
+  const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const card = cards[i];
+  const [appeared, setAppeared] = useState(false);
+  const touchStartX = useRef(0);
+  const card = cards[idx];
+
+  useEffect(() => {
+    setAppeared(false);
+    const t = setTimeout(() => setAppeared(true), 30);
+    return () => clearTimeout(t);
+  }, [idx]);
+
   if (!card) return null;
+
+  const goNext = () => { if (idx < cards.length - 1) { setIdx(idx + 1); setFlipped(false); } };
+  const goPrev = () => { if (idx > 0) { setIdx(idx - 1); setFlipped(false); } };
+
   return (
     <div>
-      <div onClick={() => setFlipped((f) => !f)} style={{ background: "var(--paper)", borderRadius: 16, padding: 28, minHeight: 180, cursor: "pointer", border: "1.5px solid rgba(150,85,229,0.25)", display: "flex", flexDirection: "column", justifyContent: "center", gap: 8, position: "relative" }}>
-        <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>{flipped ? "Respuesta" : "Pregunta"}</div>
-        <div style={{ fontFamily: flipped ? "var(--font-sans)" : "var(--font-serif)", fontSize: flipped ? 16 : 22, lineHeight: 1.4, color: "var(--ink)" }}>{flipped ? card.a : card.q}</div>
-        <div style={{ position: "absolute", bottom: 12, right: 16, fontSize: 11, color: "var(--ink-softer)" }}>Tocá para {flipped ? "ver pregunta" : "ver respuesta"}</div>
+      <div
+        onClick={() => setFlipped(f => !f)}
+        onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+        onTouchEnd={e => {
+          const diff = touchStartX.current - e.changedTouches[0].clientX;
+          if (Math.abs(diff) > 48) { diff > 0 ? goNext() : goPrev(); }
+        }}
+        style={{
+          background: "rgba(255,255,255,0.92)", borderRadius: 16, padding: 28, minHeight: 180,
+          cursor: "pointer", border: "1.5px solid rgba(255,255,255,0.5)",
+          display: "flex", flexDirection: "column", justifyContent: "center", gap: 8,
+          position: "relative", userSelect: "none", touchAction: "pan-y",
+          animation: appeared ? "popIn 0.38s cubic-bezier(0.34,1.56,0.64,1) both" : "none",
+        }}
+      >
+        <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          {flipped ? "Respuesta" : "Pregunta"}
+        </div>
+        <div style={{ fontSize: flipped ? 16 : 20, lineHeight: 1.4, color: "var(--ink)", fontWeight: flipped ? 400 : 600 }}>
+          {flipped ? card.a : card.q}
+        </div>
+        <div style={{ position: "absolute", bottom: 12, right: 16, fontSize: 11, color: "var(--ink-softer)" }}>
+          Tocá para {flipped ? "ver pregunta" : "ver respuesta"}
+        </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, gap: 8 }}>
-        <button className="btn btn-ghost" style={{ padding: "8px 14px", fontSize: 13 }} disabled={i === 0} onClick={() => { setI(i - 1); setFlipped(false); }}>← Anterior</button>
-        <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>Carta <b>{i + 1}</b> de {cards.length}</span>
-        <button className="btn btn-ghost" style={{ padding: "8px 14px", fontSize: 13 }} disabled={i === cards.length - 1} onClick={() => { setI(i + 1); setFlipped(false); }}>Siguiente →</button>
+      <p style={{ textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "8px 0 4px" }}>← deslizá para navegar →</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <button className="btn btn-ghost" style={{ padding: "8px 14px", fontSize: 13 }} disabled={idx === 0} onClick={goPrev}>← Anterior</button>
+        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>Carta <b>{idx + 1}</b> de {cards.length}</span>
+        <button className="btn btn-ghost" style={{ padding: "8px 14px", fontSize: 13 }} disabled={idx === cards.length - 1} onClick={goNext}>Siguiente →</button>
       </div>
     </div>
   );
@@ -247,7 +296,12 @@ function DemoOutput({ mode, output }: { mode: DemoMode; output: DemoOutput }) {
     return (
       <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
         {(o.items as string[]).map((it, i) => (
-          <li key={i} style={{ display: "flex", gap: 12, padding: 12, background: "var(--paper)", borderRadius: 12, border: "1px solid rgba(53,56,49,0.06)" }}>
+          <li key={i} style={{
+            display: "flex", gap: 12, padding: 12,
+            background: "rgba(255,255,255,0.92)", borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.4)",
+            animation: `popIn 0.35s cubic-bezier(0.34,1.56,0.64,1) ${i * 90}ms both`,
+          }}>
             <div style={{ flex: "0 0 26px", height: 26, borderRadius: 8, background: "var(--accent)", color: "white", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700 }}>{i + 1}</div>
             <div style={{ fontSize: 14.5, lineHeight: 1.5, color: "var(--ink)" }}>{it}</div>
           </li>
@@ -256,12 +310,21 @@ function DemoOutput({ mode, output }: { mode: DemoMode; output: DemoOutput }) {
     );
   }
   if (mode === "resumen" && typeof o?.resumen === "string") {
-    return <div style={{ padding: 18, background: "var(--paper)", borderRadius: 14, border: "1px solid rgba(53,56,49,0.06)", fontSize: 15, lineHeight: 1.6, color: "var(--ink)", whiteSpace: "pre-wrap" }}>{o.resumen}</div>;
+    return (
+      <div style={{
+        padding: 18, background: "rgba(255,255,255,0.92)", borderRadius: 14,
+        border: "1px solid rgba(255,255,255,0.4)",
+        fontSize: 15, lineHeight: 1.6, color: "var(--ink)", whiteSpace: "pre-wrap",
+        animation: "popIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both",
+      }}>
+        <TypingText text={o.resumen} />
+      </div>
+    );
   }
   if (mode === "flashcards" && Array.isArray(o?.cards)) {
     return <FlashcardDeck cards={o.cards as { q: string; a: string }[]} />;
   }
-  return <div style={{ fontSize: 13, color: "var(--ink-softer)" }}>Sin output válido.</div>;
+  return <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>Sin output válido.</div>;
 }
 
 export function Demo() {
@@ -270,10 +333,10 @@ export function Demo() {
   const [mode, setMode] = useState<DemoMode>("puntos");
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState<DemoOutput>(null);
+  const [pressing, setPressing] = useState<number | null>(null);
 
   const pickPreset = (i: number) => { setActivePreset(i); setText(PRESETS[i].text); setOutput(null); };
 
-  // Demo representativa: muestra un output pre-generado (no llama a la IA → sin costo de tokens).
   const generate = () => {
     setLoading(true); setOutput(null);
     setTimeout(() => {
@@ -283,34 +346,67 @@ export function Demo() {
   };
 
   return (
-    <section className="section" style={{ position: "relative" }}>
+    <section className="section demo-aurora" style={{ position: "relative" }}>
       <div className="container-x">
-        <SectionHeader
-          eyebrow="Prueba en vivo · sin registrarte"
-          title={<>La <span className="gradient-text">magia</span> en 5 segundos</>}
-          sub="Elegí un tema y tocá Generar. Sin cuenta, sin tarjeta. Esto es exactamente lo que recibe un usuario PRO."
-        />
-        <div className="card" style={{ marginTop: 42, padding: 0, overflow: "hidden", borderRadius: 24 }}>
+        {/* Header con texto blanco sobre el fondo aurora */}
+        <div className="reveal" style={{ textAlign: "center", maxWidth: 760, margin: "0 auto" }}>
+          <div style={{ marginBottom: 12, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.65)" }}>
+            Prueba en vivo · sin registrarte
+          </div>
+          <h2 className="h-section" style={{ margin: 0, color: "#fff" }}>
+            La <span className="gradient-text">magia</span> en 5 segundos
+          </h2>
+          <p style={{ marginTop: 14, fontSize: 17, lineHeight: 1.55, color: "rgba(255,255,255,0.72)" }}>
+            Elegí un tema y tocá Generar. Sin cuenta, sin tarjeta. Esto es exactamente lo que recibe un usuario PRO.
+          </p>
+        </div>
+
+        {/* Card con efecto glass sobre aurora */}
+        <div className="reveal" style={{
+          marginTop: 42, padding: 0, overflow: "hidden", borderRadius: 24,
+          background: "rgba(255,255,255,0.10)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.22)",
+          boxShadow: "0 28px 72px -16px rgba(26,15,56,0.55), inset 0 1px 0 rgba(255,255,255,0.18)",
+        }}>
           {/* Toolbar */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid rgba(53,56,49,0.07)", background: "var(--paper-warm)", flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.07)", flexWrap: "wrap", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ display: "flex", gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 999, background: "#e6b8ad", display: "inline-block" }} />
-                <span style={{ width: 10, height: 10, borderRadius: 999, background: "#d9cfca", display: "inline-block" }} />
-                <span style={{ width: 10, height: 10, borderRadius: 999, background: "#d9cfca", display: "inline-block" }} />
+                <span style={{ width: 10, height: 10, borderRadius: 999, background: "rgba(255,255,255,0.35)", display: "inline-block" }} />
+                <span style={{ width: 10, height: 10, borderRadius: 999, background: "rgba(255,255,255,0.25)", display: "inline-block" }} />
+                <span style={{ width: 10, height: 10, borderRadius: 999, background: "rgba(255,255,255,0.15)", display: "inline-block" }} />
               </div>
-              <span className="mono" style={{ fontSize: 12, color: "var(--ink-softer)" }}>skillio.app/generar</span>
+              <span className="mono" style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>skillio.app/generar</span>
             </div>
             <span className="badge"><IconSparkles size={12} /> Powered by Claude</span>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.05fr)" }} className="demo-grid">
-            {/* LEFT */}
-            <div style={{ padding: 24, borderRight: "1px solid rgba(53,56,49,0.07)" }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-softer)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>Apunte de ejemplo</div>
+            {/* LEFT — inputs */}
+            <div style={{ padding: 24, borderRight: "1px solid rgba(255,255,255,0.10)" }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>Apunte de ejemplo</div>
               <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
                 {PRESETS.map((p, i) => (
-                  <button key={i} onClick={() => pickPreset(i)} style={{ padding: "6px 12px", fontSize: 13, fontWeight: 500, borderRadius: 999, border: "1px solid " + (activePreset === i ? "var(--accent)" : "rgba(53,56,49,0.12)"), background: activePreset === i ? "var(--accent)" : "transparent", color: activePreset === i ? "white" : "var(--ink)", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+                  <button
+                    key={i}
+                    onClick={() => pickPreset(i)}
+                    onPointerDown={() => setPressing(i)}
+                    onPointerUp={() => setPressing(null)}
+                    onPointerLeave={() => setPressing(null)}
+                    style={{
+                      padding: "6px 12px", fontSize: 13, fontWeight: 500, borderRadius: 999,
+                      border: "1px solid " + (activePreset === i ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.25)"),
+                      background: activePreset === i ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.10)",
+                      color: activePreset === i ? "var(--accent-deep)" : "rgba(255,255,255,0.85)",
+                      cursor: "pointer", fontFamily: "var(--font-sans)", touchAction: "manipulation",
+                      transform: pressing === i ? "scale(0.90)" : "scale(1)",
+                      transition: pressing === i
+                        ? "transform 60ms ease"
+                        : "transform 380ms cubic-bezier(0.34,1.56,0.64,1), background 150ms, border-color 150ms, color 150ms",
+                    }}
+                  >
                     {p.label}
                   </button>
                 ))}
@@ -320,27 +416,39 @@ export function Demo() {
                 readOnly
                 rows={9}
                 aria-label="Apunte de ejemplo"
-                style={{ width: "100%", resize: "none", background: "var(--bg)", border: "1px solid rgba(53,56,49,0.1)", borderRadius: 14, padding: 14, fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: 1.5, color: "var(--ink)", outline: "none", cursor: "default" }}
+                style={{ width: "100%", resize: "none", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: 14, fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: 1.5, color: "rgba(255,255,255,0.82)", outline: "none", cursor: "default" }}
               />
               <div style={{ marginTop: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-softer)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>Generar como</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>Generar como</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {([{ v: "puntos", label: "Puntos clave" }, { v: "resumen", label: "Resumen" }, { v: "flashcards", label: "Flashcards" }] as { v: DemoMode; label: string }[]).map((m) => (
-                    <button key={m.v} onClick={() => { setMode(m.v); setOutput(null); }} style={{ padding: "8px 14px", fontSize: 13.5, fontWeight: 600, borderRadius: 10, border: "1px solid " + (mode === m.v ? "var(--accent)" : "rgba(53,56,49,0.12)"), background: mode === m.v ? "var(--accent)" : "var(--paper)", color: mode === m.v ? "white" : "var(--ink)", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+                    <button key={m.v} onClick={() => { setMode(m.v); setOutput(null); }} style={{
+                      padding: "8px 14px", fontSize: 13.5, fontWeight: 600, borderRadius: 10,
+                      border: "1px solid " + (mode === m.v ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.20)"),
+                      background: mode === m.v ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.08)",
+                      color: mode === m.v ? "var(--accent-deep)" : "rgba(255,255,255,0.8)",
+                      cursor: "pointer", fontFamily: "var(--font-sans)",
+                      transition: "all 150ms ease", touchAction: "manipulation",
+                    }}>
                       {m.label}
                     </button>
                   ))}
                 </div>
               </div>
-              <button className={"btn btn-primary" + (!loading && text.trim() ? " btn-pulse" : "")} style={{ marginTop: 18, width: "100%", fontSize: 15.5, fontWeight: 700 }} onClick={generate} disabled={loading || !text.trim()}>
+              <button
+                className={"btn btn-primary jelly-btn" + (!loading && text.trim() ? " btn-pulse" : "")}
+                style={{ marginTop: 18, width: "100%", fontSize: 15.5, fontWeight: 700, touchAction: "manipulation" }}
+                onClick={generate}
+                disabled={loading || !text.trim()}
+              >
                 {loading ? <><span className="dot-pulse">●</span> Generando...</> : <><IconSparkles size={16} /> Generar con IA</>}
               </button>
-              <p style={{ marginTop: 10, fontSize: 12, color: "var(--ink-softer)", textAlign: "center" }}>Costaría · 28 créditos PRO en la app real</p>
+              <p style={{ marginTop: 10, fontSize: 12, color: "rgba(255,255,255,0.4)", textAlign: "center" }}>Costaría · 28 créditos PRO en la app real</p>
             </div>
 
-            {/* RIGHT */}
-            <div style={{ padding: 24, background: "var(--paper-warm)", minHeight: 380 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-softer)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 14 }}>
+            {/* RIGHT — output */}
+            <div style={{ padding: 24, background: "rgba(0,0,0,0.08)", minHeight: 380 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 14 }}>
                 Output · {mode === "puntos" ? "Puntos clave" : mode === "resumen" ? "Resumen académico" : "Flashcards"}
               </div>
               {!output && !loading && <DemoEmpty mode={mode} />}
@@ -349,11 +457,37 @@ export function Demo() {
             </div>
           </div>
         </div>
-        <p style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: "var(--ink-softer)" }}>
+        <p style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: "rgba(255,255,255,0.45)" }}>
           Ejemplo representativo de lo que Skillio genera en segundos. Creá tu cuenta para procesar tus propios apuntes.
         </p>
       </div>
-      <style>{`@media (max-width: 820px) { .demo-grid { grid-template-columns: 1fr !important; } .demo-grid > div:first-child { border-right: none !important; border-bottom: 1px solid rgba(53,56,49,0.07); } }`}</style>
+      <style>{`
+        @keyframes auroraFlow {
+          0%,100% { background-position: 0% 50%; }
+          33%      { background-position: 100% 30%; }
+          66%      { background-position: 50% 100%; }
+        }
+        @keyframes popIn {
+          from { transform: scale(0.80); opacity: 0; }
+          60%  { transform: scale(1.05); }
+          to   { transform: scale(1); opacity: 1; }
+        }
+        .demo-aurora {
+          background: linear-gradient(-45deg, #1a0f38, #865CB8, #9655E5, #A67EFF, #885EA8, #1a0f38);
+          background-size: 400% 400%;
+          animation: auroraFlow 10s ease-in-out infinite;
+        }
+        .jelly-btn { transition: transform 380ms cubic-bezier(0.34,1.56,0.64,1) !important; }
+        .jelly-btn:active { transform: scale(0.93) !important; transition: transform 60ms ease !important; }
+        @media (max-width: 820px) {
+          .demo-grid { grid-template-columns: 1fr !important; }
+          .demo-grid > div:first-child { border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.10); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .demo-aurora { animation: none !important; background: #1a0f38 !important; }
+          .jelly-btn:active { transform: none !important; }
+        }
+      `}</style>
     </section>
   );
 }
