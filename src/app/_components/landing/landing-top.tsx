@@ -242,61 +242,50 @@ export function MediaSlot({ src, label, ratio = "16 / 10" }: { src: string; labe
 // ============================================================
 export function HeroText({ onCTA }: { onCTA: () => void }) {
   return (
-    <section id="top" className="section" style={{ position: "relative", paddingTop: "clamp(32px, 5vw, 64px)", paddingBottom: "clamp(40px, 5vw, 56px)" }}>
-      {/* Fondo del hero: imagen atmosférica (desktop 16:9 / mobile 9:16) + velo */}
-      <div aria-hidden className="hero-bg-img" />
-      <div aria-hidden className="hero-bg-veil" />
-      <style>{`
-        .hero-bg-img {
-          position: absolute; inset: 0; z-index: 0; pointer-events: none;
-          background-image: url('/fondo%20landing.webp');
-          background-size: cover; background-position: center center; background-repeat: no-repeat;
-        }
-        .hero-bg-veil {
-          position: absolute; inset: 0; z-index: 0; pointer-events: none;
-          background: radial-gradient(ellipse 100% 70% at 50% 40%, rgba(240,237,255,0.08) 0%, rgba(240,237,255,0.50) 60%, var(--bg) 100%);
-        }
-      `}</style>
-      <div className="container-x" style={{ position: "relative", zIndex: 2 }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-          <span className="badge">
-            <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--accent)", display: "inline-block" }} className="dot-pulse" />
-            Gratis y sin tarjeta · 3 generaciones para probar
-          </span>
-        </div>
+    <section
+      id="top"
+      style={{
+        position: "relative",
+        minHeight: "100svh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+      }}
+    >
+      {/* Video de fondo */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <video
+        src="/fondo%20hero%201%20mobile.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: "absolute", inset: 0,
+          width: "100%", height: "100%",
+          objectFit: "cover", objectPosition: "center",
+          zIndex: 0,
+        }}
+      />
 
-        <h1 className="h-display" style={{ textAlign: "center", margin: "0 auto", maxWidth: 920 }}>
+      {/* Velo oscuro para legibilidad del título */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none",
+          background: "linear-gradient(180deg, rgba(26,15,56,0.35) 0%, rgba(26,15,56,0.20) 50%, rgba(26,15,56,0.50) 100%)",
+        }}
+      />
+
+      {/* Título */}
+      <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "0 24px" }}>
+        <h1
+          className="h-display"
+          style={{ margin: "0 auto", maxWidth: 860, color: "#ffffff", textShadow: "0 2px 24px rgba(26,15,56,0.5)" }}
+        >
           Aprobá tu parcial<br />estudiando la <span className="gradient-text">mitad</span>.
         </h1>
-
-        <p style={{ textAlign: "center", margin: "22px auto 0", fontSize: "clamp(16px, 1.7vw, 20px)", lineHeight: 1.55, color: "#4a4d6a", maxWidth: 600 }}>
-          Subí tu apunte, PDF o foto. En segundos tenés resumen, flashcards y simulacro.
-          Sin tarjeta. Sin registro. Probalo abajo.
-        </p>
-
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 28 }}>
-          <button className="btn btn-primary btn-lg btn-pulse" onClick={onCTA} style={{ fontSize: 17 }}>
-            Empezá gratis <IconArrow size={18} />
-          </button>
-          <CTAMicro />
-        </div>
-
-        {/* Visual: video/GIF en loop apunte → resumen + flashcards + simulacro */}
-        <div style={{ maxWidth: 880, margin: "40px auto 0" }} className="reveal">
-          <MediaSlot src="hero.mp4" label="Video del hero · apunte → resumen + flashcards + simulacro (10-15s en loop)" />
-        </div>
-
-        {/* Trust strip */}
-        <div style={{ marginTop: 28 }}>
-          <p style={{ textAlign: "center", margin: 0, fontSize: 14, color: "var(--ink-soft)" }}>
-            <b style={{ color: "var(--ink)" }}>+1.200 estudiantes</b> ya estudian con Skillio
-          </p>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px 22px", marginTop: 14, flexWrap: "wrap", opacity: 0.7 }}>
-            {["UBA", "UNC", "UTN", "Siglo 21", "UCC"].map((u) => (
-              <span key={u} style={{ fontFamily: "var(--font-roboto)", fontWeight: 800, fontSize: 16, color: "var(--ink-soft)", letterSpacing: "-0.02em" }}>{u}</span>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );
