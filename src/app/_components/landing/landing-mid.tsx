@@ -89,43 +89,159 @@ export function Features() {
 // ============================================================
 // HOW IT WORKS
 // ============================================================
+function AnimCounter({ to, active, delay }: { to: number; active: boolean; delay: number }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!active) { setVal(0); return; }
+    const t = setTimeout(() => {
+      let i = 0;
+      const id = setInterval(() => { i++; setVal(i); if (i >= to) clearInterval(id); }, 80);
+      return () => clearInterval(id);
+    }, delay);
+    return () => clearTimeout(t);
+  }, [active, to, delay]);
+  return <>{String(val).padStart(2, "0")}</>;
+}
+
 export function HowItWorks() {
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [active, setActive] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setActive(true); obs.disconnect(); } },
+      { threshold: 0.25 }
+    );
+    if (sectionRef.current) obs.observe(sectionRef.current);
+    return () => obs.disconnect();
+  }, []);
+
   const steps = [
-    { n: "01", title: "Subí tu material", body: "PDF, foto del pizarrón, una hoja escaneada o texto. Si lo podés leer vos, lo lee Skillio.", Icon: IconUpload },
-    { n: "02", title: "La IA lo convierte", body: "En resumen, flashcards y simulacro de parcial. En segundos, no en horas.", Icon: IconBolt },
-    { n: "03", title: "Estudiás y llegás listo", body: "Repasás con repetición espaciada, hacés el simulacro y entrás al parcial con todo.", Icon: IconTrophy },
+    { n: 1, title: "Subí tu material", body: "PDF, foto del pizarrón, una hoja escaneada o texto. Si lo podés leer vos, lo lee Skillio.", extra: "Subís una foto del pizarrón o tu PDF y Skillio arranca solo. Sin copiar, sin pegar nada.", Icon: IconUpload },
+    { n: 2, title: "La IA lo convierte", body: "En resumen, flashcards y simulacro de parcial. En segundos, no en horas.", extra: "Elegís qué querés: resumen, puntos clave o flashcards. La IA lo genera al instante.", Icon: IconBolt },
+    { n: 3, title: "Estudiás y llegás listo", body: "Repasás con repetición espaciada, hacés el simulacro y entrás al parcial con todo.", extra: "Hacé el simulacro antes de la fecha y llegás con todo repasado. Sin sorpresas.", Icon: IconTrophy },
   ];
+
   return (
-    <section id="como" className="section" style={{ background: "var(--bg-2)" }}>
-      <div className="container-x">
+    <section id="como" ref={sectionRef} className="section" style={{ background: "var(--bg-2)", position: "relative", overflow: "hidden" }}>
+      {/* Orbs fondo A */}
+      <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+        <div className="how-orb how-orb-1" />
+        <div className="how-orb how-orb-2" />
+        <div className="how-orb how-orb-3" />
+      </div>
+
+      <div className="container-x" style={{ position: "relative", zIndex: 1 }}>
         <SectionHeader
           eyebrow="Cómo funciona"
           title={<>De 200 páginas a parcial aprobado<br />en <span className="gradient-text">tres pasos</span></>}
           sub="Sin curva de aprendizaje, seguí el tour guiado dentro de la app y estás listo para empezar a aprobar."
         />
+
+        {/* Línea conectora (solo desktop) */}
+        <div className="how-connector-wrap" aria-hidden>
+          <div className={`how-connector-line${active ? " how-connector-active" : ""}`} />
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 50 }}>
           {steps.map((s, i) => (
-            <div key={i} className="reveal" style={{
-              borderRadius: 22, padding: 28, position: "relative",
-              background: "rgba(255,255,255,0.42)",
-              backdropFilter: "blur(18px) saturate(160%)",
-              WebkitBackdropFilter: "blur(18px) saturate(160%)",
-              border: "1px solid rgba(255,255,255,0.72)",
-              boxShadow: "0 4px 28px rgba(134,92,184,0.10), inset 0 1px 0 rgba(255,255,255,0.85)",
-            }}>
-              <div style={{ position: "absolute", top: 22, right: 22, fontFamily: "var(--font-serif)", fontSize: 48, color: "rgba(134,92,184,0.12)", lineHeight: 0.8 }}>{s.n}</div>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--accent)", color: "white", display: "grid", placeItems: "center", marginBottom: 22 }}>
+            <div
+              key={i}
+              className={`reveal how-card${expanded === i ? " how-card-expanded" : ""}`}
+              onClick={() => setExpanded(expanded === i ? null : i)}
+              style={{
+                borderRadius: 22, padding: 28, position: "relative", cursor: "pointer",
+                background: "rgba(255,255,255,0.42)",
+                backdropFilter: "blur(18px) saturate(160%)",
+                WebkitBackdropFilter: "blur(18px) saturate(160%)",
+                border: "1px solid rgba(255,255,255,0.72)",
+                boxShadow: "0 4px 28px rgba(134,92,184,0.10), inset 0 1px 0 rgba(255,255,255,0.85)",
+                transition: "transform 250ms ease, box-shadow 250ms ease",
+              }}
+            >
+              {/* Número contador */}
+              <div className={`step-num${active ? " step-num-active" : ""}`} style={{
+                position: "absolute", top: 22, right: 22,
+                fontFamily: "var(--font-serif)", fontSize: 48,
+                color: "rgba(134,92,184,0.18)", lineHeight: 0.8,
+                transitionDelay: `${i * 150}ms`,
+              }}>
+                <AnimCounter to={s.n} active={active} delay={i * 180} />
+              </div>
+
+              {/* Ícono con bounce */}
+              <div className={`step-icon${active ? " step-icon-active" : ""}`} style={{
+                width: 48, height: 48, borderRadius: 14,
+                background: "var(--accent)", color: "white",
+                display: "grid", placeItems: "center", marginBottom: 22,
+                animationDelay: `${0.15 + i * 0.15}s`,
+              }}>
                 <s.Icon size={24} />
               </div>
+
               <h3 className="h-card" style={{ margin: "0 0 10px", fontSize: 22 }}>{s.title}</h3>
               <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--ink-soft)" }}>{s.body}</p>
+
+              {/* Detalle expandible (mobile tap) */}
+              <div className="how-card-extra">{s.extra}</div>
+              <div className="how-card-hint">Tocá para {expanded === i ? "cerrar" : "ver más"}</div>
             </div>
           ))}
         </div>
+
         <div style={{ maxWidth: 900, margin: "44px auto 0" }} className="reveal">
           <MediaSlot src="precarga.mp4" label="Tour guiado · onboarding en segundos" ratio="16 / 9" />
         </div>
       </div>
+
+      <style>{`
+        @keyframes howOrbFloat {
+          0%,100% { transform: translate(0,0) scale(1); }
+          33%      { transform: translate(28px,-18px) scale(1.06); }
+          66%      { transform: translate(-18px,14px) scale(0.96); }
+        }
+        .how-orb { position: absolute; border-radius: 50%; filter: blur(64px); opacity: 0.38; }
+        .how-orb-1 { width: 340px; height: 340px; background: #865CB8; top: -90px; left: -70px; animation: howOrbFloat 13s ease-in-out infinite; }
+        .how-orb-2 { width: 280px; height: 280px; background: #A67EFF; bottom: 10px; right: -50px; animation: howOrbFloat 17s ease-in-out infinite; animation-delay: -6s; }
+        .how-orb-3 { width: 200px; height: 200px; background: #9655E5; top: 45%; left: 48%; animation: howOrbFloat 11s ease-in-out infinite; animation-delay: -3s; }
+
+        /* Hover elevación (solo desktop) */
+        @media (hover: hover) {
+          .how-card:hover { transform: translateY(-5px) !important; box-shadow: 0 14px 44px rgba(134,92,184,0.20), inset 0 1px 0 rgba(255,255,255,0.85) !important; }
+        }
+
+        /* Número fade-in con scale */
+        .step-num { opacity: 0; transform: scale(0.6); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+        .step-num-active { opacity: 1; transform: scale(1); }
+
+        /* Ícono bounce al entrar */
+        @keyframes iconBounce {
+          0%   { transform: scale(0.4) rotate(-12deg); opacity: 0; }
+          60%  { transform: scale(1.18) rotate(6deg);  opacity: 1; }
+          100% { transform: scale(1)   rotate(0deg);   opacity: 1; }
+        }
+        .step-icon { opacity: 0; }
+        .step-icon-active { animation: iconBounce 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+        /* Línea conectora desktop */
+        .how-connector-wrap { display: none; position: relative; height: 2px; margin-top: 74px; margin-bottom: -24px; }
+        .how-connector-line { position: absolute; inset: 0; left: 16%; right: 16%; height: 2px; background: linear-gradient(90deg, transparent, #865CB8 25%, #9655E5 50%, #A67EFF 75%, transparent); border-radius: 999px; transform: scaleX(0); transform-origin: left; transition: transform 1s ease 0.4s; }
+        .how-connector-active { transform: scaleX(1) !important; }
+        @media (min-width: 821px) { .how-connector-wrap { display: block; } }
+
+        /* Expandible mobile */
+        .how-card-extra { max-height: 0; overflow: hidden; opacity: 0; font-size: 14px; color: var(--ink-soft); line-height: 1.55; transition: max-height 0.35s ease, opacity 0.3s ease, margin-top 0.3s ease; margin-top: 0; }
+        .how-card-expanded .how-card-extra { max-height: 100px; opacity: 1; margin-top: 10px; }
+        .how-card-hint { font-size: 11px; color: rgba(134,92,184,0.55); margin-top: 14px; text-align: right; }
+        @media (min-width: 821px) { .how-card-hint { display: none; } }
+
+        @media (prefers-reduced-motion: reduce) {
+          .how-orb { animation: none !important; }
+          .step-num, .step-icon { transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important; }
+          .how-connector-line { transition: none !important; }
+        }
+      `}</style>
     </section>
   );
 }
