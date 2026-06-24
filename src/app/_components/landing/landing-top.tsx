@@ -249,15 +249,12 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
       <style>{`
         .hero-bg-img {
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
-          background-image: url('/landing/hero-bg-mobile.webp');
-          background-size: cover; background-position: center top; background-repeat: no-repeat;
-        }
-        @media (min-width: 768px) {
-          .hero-bg-img { background-image: url('/landing/hero-bg-desktop.webp'); }
+          background-image: url('/fondo%20landing.webp');
+          background-size: cover; background-position: center center; background-repeat: no-repeat;
         }
         .hero-bg-veil {
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
-          background: radial-gradient(ellipse 95% 65% at 50% 40%, rgba(251,239,231,0.20) 0%, rgba(251,239,231,0.48) 58%, var(--bg) 100%);
+          background: radial-gradient(ellipse 100% 70% at 50% 40%, rgba(251,239,231,0.15) 0%, rgba(251,239,231,0.55) 60%, var(--bg) 100%);
         }
       `}</style>
       <div className="container-x" style={{ position: "relative", zIndex: 2 }}>
