@@ -78,7 +78,7 @@ export function PdfSplitter({
       const res = await fetch("/api/notes/upload", { method: "POST", body: form });
       const data = await res.json();
       if (res.ok && data.note?.id) {
-        router.push(`/app/materias`);
+        router.push(`/app/ia?note_id=${data.note.id}&gen=1`);
       } else {
         setError(data.error ?? "Error al subir el archivo.");
       }
