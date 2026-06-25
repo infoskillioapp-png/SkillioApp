@@ -6,6 +6,7 @@ import Image from "next/image";
 import { PdfSplitter } from "./pdf-splitter";
 import { DEMO_TOPICS } from "@/lib/demo-content";
 import type { DemoTopic } from "@/lib/demo-content";
+import { OnboardingTour, useTourRequired, TourIconUpload, TourIconSparkles } from "./onboarding-tour";
 
 const PDF_PAGE_LIMIT = 30;
 
@@ -23,6 +24,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   const [demoPct, setDemoPct] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const showUploadTour = useTourRequired("skillio_upload_modal_tour_v1");
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -199,7 +201,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
               <h4>Arrastrá y soltá tus archivos acá</h4>
               <div className="types">Formatos: PDF · Word · PPT · TXT · JPG · PNG · HEIC · WebP · MP3 · WAV · M4A</div>
               <input ref={fileRef} type="file" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp3,.wav,.m4a" />
-              <button className="um-pick" onClick={() => fileRef.current?.click()} disabled={uploading}>
+              <button data-tour="um-pick" className="um-pick" onClick={() => fileRef.current?.click()} disabled={uploading}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                 </svg>
@@ -216,7 +218,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
                   </div>
                 </div>
               ) : (
-                <div style={{ marginTop: 16 }}>
+                <div data-tour="demo-pills" style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, textAlign: "center" }}>
                     ¿No tenés un apunte a mano? Probá con uno nuestro:
                   </div>
@@ -281,6 +283,30 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
         <div className="um-foot">Cada set puede incluir hasta 10 fuentes.</div>
         </>}
       </div>
+
+      {showUploadTour && open && tab === "file" && !splitterFile && !demoLoading && (
+        <OnboardingTour
+          storageKey="skillio_upload_modal_tour_v1"
+          steps={[
+            {
+              icon: <TourIconUpload />,
+              title: "Subí tu propio apunte",
+              body: "PDF, foto, Word, PPT, audio — lo que uses para estudiar. Booki lo convierte en resumen, tarjetas y simulacro al instante.",
+              target: '[data-tour="um-pick"]',
+              placement: "top",
+              nextLabel: "¿No tengo nada? ›",
+            },
+            {
+              icon: <TourIconSparkles />,
+              title: "¿No tenés nada a mano?",
+              body: "Explorá Skillio con uno de nuestros apuntes demo gratuitos. Tocá cualquiera y en segundos tenés tu suite de estudio lista.",
+              target: '[data-tour="demo-pills"]',
+              placement: "top",
+              nextLabel: "¡Entendido!",
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }
