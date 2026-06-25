@@ -405,7 +405,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
   const plans: Record<PricingCycle, { price: string; period: string; label: string; saving: string | null }> = {
     semanal:    { price: "$4.900",  period: "semana",    label: "Semanal",    saving: null },
     mensual:    { price: "$15.900", period: "mes",       label: "Mensual",    saving: null },
-    trimestral: { price: "$34.900", period: "trimestre", label: "Trimestral", saving: "Ahorras 30%" },
+    trimestral: { price: "$34.900", period: "trimestre", label: "Trimestral", saving: "Ahorras $12.800" },
   };
 
   const perks = [
