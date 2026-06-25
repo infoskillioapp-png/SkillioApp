@@ -469,58 +469,78 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
             </div>
           </div>
 
-          {/* Selector de ciclos */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 24 }}>
+          {/* Selector de ciclos — estilo tarjetas coloridas */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 28 }}>
             {(["semanal", "mensual", "trimestral"] as PricingCycle[]).map((key) => {
               const p = plans[key];
               const isActive = cycle === key;
+              const gradients: Record<PricingCycle, string> = {
+                semanal:    "linear-gradient(145deg, #4F46E5 0%, #7C3AED 100%)",
+                mensual:    "linear-gradient(145deg, #7C3AED 0%, #9655E5 60%, #A855F7 100%)",
+                trimestral: "linear-gradient(145deg, #C026D3 0%, #DB2777 60%, #F43F5E 100%)",
+              };
+              const shadows: Record<PricingCycle, string> = {
+                semanal:    "0 10px 32px rgba(79,70,229,0.50)",
+                mensual:    "0 10px 32px rgba(124,58,237,0.55)",
+                trimestral: "0 10px 32px rgba(192,38,211,0.50)",
+              };
               return (
                 <button
                   key={key}
                   onClick={() => setCycle(key)}
                   style={{
-                    position: "relative", padding: "12px 6px 10px",
-                    borderRadius: 14, cursor: "pointer", textAlign: "center",
-                    border: isActive ? "2px solid #7c3aed" : "1.5px solid rgba(0,0,0,0.10)",
-                    background: isActive ? "#F5F3FF" : "#fff",
-                    transition: "border-color 180ms ease, background 180ms ease, box-shadow 180ms ease",
-                    boxShadow: isActive ? "0 0 0 3px rgba(124,58,237,0.10)" : "none",
+                    position: "relative", overflow: "hidden",
+                    padding: "18px 8px 14px",
+                    borderRadius: 20, cursor: "pointer", textAlign: "center",
+                    background: gradients[key],
+                    border: isActive ? "2px solid rgba(255,255,255,0.85)" : "2px solid rgba(255,255,255,0.12)",
+                    transform: isActive ? "scale(1.06)" : "scale(0.93)",
+                    opacity: isActive ? 1 : 0.68,
+                    transition: "transform 260ms cubic-bezier(0.34,1.56,0.64,1), opacity 220ms ease, border-color 180ms ease, box-shadow 220ms ease",
+                    boxShadow: isActive ? shadows[key] : "0 2px 8px rgba(0,0,0,0.14)",
                     fontFamily: "var(--font-jakarta)",
+                    minHeight: 110,
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                   }}
                 >
+                  {/* Brillo glass en la parte superior */}
+                  <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: "48%", background: "linear-gradient(to bottom, rgba(255,255,255,0.22), transparent)", borderRadius: "20px 20px 0 0", pointerEvents: "none" }} />
+
                   {/* Badge "Mas elegido" en mensual */}
                   {key === "mensual" && (
                     <span style={{
-                      position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)",
-                      background: "var(--ink)", color: "#fff", fontSize: 10, fontWeight: 700,
-                      padding: "3px 8px", borderRadius: 999, whiteSpace: "nowrap",
+                      position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)",
+                      background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)",
+                      color: "#fff", fontSize: 9, fontWeight: 800,
+                      padding: "3px 9px", borderRadius: "0 0 10px 10px", whiteSpace: "nowrap",
+                      letterSpacing: "0.06em",
                     }}>
-                      &#x1F525; Mas elegido
+                      MAS ELEGIDO
                     </span>
                   )}
 
                   {/* Check cuando activo */}
                   {isActive && (
                     <span style={{
-                      position: "absolute", top: 6, right: 6,
-                      width: 16, height: 16, borderRadius: 999,
-                      background: "#7c3aed", color: "#fff",
-                      display: "grid", placeItems: "center", fontSize: 10,
+                      position: "absolute", top: 8, right: 8,
+                      width: 18, height: 18, borderRadius: 999,
+                      background: "rgba(255,255,255,0.30)", color: "#fff",
+                      display: "grid", placeItems: "center",
                     }}>
-                      <IconCheck size={9} stroke={3} />
+                      <IconCheck size={10} stroke={3} />
                     </span>
                   )}
 
-                  <div style={{ fontWeight: 700, fontSize: 13, color: isActive ? "#7c3aed" : "var(--ink)", marginBottom: 2 }}>
+                  <div style={{ fontWeight: 800, fontSize: 13.5, color: "#fff", marginBottom: 5, position: "relative", zIndex: 1 }}>
                     {p.label}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--ink-softer)", lineHeight: 1.3 }}>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: 700, position: "relative", zIndex: 1 }}>
                     {p.price}
                   </div>
 
-                  {/* Badge ahorro en trimestral */}
-                  {key === "trimestral" && (
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", marginTop: 3 }}>
+                  {/* Ahorro en trimestral */}
+                  {key === "trimestral" && p.saving && (
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "#fff", marginTop: 5, background: "rgba(0,0,0,0.25)", borderRadius: 8, padding: "2px 7px", position: "relative", zIndex: 1, whiteSpace: "nowrap" }}>
                       {p.saving}
                     </div>
                   )}
