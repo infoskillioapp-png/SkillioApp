@@ -170,9 +170,11 @@ export function LandingPage() {
         <CTAPost onCTA={onCTA} />
         <HowItWorks />
         <Testimonios />
-        {/* Color morph: lavanda → pricing blanco */}
-        <div aria-hidden style={{ height: 32, background: "linear-gradient(to bottom, #E4DEFF, #F8F7FF)", pointerEvents: "none" }} />
+        {/* Color morph: lavanda → pricing oscuro */}
+        <div aria-hidden style={{ height: 64, background: "linear-gradient(to bottom, #E4DEFF, #3B0764)", pointerEvents: "none" }} />
         <Pricing onCTA={onCTA} />
+        {/* Color morph: pricing oscuro → FAQ claro */}
+        <div aria-hidden style={{ height: 64, background: "linear-gradient(to bottom, #BE185D, #F0EDFF)", pointerEvents: "none" }} />
         <FAQ />
         <FinalCTA onCTA={onCTA} />
         <Footer />

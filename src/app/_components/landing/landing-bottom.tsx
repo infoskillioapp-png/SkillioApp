@@ -416,41 +416,70 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
     "Cancelas en cualquier momento",
   ];
 
+  const cycleGradients: Record<PricingCycle, string> = {
+    semanal:    "linear-gradient(145deg, #4F46E5 0%, #7C3AED 100%)",
+    mensual:    "linear-gradient(145deg, #7C3AED 0%, #9655E5 60%, #A855F7 100%)",
+    trimestral: "linear-gradient(145deg, #C026D3 0%, #DB2777 60%, #F43F5E 100%)",
+  };
+  const cycleShadows: Record<PricingCycle, string> = {
+    semanal:    "0 10px 32px rgba(79,70,229,0.55)",
+    mensual:    "0 10px 32px rgba(124,58,237,0.60)",
+    trimestral: "0 10px 32px rgba(192,38,211,0.55)",
+  };
+
   const current = plans[cycle];
 
   return (
-    <section id="planes" className="section" style={{ background: "#F8F7FF" }}>
-      <div className="container-x">
+    <section id="planes" className="section" style={{
+      background: "linear-gradient(145deg, #3B0764 0%, #6D28D9 38%, #9333EA 68%, #BE185D 100%)",
+      position: "relative", overflow: "hidden",
+    }}>
+
+      {/* Orbs de profundidad */}
+      <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", width: 440, height: 440, borderRadius: "50%", background: "rgba(168,85,247,0.30)", filter: "blur(90px)", top: "-130px", right: "-90px" }} />
+        <div style={{ position: "absolute", width: 320, height: 320, borderRadius: "50%", background: "rgba(219,39,119,0.25)", filter: "blur(72px)", bottom: "-90px", left: "-60px" }} />
+        <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(109,40,217,0.40)", filter: "blur(52px)", top: "42%", left: "55%" }} />
+      </div>
+
+      <div className="container-x" style={{ position: "relative", zIndex: 1 }}>
 
         {/* Header */}
         <div className="reveal" style={{ textAlign: "center", marginBottom: 44 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 12 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.60)", marginBottom: 12 }}>
             Planes
           </div>
-          <h2 className="h-section" style={{ margin: "0 auto", maxWidth: 520 }}>
-            Un plan para <span className="gradient-text">aprobar</span> sin volverte loco
+          <h2 className="h-section" style={{ margin: "0 auto", maxWidth: 520, color: "#fff" }}>
+            Un plan para{" "}
+            <span style={{ background: "linear-gradient(135deg, #F9A8D4 0%, #FCA5A5 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+              aprobar
+            </span>{" "}
+            sin volverte loco
           </h2>
-          <p style={{ marginTop: 14, fontSize: 16.5, lineHeight: 1.55, color: "var(--ink-soft)", maxWidth: 420, margin: "14px auto 0" }}>
+          <p style={{ marginTop: 14, fontSize: 16.5, lineHeight: 1.55, color: "rgba(255,255,255,0.65)", maxWidth: 420, margin: "14px auto 0" }}>
             Proba gratis. Cuando quieras mas, activas PRO en 2 clicks.
           </p>
         </div>
 
-        {/* Tarjeta principal */}
+        {/* Tarjeta glass */}
         <div style={{
           maxWidth: 440, margin: "0 auto",
-          background: "#fff", borderRadius: 28, padding: "32px 28px",
-          boxShadow: "0 8px 48px rgba(124,58,237,0.10), 0 1px 4px rgba(124,58,237,0.06)",
-          border: "1px solid rgba(124,58,237,0.10)",
+          background: "rgba(255,255,255,0.10)",
+          backdropFilter: "blur(28px) saturate(180%)",
+          WebkitBackdropFilter: "blur(28px) saturate(180%)",
+          borderRadius: 28, padding: "32px 28px",
+          border: "1px solid rgba(255,255,255,0.22)",
+          boxShadow: "0 24px 72px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.16)",
         }}>
 
           {/* Badge PRO */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
             <span style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              background: "linear-gradient(135deg, #865CB8 0%, #9655E5 100%)",
-              color: "#fff", fontWeight: 800, fontSize: 13, letterSpacing: "0.08em",
-              padding: "6px 18px", borderRadius: 999,
-              boxShadow: "0 4px 16px rgba(150,85,229,0.35)",
+              display: "inline-flex", alignItems: "center",
+              background: "#fff", color: "var(--accent)",
+              fontWeight: 800, fontSize: 13, letterSpacing: "0.08em",
+              padding: "6px 22px", borderRadius: 999,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.20)",
             }}>
               PRO
             </span>
@@ -460,30 +489,20 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
           <div style={{ textAlign: "center", marginBottom: 28 }}>
             <div key={cycle} className="price-appear" style={{
               fontFamily: "var(--font-jakarta)", fontSize: 52, fontWeight: 900,
-              letterSpacing: "-0.03em", lineHeight: 1, color: "var(--ink)",
+              letterSpacing: "-0.03em", lineHeight: 1, color: "#fff",
             }}>
               {current.price}
             </div>
-            <div style={{ fontSize: 14, color: "var(--ink-softer)", marginTop: 4 }}>
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.58)", marginTop: 4 }}>
               por {current.period}
             </div>
           </div>
 
-          {/* Selector de ciclos — estilo tarjetas coloridas */}
+          {/* Selector de ciclos */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 28 }}>
             {(["semanal", "mensual", "trimestral"] as PricingCycle[]).map((key) => {
               const p = plans[key];
               const isActive = cycle === key;
-              const gradients: Record<PricingCycle, string> = {
-                semanal:    "linear-gradient(145deg, #4F46E5 0%, #7C3AED 100%)",
-                mensual:    "linear-gradient(145deg, #7C3AED 0%, #9655E5 60%, #A855F7 100%)",
-                trimestral: "linear-gradient(145deg, #C026D3 0%, #DB2777 60%, #F43F5E 100%)",
-              };
-              const shadows: Record<PricingCycle, string> = {
-                semanal:    "0 10px 32px rgba(79,70,229,0.50)",
-                mensual:    "0 10px 32px rgba(124,58,237,0.55)",
-                trimestral: "0 10px 32px rgba(192,38,211,0.50)",
-              };
               return (
                 <button
                   key={key}
@@ -492,21 +511,19 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
                     position: "relative", overflow: "hidden",
                     padding: "18px 8px 14px",
                     borderRadius: 20, cursor: "pointer", textAlign: "center",
-                    background: gradients[key],
+                    background: cycleGradients[key],
                     border: isActive ? "2px solid rgba(255,255,255,0.85)" : "2px solid rgba(255,255,255,0.12)",
                     transform: isActive ? "scale(1.06)" : "scale(0.93)",
                     opacity: isActive ? 1 : 0.68,
                     transition: "transform 260ms cubic-bezier(0.34,1.56,0.64,1), opacity 220ms ease, border-color 180ms ease, box-shadow 220ms ease",
-                    boxShadow: isActive ? shadows[key] : "0 2px 8px rgba(0,0,0,0.14)",
+                    boxShadow: isActive ? cycleShadows[key] : "0 2px 8px rgba(0,0,0,0.18)",
                     fontFamily: "var(--font-jakarta)",
                     minHeight: 110,
                     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                   }}
                 >
-                  {/* Brillo glass en la parte superior */}
                   <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: "48%", background: "linear-gradient(to bottom, rgba(255,255,255,0.22), transparent)", borderRadius: "20px 20px 0 0", pointerEvents: "none" }} />
 
-                  {/* Badge "Mas elegido" en mensual */}
                   {key === "mensual" && (
                     <span style={{
                       position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)",
@@ -519,12 +536,11 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
                     </span>
                   )}
 
-                  {/* Check cuando activo */}
                   {isActive && (
                     <span style={{
                       position: "absolute", top: 8, right: 8,
                       width: 18, height: 18, borderRadius: 999,
-                      background: "rgba(255,255,255,0.30)", color: "#fff",
+                      background: "rgba(255,255,255,0.28)", color: "#fff",
                       display: "grid", placeItems: "center",
                     }}>
                       <IconCheck size={10} stroke={3} />
@@ -534,13 +550,12 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
                   <div style={{ fontWeight: 800, fontSize: 13.5, color: "#fff", marginBottom: 5, position: "relative", zIndex: 1 }}>
                     {p.label}
                   </div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: 700, position: "relative", zIndex: 1 }}>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.90)", fontWeight: 700, position: "relative", zIndex: 1 }}>
                     {p.price}
                   </div>
 
-                  {/* Ahorro en trimestral */}
                   {key === "trimestral" && p.saving && (
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "#fff", marginTop: 5, background: "rgba(0,0,0,0.25)", borderRadius: 8, padding: "2px 7px", position: "relative", zIndex: 1, whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "#fff", marginTop: 5, background: "rgba(0,0,0,0.28)", borderRadius: 8, padding: "2px 7px", position: "relative", zIndex: 1, whiteSpace: "nowrap" }}>
                       {p.saving}
                     </div>
                   )}
@@ -549,38 +564,38 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
             })}
           </div>
 
-          {/* CTA */}
+          {/* CTA — blanco con texto violeta, maximo contraste */}
           <button
             onClick={onCTA}
             style={{
               width: "100%", padding: "16px 24px", borderRadius: 999,
-              background: "linear-gradient(135deg, #865CB8 0%, #9655E5 100%)",
-              color: "#fff", fontWeight: 700, fontSize: 17,
+              background: "#fff", color: "var(--accent)",
+              fontWeight: 700, fontSize: 17,
               border: "none", cursor: "pointer", fontFamily: "var(--font-jakarta)",
-              boxShadow: "0 8px 24px rgba(150,85,229,0.35)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
               transition: "transform 150ms ease, box-shadow 150ms ease",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 12px 32px rgba(150,85,229,0.45)"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 24px rgba(150,85,229,0.35)"; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 14px 40px rgba(0,0,0,0.35)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 32px rgba(0,0,0,0.25)"; }}
           >
             Continuar con el plan {current.label} <IconArrow size={18} />
           </button>
 
-          <p style={{ textAlign: "center", fontSize: 12.5, color: "var(--ink-softer)", margin: "12px 0 0" }}>
+          <p style={{ textAlign: "center", fontSize: 12.5, color: "rgba(255,255,255,0.48)", margin: "12px 0 0" }}>
             Pago seguro. Cancelas en cualquier momento.
           </p>
 
           {/* Divisor */}
-          <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "24px 0" }} />
+          <div style={{ height: 1, background: "rgba(255,255,255,0.15)", margin: "24px 0" }} />
 
           {/* Features */}
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 13 }}>
             {perks.map((p, i) => (
-              <li key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 15, color: "var(--ink)" }}>
+              <li key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 15, color: "rgba(255,255,255,0.88)" }}>
                 <span style={{
                   width: 22, height: 22, borderRadius: 999, flexShrink: 0,
-                  background: "#F5F3FF", color: "#7c3aed",
+                  background: "rgba(255,255,255,0.18)", color: "#fff",
                   display: "grid", placeItems: "center",
                 }}>
                   <IconCheck size={12} stroke={2.5} />
@@ -591,7 +606,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
           </ul>
         </div>
 
-        <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "var(--ink-softer)" }}>
+        <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "rgba(255,255,255,0.42)" }}>
           Proba gratis y sin tarjeta &middot; Pagos seguros con Mercado Pago
         </p>
       </div>
