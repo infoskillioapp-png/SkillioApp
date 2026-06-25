@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { SalePopup } from "@/components/sale-popup";
+import { OnboardingTour, useTourRequired, TourIconBolt } from "../../../_components/onboarding-tour";
 
 const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
 const FREE_LIMIT = 3; // tarjetas interactivas; la 4ta se muestra blureada
@@ -153,6 +154,7 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
   const [phase, setPhase] = useState<"session" | "blur_preview" | "locked" | "result">("session");
   const [resultData, setResultData] = useState({ pct: 0, yes: 0, mid: 0, no: 0, total: 0 });
   const [showPaywall, setShowPaywall] = useState(false);
+  const showTarjetasTour = useTourRequired("skillio_tarjetas_tour_v1");
   const rstatRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
 
   const N = cards.length;
@@ -224,6 +226,22 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
       <div id="confetti-layer" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 80, overflow: "hidden" }} />
 
       {showPaywall && <SalePopup ctx="flashcard" onClose={() => setShowPaywall(false)} />}
+
+      {showTarjetasTour && phase === "session" && current && (
+        <OnboardingTour
+          storageKey="skillio_tarjetas_tour_v1"
+          steps={[
+            {
+              icon: <TourIconBolt />,
+              title: "Tocá la tarjeta para girarla",
+              body: "En el frente ves la pregunta, tocás y aparece la respuesta. Después decís si la sabías o no para que Booki aprenda cuáles repasar.",
+              target: ".fflash",
+              placement: "top",
+              nextLabel: "¡Entendido!",
+            },
+          ]}
+        />
+      )}
 
       {/* topbar */}
       <div className="rtopbar">

@@ -529,6 +529,14 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
             },
             {
               icon: <TourIconBook />,
+              title: "Navegá entre temas",
+              body: "Tocá cualquier tema de la lista para saltar entre ellos. Los que domines quedan marcados en verde.",
+              target: ".rside",
+              placement: "right",
+              nextLabel: "Entendido ›",
+            },
+            {
+              icon: <TourIconBook />,
               title: "Seguí estudiando",
               body: "Cuando termines el resumen, reforzá con las Tarjetas o poné a prueba lo aprendido con el Simulacro.",
               target: '[data-tour="mode-nav"]',
