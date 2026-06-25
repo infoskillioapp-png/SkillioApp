@@ -238,6 +238,47 @@ export function MediaSlot({ src, label, ratio = "16 / 10" }: { src: string; labe
 }
 
 // ============================================================
+// HERO TYPEWRITER — rota frases en el titulo
+// ============================================================
+const HERO_PHRASES = ["la mitad", "en 3 dias", "sin releer todo", "con IA"];
+
+function HeroTypewriter() {
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  const [displayed, setDisplayed] = useState(HERO_PHRASES[0]);
+  const [phase, setPhase] = useState<"wait" | "erase" | "type">("wait");
+
+  useEffect(() => {
+    let id: ReturnType<typeof setTimeout>;
+    if (phase === "wait") {
+      id = setTimeout(() => setPhase("erase"), 2800);
+    } else if (phase === "erase") {
+      if (displayed.length > 0) {
+        id = setTimeout(() => setDisplayed(d => d.slice(0, -1)), 55);
+      } else {
+        const next = (phraseIdx + 1) % HERO_PHRASES.length;
+        setPhraseIdx(next);
+        setPhase("type");
+      }
+    } else {
+      const target = HERO_PHRASES[phraseIdx];
+      if (displayed.length < target.length) {
+        id = setTimeout(() => setDisplayed(target.slice(0, displayed.length + 1)), 80);
+      } else {
+        setPhase("wait");
+      }
+    }
+    return () => clearTimeout(id);
+  }, [phase, displayed, phraseIdx]);
+
+  return (
+    <>
+      <span className="gradient-text">{displayed}</span>
+      <span className="hero-tw-cursor">|</span>
+    </>
+  );
+}
+
+// ============================================================
 // HERO TEXT (seccion 1)
 // ============================================================
 export function HeroText({ onCTA }: { onCTA: () => void }) {
@@ -286,9 +327,14 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
           className="h-display"
           style={{ margin: "0 auto", maxWidth: 860, color: "#ffffff", textShadow: "0 2px 24px rgba(26,15,56,0.5)" }}
         >
-          Aprobá tu parcial<br />estudiando la <span className="gradient-text">mitad</span>.
+          Aprobá tu parcial<br />estudiando <HeroTypewriter />.
         </h1>
       </div>
+      <style>{`
+        @keyframes heroCursorBlink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+        .hero-tw-cursor { animation: heroCursorBlink 0.75s step-end infinite; color: rgba(166,126,255,0.85); font-weight: 300; }
+        @media (prefers-reduced-motion: reduce) { .hero-tw-cursor { animation: none !important; } }
+      `}</style>
     </section>
   );
 }

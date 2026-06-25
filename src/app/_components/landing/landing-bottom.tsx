@@ -82,17 +82,21 @@ function Avatar({ src, name, color }: { src: string; name: string; color: string
   );
 }
 
-function MetricCounter({ to, format, active }: { to: number; format: (n: number) => string; active: boolean }) {
+function SlotMachine({ to, format, active }: { to: number; format: (n: number) => string; active: boolean }) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     if (!active) { setVal(0); return; }
-    const steps = 50;
-    let i = 0;
+    let count = 0;
+    const flashes = 20;
     const id = setInterval(() => {
-      i++;
-      setVal(Math.round((i / steps) * to));
-      if (i >= steps) clearInterval(id);
-    }, 30);
+      count++;
+      if (count < flashes) {
+        setVal(Math.floor(Math.random() * to * 1.25));
+      } else {
+        setVal(to);
+        clearInterval(id);
+      }
+    }, 65);
     return () => clearInterval(id);
   }, [active, to]);
   return <>{format(val)}</>;
@@ -278,7 +282,7 @@ export function Testimonios() {
             <div style={{ position: "relative", display: "inline-block" }}>
               <div className="metric-halo" />
               <div className="gradient-text" style={{ fontFamily: "var(--font-roboto)", fontSize: 40, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em", position: "relative", zIndex: 1 }}>
-                <MetricCounter to={m.to} format={m.format} active={metricActive} />
+                <SlotMachine to={m.to} format={m.format} active={metricActive} />
               </div>
             </div>
             <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6 }}>{m.label}</div>
@@ -286,10 +290,16 @@ export function Testimonios() {
         ))}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px 24px", marginTop: 28, flexWrap: "wrap", opacity: 0.55, padding: "0 24px" }}>
-        {["UBA", "UNC", "UTN", "Siglo 21", "UCC"].map((u) => (
-          <span key={u} style={{ fontFamily: "var(--font-roboto)", fontWeight: 800, fontSize: 17, color: "var(--ink-soft)", letterSpacing: "-0.02em" }}>{u}</span>
-        ))}
+      {/* Marquee universidades */}
+      <div className="uni-ticker-wrap" style={{ overflow: "hidden", marginTop: 32, position: "relative" }}>
+        <div className="uni-track" aria-hidden>
+          {[...["UBA", "UNC", "UTN", "Siglo 21", "UCC", "UESIGLO", "UCES", "UBA", "UNC", "UTN", "Siglo 21", "UCC", "UESIGLO", "UCES"]].map((u, i) => (
+            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 28 }}>
+              <span style={{ fontFamily: "var(--font-roboto)", fontWeight: 800, fontSize: 20, color: "var(--ink-soft)", letterSpacing: "-0.02em", opacity: 0.45, whiteSpace: "nowrap" }}>{u}</span>
+              <span style={{ color: "var(--accent)", opacity: 0.25, fontSize: 12 }}>&#x2726;</span>
+            </span>
+          ))}
+        </div>
       </div>
 
       <style>{`
@@ -346,9 +356,15 @@ export function Testimonios() {
         .testi-arrow-right { right: 8px; }
         @media (min-width: 640px) { .testi-arrow { display: grid; place-items: center; } .testi-hint { display: none; } }
 
+        /* Marquee universidades */
+        .uni-ticker-wrap { -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%); mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%); }
+        @keyframes uniRun { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .uni-track { display: flex; gap: 0; width: max-content; animation: uniRun 16s linear infinite; padding: 6px 0; align-items: center; }
+
         @media (prefers-reduced-motion: reduce) {
           .testi-avatar-wrap { opacity: 1 !important; }
           .testi-avatar-in, .testi-quote-active, .dot-progress { animation: none !important; }
+          .uni-track { animation: none !important; }
         }
       `}</style>
     </section>

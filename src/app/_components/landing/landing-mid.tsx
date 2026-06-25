@@ -155,7 +155,23 @@ export function HowItWorks() {
                 WebkitBackdropFilter: "blur(18px) saturate(160%)",
                 border: "1px solid rgba(255,255,255,0.72)",
                 boxShadow: "0 4px 28px rgba(134,92,184,0.10), inset 0 1px 0 rgba(255,255,255,0.85)",
-                transition: "transform 250ms ease, box-shadow 250ms ease",
+                transition: "transform 350ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 300ms ease",
+                willChange: "transform",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transition = "none"; }}
+              onMouseMove={e => {
+                const el = e.currentTarget as HTMLDivElement;
+                const rect = el.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5;
+                const y = (e.clientY - rect.top) / rect.height - 0.5;
+                el.style.transform = `perspective(900px) rotateX(${-y * 10}deg) rotateY(${x * 10}deg) translateY(-6px)`;
+                el.style.boxShadow = "0 20px 52px rgba(134,92,184,0.25), inset 0 1px 0 rgba(255,255,255,0.85)";
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLDivElement;
+                el.style.transition = "transform 350ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 300ms ease";
+                el.style.transform = "";
+                el.style.boxShadow = "";
               }}
             >
               {/* Número contador */}
@@ -200,11 +216,6 @@ export function HowItWorks() {
         .how-orb-1 { width: 340px; height: 340px; background: #865CB8; top: -90px; left: -70px; animation: howOrbFloat 13s ease-in-out infinite; }
         .how-orb-2 { width: 280px; height: 280px; background: #A67EFF; bottom: 10px; right: -50px; animation: howOrbFloat 17s ease-in-out infinite; animation-delay: -6s; }
         .how-orb-3 { width: 200px; height: 200px; background: #9655E5; top: 45%; left: 48%; animation: howOrbFloat 11s ease-in-out infinite; animation-delay: -3s; }
-
-        /* Hover elevación (solo desktop) */
-        @media (hover: hover) {
-          .how-card:hover { transform: translateY(-5px) !important; box-shadow: 0 14px 44px rgba(134,92,184,0.20), inset 0 1px 0 rgba(255,255,255,0.85) !important; }
-        }
 
         /* Número fade-in con scale */
         .step-num { opacity: 0; transform: scale(0.6); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1); }

@@ -1,12 +1,98 @@
 "use client";
 
 import "./landing.css";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar, HeroText, IconArrow, CTAMicro } from "./landing-top";
 import { HowItWorks, Demo } from "./landing-mid";
 import { Pricing, FAQ, FinalCTA, Footer, Testimonios } from "./landing-bottom";
 import MeshBackground from "./MeshBackground";
+
+// ============================================================
+// TICKER — franja de texto deslizante
+// ============================================================
+function Ticker() {
+  const items = ["Sin tarjeta", "IA en segundos", "Ya aprobaron +1.200 estudiantes", "Cancelas cuando quieras", "Resumenes al instante", "Flashcards automaticas", "Simulacro de parcial"];
+  return (
+    <div style={{ overflow: "hidden", background: "var(--accent)", padding: "10px 0" }}>
+      <div className="ticker-track" aria-hidden>
+        {[...items, ...items].map((item, i) => (
+          <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 16, whiteSpace: "nowrap" }}>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>&#x2726;</span>
+            <span>{item}</span>
+          </span>
+        ))}
+      </div>
+      <style>{`
+        @keyframes tickerRun { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .ticker-track { display: flex; gap: 36px; width: max-content; animation: tickerRun 22s linear infinite; color: #fff; font-weight: 600; font-size: 13px; letter-spacing: 0.01em; padding: 0 18px; }
+        @media (prefers-reduced-motion: reduce) { .ticker-track { animation: none !important; } }
+      `}</style>
+    </div>
+  );
+}
+
+// ============================================================
+// CUSTOM CURSOR — solo desktop (pointer: fine)
+// ============================================================
+function CustomCursor() {
+  const dotRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef({ x: -120, y: -120 });
+  const ringPos = useRef({ x: -120, y: -120 });
+  const bigRef = useRef(false);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!window.matchMedia("(pointer: fine)").matches) return;
+    setVisible(true);
+
+    const onMove = (e: MouseEvent) => { posRef.current = { x: e.clientX, y: e.clientY }; };
+    document.addEventListener("mousemove", onMove);
+
+    const onEnter = (e: MouseEvent) => {
+      if ((e.target as Element).closest("a, button, [role=button], input, select, textarea")) bigRef.current = true;
+    };
+    const onLeave = (e: MouseEvent) => {
+      if ((e.target as Element).closest("a, button, [role=button], input, select, textarea")) bigRef.current = false;
+    };
+    document.addEventListener("mouseenter", onEnter, true);
+    document.addEventListener("mouseleave", onLeave, true);
+
+    let raf: number;
+    const animate = () => {
+      ringPos.current.x += (posRef.current.x - ringPos.current.x) * 0.10;
+      ringPos.current.y += (posRef.current.y - ringPos.current.y) * 0.10;
+      if (dotRef.current) {
+        dotRef.current.style.transform = `translate(${posRef.current.x - 5}px, ${posRef.current.y - 5}px)`;
+      }
+      if (ringRef.current) {
+        const r = bigRef.current ? 22 : 14;
+        ringRef.current.style.transform = `translate(${ringPos.current.x - r}px, ${ringPos.current.y - r}px)`;
+        ringRef.current.style.width = `${r * 2}px`;
+        ringRef.current.style.height = `${r * 2}px`;
+      }
+      raf = requestAnimationFrame(animate);
+    };
+    raf = requestAnimationFrame(animate);
+
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseenter", onEnter, true);
+      document.removeEventListener("mouseleave", onLeave, true);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  if (!visible) return null;
+  return (
+    <>
+      <div ref={dotRef} aria-hidden style={{ position: "fixed", top: 0, left: 0, zIndex: 9999, pointerEvents: "none", width: 10, height: 10, borderRadius: "50%", background: "var(--accent)", willChange: "transform" }} />
+      <div ref={ringRef} aria-hidden style={{ position: "fixed", top: 0, left: 0, zIndex: 9998, pointerEvents: "none", width: 28, height: 28, borderRadius: "50%", border: "1.5px solid var(--accent)", opacity: 0.45, willChange: "transform, width, height", transition: "width 180ms ease, height 180ms ease" }} />
+      <style>{`.hero-wrapper * { cursor: none !important; }`}</style>
+    </>
+  );
+}
 
 function useReveal() {
   useEffect(() => {
@@ -77,15 +163,23 @@ export function LandingPage() {
       <div className="hero-content">
         <Navbar onCTA={onCTA} />
         <HeroText onCTA={onCTA} />
+        <Ticker />
         <Demo />
+        {/* Color morph: aurora oscuro → lavanda claro */}
+        <div aria-hidden style={{ height: 60, background: "linear-gradient(to bottom, #1a0f38, #F0EDFF)", pointerEvents: "none" }} />
         <CTAPost onCTA={onCTA} />
         <HowItWorks />
         <Testimonios />
+        {/* Color morph: lavanda → pricing blanco */}
+        <div aria-hidden style={{ height: 32, background: "linear-gradient(to bottom, #E4DEFF, #F8F7FF)", pointerEvents: "none" }} />
         <Pricing onCTA={onCTA} />
         <FAQ />
         <FinalCTA onCTA={onCTA} />
         <Footer />
       </div>
+
+      {/* Custom cursor (desktop only) */}
+      <CustomCursor />
 
       {/* CTA sticky solo en mobile */}
       <StickyMobileCTA onCTA={onCTA} />
