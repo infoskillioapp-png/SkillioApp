@@ -236,7 +236,7 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
               title: "Tocá la tarjeta para girarla",
               body: "En el frente ves la pregunta, tocás y aparece la respuesta. Después decís si la sabías o no para que Booki aprenda cuáles repasar.",
               target: ".fflash",
-              placement: "top",
+              placement: "center",
               nextLabel: "¡Entendido!",
             },
           ]}
