@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { SalePopup } from "@/components/sale-popup";
+import { OnboardingTour, useTourRequired, TourIconSparkles, TourIconBook } from "../../../_components/onboarding-tour";
 
 const KX_COLORS = [
   "linear-gradient(135deg,#5b8cff,#3f63ff)",
@@ -451,6 +452,7 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
   });
   const [leadMode, setLeadMode] = useState<"normal" | "eli5" | "more">("normal");
   const [showPaywall, setShowPaywall] = useState(false);
+  const showResumenTour = useTourRequired("skillio_resumen_tour_v1");
 
   const safeActiveIdx = Math.min(activeIdx, visiblePoints.length - 1);
   const active = visiblePoints[safeActiveIdx];
@@ -513,6 +515,30 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
 
       {showPaywall && <SalePopup ctx="resumen" onClose={() => setShowPaywall(false)} />}
 
+      {showResumenTour && (
+        <OnboardingTour
+          storageKey="skillio_resumen_tour_v1"
+          steps={[
+            {
+              icon: <TourIconSparkles />,
+              title: "¿Tenés dudas sobre algo?",
+              body: "Preguntale a Booki lo que quieras — te explica el concepto de otra forma, te da ejemplos, lo que necesites.",
+              target: ".bfab",
+              placement: "top",
+              nextLabel: "Entendido ›",
+            },
+            {
+              icon: <TourIconBook />,
+              title: "Seguí estudiando",
+              body: "Cuando termines el resumen, reforzá con las Tarjetas o poné a prueba lo aprendido con el Simulacro.",
+              target: '[data-tour="mode-nav"]',
+              placement: "top",
+              nextLabel: "¡Listo, a estudiar!",
+            },
+          ]}
+        />
+      )}
+
       {/* banner demo */}
       {isDemo && (
         <div style={{
@@ -534,11 +560,11 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
 
       {/* topbar */}
       <div className="rtopbar">
-        <Link href={isDemo ? "/app/materias" : `/app/ia?note_id=${data.noteId}`} className="back">
+        <Link href={`/app/ia?note_id=${data.noteId}`} className="back">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M11 18l-6-6 6-6" />
           </svg>
-          {isDemo ? "Inicio" : "Volver"}
+          Volver
         </Link>
         <div className="crumb-r">{data.subjectName} · <b>Resumen</b></div>
         <div className="rfiles">
@@ -662,7 +688,7 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
           />
 
           {/* nav entre temas */}
-          <div style={{ display: "flex", gap: 12, marginTop: 8, paddingBottom: 40 }}>
+          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
             {safeActiveIdx > 0 && (
               <button className="nbtn ghost" onClick={() => setActiveIdx((i) => i - 1)}>
                 ← Anterior
@@ -690,46 +716,31 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
               </button>
             ) : null}
           </div>
-        </main>
 
-        {/* Demo: CTA para explorar tarjetas y simulacro */}
-        {isDemo && (
-          <div style={{
-            margin: "0 0 32px", padding: "20px 20px",
-            background: "linear-gradient(135deg,rgba(124,58,237,.07),rgba(79,125,255,.07))",
-            border: "1.5px solid rgba(124,58,237,.18)", borderRadius: 20,
-          }}>
-            <div style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>
-              ¿Querés ver las tarjetas y el simulacro de este tema?
-            </div>
-            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
-              Explorá las otras herramientas de esta demo o subí tu propio apunte para generar todo desde cero.
-            </div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link href={`/app/ia/tarjetas?note_id=${data.noteId}`} style={{
-                padding: "10px 18px", borderRadius: 12,
-                background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
-                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13,
-              }}>
-                🃏 Ver tarjetas
-              </Link>
-              <Link href={`/app/ia/simulacro?note_id=${data.noteId}`} style={{
-                padding: "10px 18px", borderRadius: 12,
-                background: "linear-gradient(135deg,#ff5d79,#e4264f)",
-                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13,
-              }}>
-                📝 Hacer simulacro
-              </Link>
-              <Link href="/app/materias" style={{
-                padding: "10px 18px", borderRadius: 12,
-                background: "#f3f4fb", color: "var(--muted)",
-                fontFamily: "var(--po)", fontWeight: 600, fontSize: 13,
-              }}>
-                Subir mi apunte →
-              </Link>
-            </div>
+          {/* Continuar con otros modos */}
+          <div data-tour="mode-nav" style={{ display: "flex", gap: 10, marginTop: 20, paddingBottom: 40, flexWrap: "wrap" }}>
+            <Link href={`/app/ia/tarjetas?note_id=${data.noteId}`} style={{
+              flex: 1, minWidth: 130,
+              padding: "12px 16px", borderRadius: 14,
+              background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+              color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+              display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+              textDecoration: "none", boxShadow: "0 6px 18px rgba(124,58,237,.28)",
+            }}>
+              🃏 Ir a Tarjetas
+            </Link>
+            <Link href={`/app/ia/simulacro?note_id=${data.noteId}`} style={{
+              flex: 1, minWidth: 130,
+              padding: "12px 16px", borderRadius: 14,
+              background: "linear-gradient(135deg,#ff5d79,#e4264f)",
+              color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+              display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+              textDecoration: "none", boxShadow: "0 6px 18px rgba(255,93,121,.28)",
+            }}>
+              📝 Hacer Simulacro
+            </Link>
           </div>
-        )}
+        </main>
       </div>
     </>
   );
