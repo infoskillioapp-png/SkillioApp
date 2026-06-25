@@ -143,6 +143,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   if (!open) return null;
 
   return (
+    <>
     <div
       id="upModal"
       className="show"
@@ -284,6 +285,8 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
         </>}
       </div>
 
+    </div>
+
       {showUploadTour && open && tab === "file" && !splitterFile && !demoLoading && (
         <OnboardingTour
           storageKey="skillio_upload_modal_tour_v1"
@@ -307,6 +310,6 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
           ]}
         />
       )}
-    </div>
+    </>
   );
 }

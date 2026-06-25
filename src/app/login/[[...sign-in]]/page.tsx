@@ -29,7 +29,7 @@ export default function LoginPage() {
         routing="path"
         path="/login"
         signUpUrl="/registro"
-        fallbackRedirectUrl="/app"
+        fallbackRedirectUrl="/app?upload=1"
         appearance={{
           variables: {
             colorPrimary: "#9655E5",
