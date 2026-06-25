@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { UploadModal } from "./upload-modal";
 import { MateriasAccordion } from "./materias-accordion";
+import { OnboardingTour, useTourRequired, TourIconSparkles, TourIconUpload } from "./onboarding-tour";
 
 function useParallaxBg() {
   const ref = useRef<HTMLDivElement>(null);
@@ -111,9 +112,12 @@ type Props = {
   autoUpload?: boolean;
 };
 
+const HOME_TOUR_KEY = "skillio_home_tour_v1";
+
 export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false }: Props) {
   const [modalOpen, setModalOpen] = useState(autoUpload);
   const bgRef = useParallaxBg();
+  const showTour = useTourRequired(HOME_TOUR_KEY);
 
   // Reaccionar si el prop cambia (e.g., sidebar navega a /app?upload=1 estando ya en /app)
   useEffect(() => {
@@ -140,7 +144,7 @@ export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false
               <div className="htx">
                 <h1>Subí tu apunte y estudiá en minutos</h1>
                 <p>Booki te arma el resumen, las tarjetas y el simulacro. Vos solo concentrate en aprender. 🚀</p>
-                <button className="upload" onClick={() => setModalOpen(true)}>
+                <button data-tour="upload-btn" className="upload" onClick={() => setModalOpen(true)}>
                   <span className="ic">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
@@ -211,6 +215,34 @@ export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false
       </div>
 
       <UploadModal open={modalOpen} onClose={() => setModalOpen(false)} />
+
+      {showTour && (
+        <OnboardingTour
+          storageKey={HOME_TOUR_KEY}
+          steps={[
+            {
+              icon: <TourIconSparkles />,
+              title: "Bienvenido a Skillio",
+              body: `Hola ${user.firstName}! En segundos vas a tener resumen, tarjetas y simulacro de cualquier apunte. Te mostramos cómo en 2 pasos.`,
+              placement: "center",
+              nextLabel: "Empezar ›",
+            },
+            {
+              icon: <TourIconUpload />,
+              title: "Subí tu primer apunte",
+              body: "PDF, foto de tus notas, Word, texto... La IA lo convierte en una suite completa de estudio en segundos.",
+              target: '[data-tour="upload-btn"]',
+              placement: "bottom",
+              nextLabel: "Abrir subida ›",
+              onNext: () => setModalOpen(true),
+              extra: {
+                label: "¿No tenés nada a mano? Subí un apunte demo",
+                action: () => setModalOpen(true),
+              },
+            },
+          ]}
+        />
+      )}
     </>
   );
 }
