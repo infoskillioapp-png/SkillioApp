@@ -83,7 +83,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
     await new Promise((r) => setTimeout(r, 400));
     setDemoLoading(null);
     onClose();
-    router.push(`/app/ia/resumen?note_id=demo-${topic}`);
+    router.push(`/app/ia?note_id=demo-${topic}`);
   }
 
   async function uploadText() {

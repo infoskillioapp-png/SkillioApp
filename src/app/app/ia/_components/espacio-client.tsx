@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { SalePopup } from "@/components/sale-popup";
+import { OnboardingTour, useTourRequired, TourIconBook, TourIconSparkles } from "../../_components/onboarding-tour";
 
 // ---- tipos ----
 type Topic = { id: string; name: string; sub: string; pct: number };
@@ -357,19 +358,23 @@ export function EspacioClient({ note, generating, fileName }: Props) {
 
   const allTopics = note.sections.flatMap(s => s.topics);
   const doneCount = allTopics.filter(t => (donePcts[t.id] ?? t.pct) >= 100).length;
+  const showEspacioTour = useTourRequired("skillio_espacio_tour_v1");
 
   // Cuando un modo no tiene contenido, genera en vez de navegar
-  function ModoWrapper({ count, href, className, style, children }: {
+  function ModoWrapper({ count, href, className, style, children, tourAttr }: {
     count: number; href: string; className: string;
     style?: React.CSSProperties; children: React.ReactNode;
+    tourAttr?: string;
   }) {
+    const extra = tourAttr ? { "data-tour": tourAttr } : {};
     if (count > 0) {
-      return <Link href={href} className={className} style={style}>{children}</Link>;
+      return <Link href={href} className={className} style={style} {...extra}>{children}</Link>;
     }
     return (
       <div
         className={className} style={{ ...style, cursor: "pointer" }}
         onClick={() => setIsGenerating(true)}
+        {...extra}
       >
         {children}
       </div>
@@ -383,6 +388,29 @@ export function EspacioClient({ note, generating, fileName }: Props) {
       )}
 
       {showPaywall && <SalePopup ctx="generic" onClose={() => setShowPaywall(false)} />}
+
+      {showEspacioTour && !isGenerating && (
+        <OnboardingTour
+          storageKey="skillio_espacio_tour_v1"
+          steps={[
+            {
+              icon: <TourIconSparkles />,
+              title: "¡Tu suite de estudio está lista!",
+              body: "Resumen, Tarjetas y Simulacro generados de tu apunte. Cada uno refuerza lo aprendido de una forma distinta.",
+              placement: "center",
+              nextLabel: "¿Por dónde empiezo? ›",
+            },
+            {
+              icon: <TourIconBook />,
+              title: "Empezá por el Resumen",
+              body: "Son los puntos clave del apunte explicados de forma clara. El mejor primer paso para dominar el tema.",
+              target: '[data-tour="resumen-card"]',
+              placement: "bottom",
+              nextLabel: "Abrir Resumen ›",
+            },
+          ]}
+        />
+      )}
 
       <div id="confetti-layer" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 80, overflow: "hidden" }} />
 
@@ -448,7 +476,7 @@ export function EspacioClient({ note, generating, fileName }: Props) {
           </div>
 
           <div className="modos">
-            <ModoWrapper count={note.summaryCount} href={`/app/ia/resumen?note_id=${note.id}`} className="modo blue in" style={{ animationDelay: ".1s" }}>
+            <ModoWrapper count={note.summaryCount} href={`/app/ia/resumen?note_id=${note.id}`} className="modo blue in" style={{ animationDelay: ".1s" }} tourAttr="resumen-card">
               <span className="deco" /><span className="deco2" /><span className="sweep" />
               <div className="top">
                 <span className="mi">

@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { EspacioClient, SEC_COLORS } from "./_components/espacio-client";
 import { EspacioEmpty } from "./_components/espacio-empty";
+import { isDemoNoteId, getDemoResumen, getDemoTarjetas, getDemoSimulacro } from "@/lib/demo-content";
 
 type SearchParams = Promise<{ note_id?: string; gen?: string }>;
 
@@ -12,8 +13,39 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
 
   const { note_id, gen } = await searchParams;
 
-  // Demo: redirigir directo al resumen (el espacio no tiene sentido sin note real)
-  if (note_id?.startsWith("demo-")) redirect(`/app/ia/resumen?note_id=${note_id}`);
+  // Demo: mostrar el espacio completo (suite) cargando datos hardcodeados
+  if (note_id && isDemoNoteId(note_id)) {
+    const demoResumen = getDemoResumen(note_id);
+    if (!demoResumen) redirect("/app/ia");
+
+    const demoTarjetas = getDemoTarjetas(note_id);
+    const demoSimulacro = getDemoSimulacro(note_id);
+
+    const demoSections = demoResumen.sections.map((sec, si) => ({
+      id: `sec-${si}`,
+      name: sec.name,
+      color: SEC_COLORS[si % SEC_COLORS.length],
+      topics: sec.points.map((p, ti) => ({
+        id: `topic-${si}-${ti}`,
+        name: p.emoji ? `${p.emoji} ${p.title}` : p.title,
+        sub: p.description ? p.description.slice(0, 60) + (p.description.length > 60 ? "…" : "") : "",
+        pct: 0,
+      })),
+    }));
+
+    const demoNoteData = {
+      id: note_id,
+      title: demoResumen.noteTitle,
+      subjectName: demoResumen.subjectName,
+      summaryCount: demoResumen.sections.reduce((a, s) => a + s.points.length, 0),
+      flashcardsCount: demoTarjetas?.flashcards.length ?? 0,
+      simulacroCount: demoSimulacro?.questions.length ?? 0,
+      sections: demoSections,
+      fileUrl: null,
+    };
+
+    return <EspacioClient note={demoNoteData} generating={false} fileName={demoResumen.noteTitle} />;
+  }
 
   const sb = supabaseAdmin();
 
