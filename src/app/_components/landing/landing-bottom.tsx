@@ -381,99 +381,192 @@ export function Transformacion() {
 // ============================================================
 // PRICING
 // ============================================================
+type PricingCycle = "semanal" | "mensual" | "trimestral";
+
 export function Pricing({ onCTA }: { onCTA: () => void }) {
-  const proPerks = [
-    "500 créditos mensuales de IA",
-    "Resúmenes, flashcards y simulacros ilimitados",
-    "Repetición espaciada inteligente",
-    "Modelos avanzados de IA",
-    "Subir a Comunidad y ganar XP",
-    "Pomodoro, agenda y logros",
+  const [cycle, setCycle] = useState<PricingCycle>("mensual");
+
+  const plans: Record<PricingCycle, { price: string; period: string; label: string; saving: string | null }> = {
+    semanal:    { price: "$4.900",  period: "semana",    label: "Semanal",    saving: null },
+    mensual:    { price: "$15.900", period: "mes",       label: "Mensual",    saving: null },
+    trimestral: { price: "$34.900", period: "trimestre", label: "Trimestral", saving: "Ahorras 30%" },
+  };
+
+  const perks = [
+    "Resumenes, flashcards y simulacros ilimitados",
+    "Repeticion espaciada inteligente",
+    "Modelos avanzados de IA (Claude)",
+    "Subi tus apuntes: PDF, foto o texto",
+    "Cancelas en cualquier momento",
   ];
-  // Bullets del señuelo Premium — se ven difuminados a propósito (no son reales).
-  const premiumPerks = [
-    "Modelos de IA más avanzados",
-    "Tutor IA personalizado 24/7",
-    "Generaciones ilimitadas",
-    "Soporte prioritario",
-    "Modo examen colaborativo",
-  ];
+
+  const current = plans[cycle];
 
   return (
-    <section id="planes" className="section">
+    <section id="planes" className="section" style={{ background: "#F8F7FF" }}>
       <div className="container-x">
-        <SectionHeader
-          eyebrow="Planes"
-          title={<>Elegí cómo querés <span className="gradient-text">aprobar</span></>}
-          sub="Probás gratis y sin tarjeta. Cuando se te acaban los intentos, pasás a PRO en 2 clicks."
-        />
 
-        <div className="pricing-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginTop: 46, maxWidth: 820, marginLeft: "auto", marginRight: "auto", alignItems: "stretch" }}>
-          {/* ── PRO — plan real, recomendado ── */}
-          <div style={{ background: "var(--accent)", color: "#fff", borderRadius: 24, padding: 32, border: "1.5px solid var(--accent)", position: "relative", boxShadow: "0 24px 48px -20px rgba(150,85,229,0.5)", transform: "scale(1.02)", zIndex: 2 }}>
-            <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", padding: "5px 14px", borderRadius: 999, background: "var(--ink)", color: "white", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>⭐ El más elegido</span>
-            <div style={{ fontFamily: "var(--font-serif)", fontSize: 32, letterSpacing: "-0.02em", lineHeight: 1 }}>PRO</div>
-            <div style={{ marginTop: 6, fontSize: 14, opacity: 0.8 }}>Todo lo que necesitás para aprobar</div>
-            <div style={{ marginTop: 22, display: "flex", alignItems: "baseline", gap: 6 }}>
-              <span style={{ fontFamily: "var(--font-serif)", fontSize: 54, letterSpacing: "-0.025em", lineHeight: 1 }}>$16.000</span>
-              <span style={{ fontSize: 14, opacity: 0.75 }}>/ mes</span>
-            </div>
-            <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>Menos que una hamburguesa al mes — contra recursar una materia.</div>
-            <button className="btn" style={{ width: "100%", marginTop: 20, background: "white", color: "var(--accent)", fontWeight: 700 }} onClick={onCTA}>
-              Empezá gratis <IconArrow size={16} />
-            </button>
-            <p style={{ textAlign: "center", margin: "10px 0 0", fontSize: 12.5, opacity: 0.85 }}>Sin tarjeta · Cancelás cuando quieras</p>
-            <div style={{ height: 1, background: "rgba(255,255,255,0.25)", margin: "24px 0" }} />
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-              {proPerks.map((t, j) => (
-                <li key={j} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14.5 }}>
-                  <span style={{ width: 20, height: 20, borderRadius: 999, background: "rgba(255,255,255,0.25)", color: "white", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                    <IconCheck size={12} stroke={2.5} />
-                  </span>
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
+        {/* Header */}
+        <div className="reveal" style={{ textAlign: "center", marginBottom: 44 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 12 }}>
+            Planes
           </div>
-
-          {/* ── PREMIUM — señuelo de anclaje. SOLO VISUAL, no funcional, no clickeable. ── */}
-          <div style={{ background: "var(--paper)", color: "var(--ink)", borderRadius: 24, padding: 32, border: "1px solid rgba(53,56,49,0.10)", position: "relative", overflow: "hidden", boxShadow: "0 1px 0 rgba(53,56,49,0.04)" }}>
-            {/* Ribbon diagonal "PRÓXIMAMENTE" */}
-            <div aria-hidden style={{ position: "absolute", top: 18, right: -52, transform: "rotate(45deg)", background: "linear-gradient(135deg, #4a6b8a, #2c5870)", color: "white", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", padding: "6px 60px", boxShadow: "0 4px 12px -4px rgba(44,88,112,0.6)" }}>
-              PRÓXIMAMENTE
-            </div>
-            <div style={{ fontFamily: "var(--font-serif)", fontSize: 32, letterSpacing: "-0.02em", lineHeight: 1 }}>Premium</div>
-            <div style={{ marginTop: 6, fontSize: 14, color: "var(--ink-soft)" }}>Todo lo de PRO, llevado al límite.</div>
-            {/* Precio: ancla — nítido y legible a propósito */}
-            <div style={{ marginTop: 22, display: "flex", alignItems: "baseline", gap: 6 }}>
-              <span style={{ fontFamily: "var(--font-serif)", fontSize: 54, letterSpacing: "-0.025em", lineHeight: 1, color: "var(--ink)", fontWeight: 700 }}>$29.999</span>
-              <span style={{ fontSize: 14, color: "var(--ink-soft)" }}>/ mes</span>
-            </div>
-            <button disabled aria-disabled style={{ width: "100%", marginTop: 20, padding: "12px 22px", borderRadius: 999, border: "1px solid rgba(53,56,49,0.12)", background: "var(--bg-2)", color: "var(--ink-softer)", fontWeight: 600, fontSize: 15, cursor: "not-allowed", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "var(--font-jakarta)" }}>
-              🔒 Próximamente
-            </button>
-            <div style={{ height: 1, background: "rgba(53,56,49,0.08)", margin: "24px 0" }} />
-            {/* Features difuminadas — generan intriga, no se leen del todo */}
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12, filter: "blur(5px)", userSelect: "none", pointerEvents: "none", opacity: 0.85 }} aria-hidden>
-              {premiumPerks.map((t, j) => (
-                <li key={j} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14.5 }}>
-                  <span style={{ width: 20, height: 20, borderRadius: 999, background: "rgba(53,56,49,0.10)", color: "var(--ink-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                    <IconCheck size={12} stroke={2.5} />
-                  </span>
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-            {/* Overlay vidrio esmerilado para reforzar el "bloqueado" */}
-            <div aria-hidden style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "linear-gradient(to top, rgba(255,255,255,0.55), transparent)", backdropFilter: "blur(1.5px)", pointerEvents: "none" }} />
-          </div>
+          <h2 className="h-section" style={{ margin: "0 auto", maxWidth: 520 }}>
+            Un plan para <span className="gradient-text">aprobar</span> sin volverte loco
+          </h2>
+          <p style={{ marginTop: 14, fontSize: 16.5, lineHeight: 1.55, color: "var(--ink-soft)", maxWidth: 420, margin: "14px auto 0" }}>
+            Proba gratis. Cuando quieras mas, activas PRO en 2 clicks.
+          </p>
         </div>
 
-        <p style={{ textAlign: "center", marginTop: 24, fontSize: 13, color: "var(--ink-softer)" }}>
-          Probás gratis y sin tarjeta · Cancelás cuando quieras · Pagos seguros con Mercado Pago
+        {/* Tarjeta principal */}
+        <div style={{
+          maxWidth: 440, margin: "0 auto",
+          background: "#fff", borderRadius: 28, padding: "32px 28px",
+          boxShadow: "0 8px 48px rgba(124,58,237,0.10), 0 1px 4px rgba(124,58,237,0.06)",
+          border: "1px solid rgba(124,58,237,0.10)",
+        }}>
+
+          {/* Badge PRO */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "linear-gradient(135deg, #865CB8 0%, #9655E5 100%)",
+              color: "#fff", fontWeight: 800, fontSize: 13, letterSpacing: "0.08em",
+              padding: "6px 18px", borderRadius: 999,
+              boxShadow: "0 4px 16px rgba(150,85,229,0.35)",
+            }}>
+              PRO
+            </span>
+          </div>
+
+          {/* Precio dinamico */}
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div key={cycle} className="price-appear" style={{
+              fontFamily: "var(--font-jakarta)", fontSize: 52, fontWeight: 900,
+              letterSpacing: "-0.03em", lineHeight: 1, color: "var(--ink)",
+            }}>
+              {current.price}
+            </div>
+            <div style={{ fontSize: 14, color: "var(--ink-softer)", marginTop: 4 }}>
+              por {current.period}
+            </div>
+          </div>
+
+          {/* Selector de ciclos */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 24 }}>
+            {(["semanal", "mensual", "trimestral"] as PricingCycle[]).map((key) => {
+              const p = plans[key];
+              const isActive = cycle === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setCycle(key)}
+                  style={{
+                    position: "relative", padding: "12px 6px 10px",
+                    borderRadius: 14, cursor: "pointer", textAlign: "center",
+                    border: isActive ? "2px solid #7c3aed" : "1.5px solid rgba(0,0,0,0.10)",
+                    background: isActive ? "#F5F3FF" : "#fff",
+                    transition: "border-color 180ms ease, background 180ms ease, box-shadow 180ms ease",
+                    boxShadow: isActive ? "0 0 0 3px rgba(124,58,237,0.10)" : "none",
+                    fontFamily: "var(--font-jakarta)",
+                  }}
+                >
+                  {/* Badge "Mas elegido" en mensual */}
+                  {key === "mensual" && (
+                    <span style={{
+                      position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)",
+                      background: "var(--ink)", color: "#fff", fontSize: 10, fontWeight: 700,
+                      padding: "3px 8px", borderRadius: 999, whiteSpace: "nowrap",
+                    }}>
+                      &#x1F525; Mas elegido
+                    </span>
+                  )}
+
+                  {/* Check cuando activo */}
+                  {isActive && (
+                    <span style={{
+                      position: "absolute", top: 6, right: 6,
+                      width: 16, height: 16, borderRadius: 999,
+                      background: "#7c3aed", color: "#fff",
+                      display: "grid", placeItems: "center", fontSize: 10,
+                    }}>
+                      <IconCheck size={9} stroke={3} />
+                    </span>
+                  )}
+
+                  <div style={{ fontWeight: 700, fontSize: 13, color: isActive ? "#7c3aed" : "var(--ink)", marginBottom: 2 }}>
+                    {p.label}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--ink-softer)", lineHeight: 1.3 }}>
+                    {p.price}
+                  </div>
+
+                  {/* Badge ahorro en trimestral */}
+                  {key === "trimestral" && (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", marginTop: 3 }}>
+                      {p.saving}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* CTA */}
+          <button
+            onClick={onCTA}
+            style={{
+              width: "100%", padding: "16px 24px", borderRadius: 999,
+              background: "linear-gradient(135deg, #865CB8 0%, #9655E5 100%)",
+              color: "#fff", fontWeight: 700, fontSize: 17,
+              border: "none", cursor: "pointer", fontFamily: "var(--font-jakarta)",
+              boxShadow: "0 8px 24px rgba(150,85,229,0.35)",
+              transition: "transform 150ms ease, box-shadow 150ms ease",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 12px 32px rgba(150,85,229,0.45)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 24px rgba(150,85,229,0.35)"; }}
+          >
+            Continuar con el plan {current.label} <IconArrow size={18} />
+          </button>
+
+          <p style={{ textAlign: "center", fontSize: 12.5, color: "var(--ink-softer)", margin: "12px 0 0" }}>
+            Pago seguro. Cancelas en cualquier momento.
+          </p>
+
+          {/* Divisor */}
+          <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "24px 0" }} />
+
+          {/* Features */}
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 13 }}>
+            {perks.map((p, i) => (
+              <li key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 15, color: "var(--ink)" }}>
+                <span style={{
+                  width: 22, height: 22, borderRadius: 999, flexShrink: 0,
+                  background: "#F5F3FF", color: "#7c3aed",
+                  display: "grid", placeItems: "center",
+                }}>
+                  <IconCheck size={12} stroke={2.5} />
+                </span>
+                {p}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "var(--ink-softer)" }}>
+          Proba gratis y sin tarjeta &middot; Pagos seguros con Mercado Pago
         </p>
       </div>
-      <style>{`@media (max-width: 720px) { .pricing-grid { grid-template-columns: 1fr !important; } .pricing-grid > div:first-child { transform: none !important; } }`}</style>
+
+      <style>{`
+        @keyframes priceAppear {
+          from { opacity: 0; transform: translateY(6px) scale(0.96); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .price-appear { animation: priceAppear 0.22s ease both; }
+      `}</style>
     </section>
   );
 }
