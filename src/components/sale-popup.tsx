@@ -62,7 +62,7 @@ export function SalePopup({ ctx, onClose }: Props) {
         backdropFilter: "blur(10px)",
         zIndex: 100,
         display: "grid", placeItems: "center",
-        padding: "16px",
+        padding: "16px 16px 80px",
       }}
     >
       <div style={{
@@ -80,20 +80,6 @@ export function SalePopup({ ctx, onClose }: Props) {
 
         {/* contenido */}
         <div style={{ padding: "22px 22px 24px" }}>
-
-          {/* headline */}
-          <div style={{ textAlign: "center", marginBottom: 18 }}>
-            <h2 style={{
-              fontFamily: "var(--po)", fontWeight: 900, fontSize: 22,
-              color: "var(--ink)", marginBottom: 6, lineHeight: 1.2,
-              letterSpacing: "-.02em",
-            }}>
-              {msg.title}
-            </h2>
-            <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.55 }}>
-              {msg.sub}
-            </p>
-          </div>
 
           {/* feature list */}
           <div style={{
