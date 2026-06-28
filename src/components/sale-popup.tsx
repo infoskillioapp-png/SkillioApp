@@ -1,27 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 export type PaywallCtx = "flashcard" | "simulacro" | "resumen" | "generic";
 
-const CTX: Record<PaywallCtx, { emoji: string; title: string; sub: string }> = {
+const CTX: Record<PaywallCtx, { image: string; title: string; sub: string }> = {
   flashcard: {
-    emoji: "🃏",
+    image: "/paywall-flashcard.png",
     title: "Hay más tarjetas para dominar",
     sub: "Desbloqueá el mazo completo y aprendé cada concepto con repetición espaciada.",
   },
   simulacro: {
-    emoji: "🎯",
+    image: "/paywall-simulacro.png",
     title: "Hay más preguntas en el simulacro",
     sub: "Completá el examen completo para detectar todas tus lagunas antes del parcial.",
   },
   resumen: {
-    emoji: "📖",
+    image: "/paywall-resumen.png",
     title: "Hay más puntos clave en el resumen",
     sub: "Accedé al resumen completo y dominá cada tema de tu apunte.",
   },
   generic: {
-    emoji: "🔒",
+    image: "/paywall-generic.png",
     title: "Estudiá sin límites",
     sub: "Pasate a PRO y accedé a todo el contenido generado por Booki.",
   },
@@ -62,20 +63,32 @@ export function SalePopup({ ctx, onClose }: Props) {
       <div style={{
         background: "#fff", borderRadius: 28,
         boxShadow: "0 28px 70px rgba(0,0,0,.24)",
-        padding: "30px 26px",
         width: "min(440px,96vw)",
+        overflow: "hidden",
         animation: "fadeUp .3s both",
       }}>
-        {/* header */}
-        <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <div style={{ fontSize: 44, marginBottom: 10, lineHeight: 1 }}>{msg.emoji}</div>
-          <h2 style={{ fontFamily: "var(--po)", fontWeight: 800, fontSize: 21, color: "var(--ink)", marginBottom: 8, lineHeight: 1.25 }}>
-            {msg.title}
-          </h2>
-          <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6, maxWidth: "34ch", margin: "0 auto" }}>
-            {msg.sub}
-          </p>
+        {/* imagen contextual */}
+        <div style={{ position: "relative", width: "100%", height: 200, background: "linear-gradient(135deg,#f0edff,#e8eeff)" }}>
+          <Image
+            src={msg.image}
+            alt=""
+            fill
+            style={{ objectFit: "cover" }}
+            priority
+          />
         </div>
+
+        {/* contenido */}
+        <div style={{ padding: "22px 24px 26px" }}>
+          {/* header */}
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <h2 style={{ fontFamily: "var(--po)", fontWeight: 800, fontSize: 20, color: "var(--ink)", marginBottom: 7, lineHeight: 1.25 }}>
+              {msg.title}
+            </h2>
+            <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6, maxWidth: "34ch", margin: "0 auto" }}>
+              {msg.sub}
+            </p>
+          </div>
 
         {/* planes */}
         <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 14 }}>
@@ -155,6 +168,7 @@ export function SalePopup({ ctx, onClose }: Props) {
         >
           Quizás después
         </button>
+        </div>{/* fin contenido */}
       </div>
     </div>
   );
