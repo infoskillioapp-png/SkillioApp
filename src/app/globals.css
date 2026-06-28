@@ -221,6 +221,7 @@ body.railed{padding-left:122px}
 .um-tab.on{background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;box-shadow:0 8px 18px rgba(99,102,241,.32)}
 .um-pane{display:none}.um-pane.on{display:block;animation:umFade .25s both}
 .um-drop{border:2px dashed #d2d5ea;border-radius:22px;background:linear-gradient(180deg,#faf9ff,#f2effb);padding:24px 20px 28px;text-align:center;transition:.18s}
+.um-drop img{max-width:100%;height:auto}
 .um-drop.drag{border-color:var(--violet);background:#f0eaff;transform:scale(1.01)}
 .um-arrow{color:var(--violet);margin:-6px 0 8px;animation:upBob 1.8s ease-in-out infinite;display:flex;justify-content:center}
 @keyframes upBob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
@@ -245,7 +246,11 @@ body.railed{padding-left:122px}
 
 /* ===== CONTENT RAIL (padding para el sidebar fijo) ===== */
 .content-rail{padding-left:122px}
-@media(max-width:760px){.content-rail{padding-left:0;padding-bottom:90px}}
+@media(max-width:760px){
+  .content-rail{padding-left:0;padding-bottom:90px}
+  .bfab{bottom:76px}
+  #bchat{bottom:130px}
+}
 
 /* ===== ESPACIO DE ESTUDIO ===== */
 .espacio{max-width:1180px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start}
@@ -725,4 +730,179 @@ body.railed{padding-left:122px}
   .print-header .phtag{font-size:12px;color:#8487a6}
   .rhead{border-bottom:1px solid #eef0fb;padding-bottom:16px;margin-bottom:16px}
   @page{margin:16mm 14mm}
+}
+
+/* =====================================================================
+   MOBILE — 640 px y menos
+   ===================================================================== */
+@media(max-width:640px){
+
+  /* ── Home ── */
+  .app{padding:12px 14px 100px}
+  .topbar{gap:8px;margin-bottom:14px;flex-wrap:nowrap}
+  .search{padding:10px 13px;min-width:0;flex:1}
+  .search input{font-size:13px}
+  .tbtn{width:38px;height:38px;border-radius:12px;flex:none}
+  .profile{padding:6px 8px 6px 12px;font-size:12.5px;border-radius:13px}
+  .profile > span:not(.pa){display:none}
+  .profile .pa{display:grid;width:30px;height:30px;border-radius:9px}
+  .grid-top{gap:12px}
+  .hero{padding:20px 18px;min-height:auto;border-radius:22px}
+  .hero h1{font-size:22px}
+  .hero p{font-size:13px;margin-bottom:16px}
+  .upload{font-size:13px;padding:11px 18px;gap:8px;border-radius:13px}
+  .upload .ic{width:26px;height:26px;border-radius:9px}
+  .hero-booki{display:none}
+  .continue{padding:18px 18px 16px;border-radius:22px}
+  .continue .body{gap:12px;margin:12px 0 14px}
+  .continue .bigring{width:80px;height:80px}
+  .continue .bigring .ctr b{font-size:17px}
+  .continue .info .mat{font-size:14px}
+  .retomar{font-size:13px;padding:11px}
+  .sec-h{margin:2px 2px 12px}
+  .sec-h h2{font-size:18px}
+  .materias{border-radius:20px;padding:6px 8px}
+
+  /* ── Espacio ── */
+  .espacio{padding:12px;gap:12px}
+  .crumb{font-size:12px;margin-bottom:12px}
+  .ehero{padding:20px 18px;border-radius:24px}
+  .ehero h1{font-size:22px}
+  .ehero .sub{font-size:13px}
+  .ehero .acts{gap:8px;margin-top:14px}
+  .hbtn{padding:7px 12px;font-size:12px}
+  .booki-illu{width:110px;height:110px}
+  .sectit{margin:22px 4px 12px}
+  .sectit h2{font-size:17px}
+  .modos{gap:10px}
+  .modo{padding:16px;border-radius:20px}
+  .modo .top{margin-bottom:26px}
+  .modo .mi{width:42px;height:42px;border-radius:13px}
+  .modo .mi svg{width:22px;height:22px}
+  .modo .badge{padding:6px 9px;min-width:46px}
+  .modo .badge b{font-size:16px}
+  .modo .mt{font-size:16px}
+  .modo .md{font-size:12px;min-height:28px}
+  .epanel{border-radius:22px}
+  .shead .st{font-size:14px}
+
+  /* ── Topbar reader ── */
+  .rtopbar{padding:10px 14px;gap:8px}
+  .rtopbar .back{padding:7px 11px;font-size:12px;gap:5px;border-radius:10px}
+  .rtopbar .crumb-r{font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
+  .rtopbar .rfiles{font-size:11.5px;padding:5px 9px;border-radius:9px}
+
+  /* ── Resumen reader ── */
+  .rwrap{padding:12px;gap:12px}
+  .rtitle{font-size:23px}
+  .lead{font-size:15px}
+  .rcard{padding:16px 16px;border-radius:18px}
+  .rcard table{font-size:12.5px}
+  .rcard table th,.rcard table td{padding:9px 10px}
+  .ractions{gap:6px}
+  .ract{font-size:12px;padding:8px 11px;gap:5px;border-radius:11px}
+  .rside{border-radius:18px;padding:14px 12px}
+  .rside h2{font-size:14px}
+  .booki-tip{padding:12px 14px}
+  .booki-tip .bav{width:36px;height:36px}
+  .booki-tip .btx{font-size:13px}
+  .practica{padding:18px 16px;border-radius:20px}
+  .practica .pph h3{font-size:16px}
+  .pqt{font-size:14px}
+  .popt{padding:11px 13px;font-size:13.5px}
+  .done-banner{padding:14px 16px;border-radius:16px}
+
+  /* ── Tarjetas ── */
+  .flash-stage{padding:14px 12px 90px}
+  .fdeck{height:260px;width:100%}
+  .fface{padding:22px 20px}
+  .fface .fbig{font-size:18px}
+  .fface .feyebrow{font-size:11px}
+  .fface .fhint{font-size:12px}
+  .flip-cta{font-size:12px;margin:10px 0 16px}
+  .rate{gap:8px}
+  .rb{min-width:88px;padding:11px 12px;font-size:12.5px;border-radius:16px;gap:5px}
+  .rb .em{width:32px;height:32px}
+  .rcard2{width:95%;padding:20px 16px}
+  .rstats2{gap:8px}
+  .rstat2{min-width:86px;padding:14px 14px 12px}
+  .rstat2 b{font-size:24px}
+  .rowbtns{gap:8px}
+
+  /* ── Simulacro ── */
+  .sim-stage{padding:14px 12px 90px}
+  .sim-intro{padding:24px 20px;border-radius:22px}
+  .sim-intro h1{font-size:22px}
+  .sim-intro .ic{width:66px;height:66px;border-radius:18px}
+  .specs{gap:10px}
+  .spec{min-width:100px;padding:12px 14px}
+  .spec b{font-size:17px}
+  .qcard{padding:20px 16px;border-radius:20px}
+  .qcard .qeye{font-size:11px}
+  .qcard h2{font-size:17px;margin-bottom:16px}
+  .qopts{gap:8px}
+  .qopt{padding:12px 13px;font-size:13.5px}
+  .simnav{gap:8px;margin-top:16px}
+  .simnav .snbtn{font-size:13px;padding:11px 14px}
+  .scorehead{flex-direction:column;text-align:center;padding:20px 18px;gap:16px}
+  .scorehead .result-ring{margin:0 auto}
+  .mini{justify-content:center;gap:28px}
+  .rv .rvq{font-size:13.5px}
+  .rv .rans{font-size:12.5px}
+
+  /* ── Modal upload ── */
+  .um-card{padding:18px 14px 14px;border-radius:22px;max-height:88vh}
+  .um-head h3{font-size:12px}
+  .um-tabs{gap:5px}
+  .um-tab{padding:8px 10px;font-size:11.5px;gap:5px;border-radius:11px}
+  .um-drop{padding:18px 14px 22px;border-radius:18px}
+  .um-drop h4{font-size:15px}
+  .um-pick{padding:11px 20px;font-size:13.5px;border-radius:13px}
+
+  /* ── Booki FAB + chat ── */
+  .bfab{right:14px;bottom:82px;padding:8px 14px 8px 8px;font-size:12.5px;gap:9px}
+  .bfab .bk{width:30px;height:30px}
+  #bchat{right:14px;bottom:136px;width:calc(100vw - 28px);max-height:54vh}
+
+  /* ── Perfil ── */
+  .perfil-wrap{padding:16px 14px 100px}
+  .perfil-hero{padding:20px 18px;gap:14px;border-radius:22px}
+  .perfil-av{width:62px;height:62px;font-size:24px}
+  .perfil-nm{font-size:17px}
+  .perfil-stats{grid-template-columns:repeat(3,1fr);gap:8px}
+  .pstat{padding:14px 8px;border-radius:14px}
+  .pstat b{font-size:20px}
+  .pstat span{font-size:10px}
+  .perfil-section h3{font-size:14px;padding:14px 16px 0}
+  .perfil-row{padding:12px 16px}
+  .perfil-row .prl,.perfil-row .prv{font-size:13.5px}
+
+  /* ── Logros ── */
+  .logros-wrap{padding:16px 14px 100px}
+  .logros-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .logro{padding:18px 14px;border-radius:18px}
+  .logro .li{width:52px;height:52px;font-size:26px}
+  .racha-hero{padding:20px 18px;gap:14px;border-radius:22px}
+  .racha-hero .rnum{font-size:42px}
+
+  /* ── Materias page ── */
+  .page-wrap{padding:14px 12px 100px}
+  .page-hero{padding:20px 18px;border-radius:22px}
+  .mat-hd{padding:14px 16px}
+  .mat-ico{width:40px;height:40px;border-radius:13px}
+  .mat-nm{font-size:15px}
+
+  /* ── Generando overlay ── */
+  #gen .gright{padding:18px}
+  #gen h3{font-size:16px}
+}
+
+/* ── Extra small (bajo 400 px) ── */
+@media(max-width:400px){
+  .hero h1{font-size:19px}
+  .ehero h1{font-size:20px}
+  .rb{min-width:76px;padding:9px 8px;font-size:11.5px}
+  .um-tab{padding:7px 7px;font-size:11px}
+  .rtopbar .crumb-r{max-width:100px}
+  .modo .mt{font-size:15px}
 }

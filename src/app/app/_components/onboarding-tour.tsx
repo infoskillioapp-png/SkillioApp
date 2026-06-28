@@ -229,6 +229,7 @@ export function OnboardingTour({ steps, storageKey = TOUR_KEY, onComplete, onSki
           position: "fixed",
           zIndex: 9980,
           width: CARD_W,
+          maxWidth: "calc(100vw - 32px)",
           ...cardStyle(),
           background: "#fff",
           borderRadius: 20,

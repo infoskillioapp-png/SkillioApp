@@ -29,11 +29,22 @@ export function FeedbackWidget() {
   const [hovered, setHovered]   = useState(0);
   const [comment, setComment]   = useState("");
   const [loading, setLoading]   = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Auto-abrir una vez por semana
+  useEffect(() => { setIsMobile(window.innerWidth < 760); }, []);
+
+  // Auto-abrir una vez por semana (solo desktop + cuando no hay tour activo)
   useEffect(() => {
+    if (window.innerWidth < 760) return;
     const last = Number(localStorage.getItem(STORAGE_KEY) ?? "0");
     if (Date.now() - last < COOLDOWN_MS) return;
+    // No auto-abrir si algún tour todavía no fue visto
+    const tourKeys = [
+      "skillio_home_tour_v1", "skillio_espacio_tour_v1",
+      "skillio_resumen_tour_v1", "skillio_tarjetas_tour_v1",
+      "skillio_upload_modal_tour_v1",
+    ];
+    if (tourKeys.some(k => !localStorage.getItem(k))) return;
     const t = setTimeout(() => setOpen(true), SHOW_DELAY);
     return () => clearTimeout(t);
   }, []);
@@ -67,10 +78,11 @@ export function FeedbackWidget() {
         position: "fixed",
         top: "50%",
         transform: "translateY(-50%)",
+        // Ocultar en mobile (no tiene sentido como panel lateral en pantalla pequeña)
+        display: isMobile ? "none" : "flex",
         // cuando está cerrado solo asoma la solapa (TAB_W px), el panel queda fuera de pantalla
         right: open ? 0 : -(PANEL_W),
         zIndex: 200,
-        display: "flex",
         alignItems: "stretch",
         transition: "right .32s cubic-bezier(.4,0,.2,1)",
         pointerEvents: "auto",
