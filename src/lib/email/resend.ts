@@ -10,13 +10,8 @@ const FROM = process.env.RESEND_FROM ?? "Skillio <hola@skillio.digital>";
 const REPLY_TO = "info.skillioapp@gmail.com";
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://skillio.digital").replace(/\/$/, "");
 
-// List-Unsubscribe: requisito anti-spam de Gmail/Yahoo para remitentes masivos.
-// Fase 1: baja por mail (al mismo buzón real del reply-to). El one-click HTTPS
-// (List-Unsubscribe-Post) se agrega en fase 2 con un endpoint /api/unsubscribe.
 const UNSUBSCRIBE_MAILTO = `<mailto:${REPLY_TO}?subject=${encodeURIComponent("Baja Skillio")}>`;
 
-// Cliente perezoso: si no hay API key (ej. local sin configurar), devolvemos
-// null y los envíos se vuelven no-op (no rompen el flujo principal).
 function client(): Resend | null {
   const key = process.env.RESEND_API_KEY;
   if (!key) return null;
@@ -33,9 +28,9 @@ function firstName(name?: string | null): string {
 function wrap(opts: {
   preview: string;
   heading: string;
-  body: string; // HTML del cuerpo
+  body: string;
   ctaText: string;
-  ctaPath: string; // ej "/app" o "/pagar"
+  ctaPath: string;
 }): string {
   const url = `${APP_URL}${opts.ctaPath}`;
   return `<!DOCTYPE html>
@@ -67,7 +62,6 @@ function wrap(opts: {
 </body></html>`;
 }
 
-// ¿El usuario se dio de baja? Ante error de DB no bloqueamos (devolvemos false).
 async function isOptedOut(email: string): Promise<boolean> {
   try {
     const { data } = await supabaseAdmin()
@@ -82,13 +76,13 @@ async function isOptedOut(email: string): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// Envío base (nunca lanza: loguea y sigue)
+// Envío base (nunca lanza)
 // ---------------------------------------------------------------------------
 async function send(opts: {
   to: string;
   subject: string;
   html: string;
-  scheduledAt?: string; // ISO 8601 o lenguaje natural ("in 2 hours")
+  scheduledAt?: string;
 }): Promise<void> {
   const resend = client();
   if (!resend) {
@@ -96,8 +90,6 @@ async function send(opts: {
     return;
   }
 
-  // Respetar la baja. (En los mails programados a +2h/+20h, el chequeo corre al
-  // programar; una baja posterior no cancela el envío ya en cola en Resend.)
   if (await isOptedOut(opts.to)) {
     console.log("[email] baja activa, no se envía:", opts.to, "·", opts.subject);
     return;
@@ -126,97 +118,100 @@ async function send(opts: {
 }
 
 // ---------------------------------------------------------------------------
-// Secuencia de nurture (4 mails)
+// Secuencia de nurture
 // ---------------------------------------------------------------------------
 
-/** Mail 1 — inmediato al completar el registro. */
+/**
+ * Mail 1 — inmediato al registrarse.
+ * Objetivo: que suban su primer apunte y disparen la primera generación gratis.
+ */
 export async function sendWelcomeEmail(to: string, name?: string | null): Promise<void> {
   const n = firstName(name);
   await send({
     to,
-    subject: "¡Bienvenido a Skillio! 🎉 Tu primer resumen te espera",
+    subject: `${n}, tu IA de estudio te está esperando 🎉`,
     html: wrap({
-      preview: "Subí un apunte y dejá que la IA lo resuma en segundos.",
+      preview: "Subí un apunte y en segundos tenés resumen, tarjetas y simulacro.",
       heading: `¡Hola ${n}! Ya estás dentro 🎉`,
-      body: `Skillio convierte tus apuntes, PDFs y fotos en <b>resúmenes, flashcards y simulacros</b> en segundos.<br><br>El mejor primer paso: subí tu apunte más denso y mirá lo que hace la IA.`,
+      body: `Skillio convierte tus apuntes y PDFs en <b>resúmenes claros, flashcards y simulacros de parcial</b> en segundos.<br><br>Tenés <b>3 generaciones gratis</b> para empezar. El mejor primer paso: subí el apunte más denso que tengas.`,
       ctaText: "Subir mi primer apunte →",
-      ctaPath: "/app/apuntes",
+      ctaPath: "/app?upload=1",
     }),
   });
 }
 
-/** Mail 2 — programado a +2h del registro. */
+/**
+ * Programa los mails de nurture post-registro.
+ * Mail 2 (+2h): recordatorio para el que no generó todavía.
+ * Mail 3 (+20h): upsell con los planes disponibles.
+ */
 export async function scheduleNudgeEmails(to: string, name?: string | null): Promise<void> {
   const n = firstName(name);
 
   const in2h = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
   const in20h = new Date(Date.now() + 20 * 60 * 60 * 1000).toISOString();
 
-  // Mail 2 · +2h
+  // Mail 2 · +2h — empuje para el que no entró todavía
   await send({
     to,
     scheduledAt: in2h,
-    subject: "¿Tenés un parcial cerca? 📚",
+    subject: "¿Ya probaste la IA? Tenés 3 generaciones gratis 📚",
     html: wrap({
-      preview: "Pegá un apunte y armá tu primer simulacro.",
-      heading: `${n}, ¿ya probaste la IA?`,
-      body: `Subí cualquier apunte y en segundos tenés un <b>resumen claro</b>, un <b>mazo de flashcards</b> o un <b>simulacro de parcial</b>.<br><br>Es la forma más rápida de empezar a estudiar de verdad.`,
-      ctaText: "Probar ahora →",
-      ctaPath: "/app/ia",
+      preview: "Pegá un apunte y armá tu primer resumen, mazo o simulacro.",
+      heading: `${n}, ¿ya generaste algo?`,
+      body: `Tus <b>3 generaciones gratis</b> te están esperando.<br><br>Subí cualquier apunte y en segundos tenés un <b>resumen por puntos clave</b>, un <b>mazo de flashcards</b> o un <b>simulacro de parcial</b> listo para practicar.`,
+      ctaText: "Generar ahora →",
+      ctaPath: "/app?upload=1",
     }),
   });
 
-  // Mail 4 · hora 20 desde el registro
+  // Mail 3 · +20h — upsell con precios reales
   await send({
     to,
     scheduledAt: in20h,
-    subject: "Tu próximo parcial te lo agradece 🚀",
+    subject: "Antes de tu próximo parcial, una ventaja 🚀",
     html: wrap({
-      preview: "Estudiá sin límites con Skillio PRO.",
+      preview: "Estudiá sin límites con Skillio PRO. Desde $4.900/semana.",
       heading: `${n}, llevá tu estudio al siguiente nivel`,
-      body: `Con <b>Skillio PRO</b> generás resúmenes, flashcards y simulacros <b>sin límites</b>, con el modelo de IA más potente.<br><br>Un solo plan, todo desbloqueado.`,
-      ctaText: "Pasate a PRO →",
-      ctaPath: "/pagar",
+      body: `Con <b>Skillio PRO</b> generás resúmenes, flashcards y simulacros <b>sin límites</b>, con el modelo de IA más potente.<br><br>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;">
+          <tr>
+            <td style="background:#f8f7ff;border:1.5px solid #e0d9ff;border-radius:12px;padding:14px 18px;width:48%;">
+              <div style="font-weight:700;font-size:14px;color:#4f7dff;">⚡ Semanal</div>
+              <div style="font-size:22px;font-weight:800;color:#2b2620;margin:4px 0;">$4.900</div>
+              <div style="font-size:12px;color:#9a8f80;">Ideal para el parcial de esta semana</div>
+            </td>
+            <td style="width:4%;"></td>
+            <td style="background:linear-gradient(135deg,#f3f0ff,#eef2ff);border:1.5px solid #c4b5fd;border-radius:12px;padding:14px 18px;width:48%;">
+              <div style="font-weight:700;font-size:14px;color:#8b5cf6;">⭐ Mensual PRO</div>
+              <div style="font-size:22px;font-weight:800;color:#2b2620;margin:4px 0;">$15.900</div>
+              <div style="font-size:12px;color:#9a8f80;">Mejor valor · ~$530/día</div>
+            </td>
+          </tr>
+        </table>`,
+      ctaText: "Ver planes →",
+      ctaPath: "/app",
     }),
   });
 }
 
 /**
- * Mail de handoff a la compu — inmediato al terminar el demo guiado.
- * El demo se vive en el celu, pero el fuerte de la app es la compu: este mail
- * (+ el subtítulo del paso 3) convierte el "andá a la PC" en algo que de verdad
- * pasa, con un link directo de un toque.
+ * Mail de créditos agotados — se dispara cuando el free usa su última generación.
+ * Objetivo: convertir en caliente, justo cuando el dolor es máximo.
  */
-export async function sendContinueOnComputerEmail(
-  to: string,
-  name?: string | null,
-): Promise<void> {
-  const n = firstName(name);
-  await send({
-    to,
-    subject: "Seguí cómodo desde tu compu 🙌",
-    html: wrap({
-      preview: "Un toque y seguís estudiando con Skillio en tu computadora.",
-      heading: `${n}, ¡ya viste lo que hace Skillio! 🙌`,
-      body: `Seguí cómodo desde tu compu con todos tus apuntes 👉`,
-      ctaText: "Seguir en mi compu →",
-      ctaPath: "/app/ia",
-    }),
-  });
-}
-
-/** Mail 3 — inmediato cuando el free agota sus 3 generaciones. */
 export async function sendCreditsExhaustedEmail(to: string, name?: string | null): Promise<void> {
   const n = firstName(name);
   await send({
     to,
-    subject: "Se te acabaron los créditos 🔥 seguí con PRO",
+    subject: "Se te acabaron las generaciones gratis 🔥",
     html: wrap({
-      preview: "Justo cuando estabas en racha. Seguí sin límites con PRO.",
-      heading: `${n}, se te acabaron los créditos en plena racha 🔥`,
-      body: `Te quedaste sin generaciones gratis justo cuando le estabas agarrando la mano.<br><br>Con <b>Skillio PRO</b> seguís generando resúmenes, flashcards y simulacros <b>sin límites</b>. Un solo plan, todo desbloqueado.`,
-      ctaText: "Pasate a PRO y seguí →",
-      ctaPath: "/pagar",
+      preview: "Justo cuando le estabas agarrando la mano. Seguí sin límites con PRO.",
+      heading: `${n}, te quedaste sin generaciones en plena racha 🔥`,
+      body: `Usaste tus 3 generaciones gratis justo cuando le estabas agarrando la mano.<br><br>Con <b>Skillio PRO</b> seguís generando resúmenes, flashcards y simulacros <b>sin límites</b>.<br><br>
+        <span style="background:#f3f0ff;border-radius:8px;padding:4px 10px;font-weight:700;color:#8b5cf6;">⚡ Semanal $4.900</span>&nbsp;&nbsp;
+        <span style="background:#f3f0ff;border-radius:8px;padding:4px 10px;font-weight:700;color:#8b5cf6;">⭐ Mensual $15.900</span>`,
+      ctaText: "Ver planes y seguir →",
+      ctaPath: "/app",
     }),
   });
 }

@@ -4,7 +4,6 @@ import { auth } from "@clerk/nextjs/server";
 import { randomUUID } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { recordFunnelEvent } from "@/lib/api/funnel";
-import { sendContinueOnComputerEmail } from "@/lib/email/resend";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
 /**
@@ -35,10 +34,6 @@ export async function completeDemo(): Promise<{ ok: boolean; eventId: string }> 
   await sb.from("users").update({ demo_completed: true }).eq("id", user.id);
 
   await recordFunnelEvent("demo_completed", "demo_3", { event_id: eventId });
-
-  if (user.email) {
-    await sendContinueOnComputerEmail(user.email, user.full_name);
-  }
 
   // DemoCompletado por CAPI (server) — el cliente dispara el píxel con el mismo id.
   await sendMetaEvent({
