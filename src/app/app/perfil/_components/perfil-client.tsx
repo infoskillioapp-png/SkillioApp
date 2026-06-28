@@ -2,6 +2,7 @@
 
 import { useClerk } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 
 type Props = {
@@ -108,15 +109,25 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
           </div>
         </div>
       ) : (
-        <div className="plan-card in">
-          <h3>Actualizá a PRO</h3>
-          <p>Accedé a generaciones ilimitadas de resúmenes, tarjetas y simulacros. Estudia más rápido y retené más.</p>
-          <Link href="/pagar" className="upgrade-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
-            Ver planes PRO
-          </Link>
+        <div className="plan-card in" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ position: "relative", width: "100%", height: 180 }}>
+            <Image
+              src="/paywalls%20desktop/paywall%20para%20botones%20de%20upsell.jpeg"
+              alt=""
+              fill
+              style={{ objectFit: "cover" }}
+            />
+          </div>
+          <div style={{ padding: "18px 20px 20px" }}>
+            <h3>Actualizá a PRO</h3>
+            <p>Accedé a generaciones ilimitadas de resúmenes, tarjetas y simulacros. Estudia más rápido y retené más.</p>
+            <Link href="/pagar" className="upgrade-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              Ver planes PRO
+            </Link>
+          </div>
         </div>
       )}
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { SalePopup } from "@/components/sale-popup";
 import { OnboardingTour, useTourRequired, TourIconBolt } from "../../../_components/onboarding-tour";
 
@@ -421,28 +422,37 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
               {/* upgrade CTA en resultado para free */}
               {!isPro && lockedCount > 0 && (
                 <div style={{
-                  background: "linear-gradient(135deg,rgba(139,92,246,.08),rgba(79,125,255,.08))",
                   border: "1.5px solid rgba(139,92,246,.2)",
-                  borderRadius: 18, padding: "16px 18px", marginBottom: 14,
+                  borderRadius: 18, marginBottom: 14, overflow: "hidden",
                 }}>
-                  <div style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, marginBottom: 5 }}>
-                    🔒 {lockedCount} tarjeta{lockedCount !== 1 ? "s" : ""} más esperan
+                  <div style={{ position: "relative", width: "100%", height: 140 }}>
+                    <Image
+                      src="/paywalls%20desktop/paywall%20para%20botones%20de%20upsell.jpeg"
+                      alt=""
+                      fill
+                      style={{ objectFit: "cover" }}
+                    />
                   </div>
-                  <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5, marginBottom: 12 }}>
-                    Desbloqueá el mazo completo con PRO y dominá cada concepto.
+                  <div style={{ padding: "14px 16px 16px", background: "linear-gradient(135deg,rgba(139,92,246,.06),rgba(79,125,255,.06))" }}>
+                    <div style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, marginBottom: 5 }}>
+                      🔒 {lockedCount} tarjeta{lockedCount !== 1 ? "s" : ""} más esperan
+                    </div>
+                    <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5, marginBottom: 12 }}>
+                      Desbloqueá el mazo completo con PRO y dominá cada concepto.
+                    </div>
+                    <button
+                      onClick={() => setShowPaywall(true)}
+                      style={{
+                        width: "100%", padding: "11px",
+                        background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
+                        color: "#fff", border: "none", borderRadius: 13,
+                        fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ⚡ Desbloquear tarjetas
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setShowPaywall(true)}
-                    style={{
-                      width: "100%", padding: "11px",
-                      background: "linear-gradient(135deg,#8b5cf6,#4f7dff)",
-                      color: "#fff", border: "none", borderRadius: 13,
-                      fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
-                      cursor: "pointer",
-                    }}
-                  >
-                    ⚡ Desbloquear tarjetas
-                  </button>
                 </div>
               )}
 
