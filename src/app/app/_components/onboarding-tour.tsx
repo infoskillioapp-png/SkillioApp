@@ -168,8 +168,10 @@ export function OnboardingTour({ steps, storageKey = TOUR_KEY, onComplete, onSki
   if (!visible || !steps.length) return null;
 
   // ── Card positioning ────────────────────────────────────────────────────────
+  const isCenter = !spotRect || isMobile || !cur.target || cur.placement === "center";
+
   const cardStyle = (): React.CSSProperties => {
-    if (!spotRect || isMobile || !cur.target || cur.placement === "center") {
+    if (isCenter) {
       return { top: "50%", left: "50%", transform: "translate(-50%,-50%)" };
     }
     const vw = window.innerWidth;
@@ -236,7 +238,7 @@ export function OnboardingTour({ steps, storageKey = TOUR_KEY, onComplete, onSki
           padding: "20px 20px 16px",
           boxShadow: "0 24px 64px rgba(0,0,0,0.30), 0 4px 16px rgba(0,0,0,0.12)",
           fontFamily: "var(--font-jakarta, system-ui, sans-serif)",
-          animation: "tourCard 0.26s ease both",
+          animation: `${isCenter ? "tourCardCenter" : "tourCard"} 0.26s ease both`,
         }}
       >
         {/* Header row */}
@@ -342,9 +344,15 @@ export function OnboardingTour({ steps, storageKey = TOUR_KEY, onComplete, onSki
           from { opacity: 0; transform: scale(0.90); }
           to   { opacity: 1; transform: scale(1); }
         }
+        /* Para pasos con spotlight: el transform final es solo scale(1) */
         @keyframes tourCard {
           from { opacity: 0; transform: translateY(10px) scale(0.96); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        /* Para pasos centrados: el transform final debe preservar translate(-50%,-50%) */
+        @keyframes tourCardCenter {
+          from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.96); }
+          to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
         @media (prefers-reduced-motion: reduce) {
           [style*="tourSpot"], [style*="tourCard"] { animation: none !important; }
