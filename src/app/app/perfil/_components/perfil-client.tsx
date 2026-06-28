@@ -33,6 +33,18 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
   const [cancelling, setCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [tourReset, setTourReset] = useState(false);
+
+  function resetTours() {
+    const keys = [
+      "skillio_home_tour_v1", "skillio_espacio_tour_v1",
+      "skillio_resumen_tour_v1", "skillio_tarjetas_tour_v1",
+      "skillio_upload_modal_tour_v1",
+    ];
+    keys.forEach(k => localStorage.removeItem(k));
+    setTourReset(true);
+    setTimeout(() => setTourReset(false), 2500);
+  }
 
   async function handleCancel() {
     if (!confirmCancel) { setConfirmCancel(true); return; }
@@ -186,6 +198,12 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
             </Link>
           </div>
         )}
+        <div className="perfil-row">
+          <span className="prl">Tutoriales</span>
+          <button className="praction" onClick={resetTours}>
+            {tourReset ? "¡Reiniciado ✓" : "Reiniciar tours"}
+          </button>
+        </div>
         <div className="perfil-row">
           <span className="prl">Cerrar sesión</span>
           <button className="praction danger" onClick={() => signOut({ redirectUrl: "/" })}>
