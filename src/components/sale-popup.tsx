@@ -72,19 +72,37 @@ export function SalePopup({ ctx, onClose }: Props) {
         width: "min(440px, 100%)",
         overflow: "hidden",
         animation: "fadeUp .28s cubic-bezier(.22,1,.36,1) both",
-        maxHeight: "90vh",
-        overflowY: "auto",
+        position: "relative",
       }}>
-        {/* imagen */}
-        <img src={msg.image} alt="" style={{ width: "100%", display: "block" }} />
+        {/* X siempre visible */}
+        <button
+          onClick={onClose}
+          aria-label="Cerrar"
+          style={{
+            position: "absolute", top: 12, right: 12, zIndex: 10,
+            width: 32, height: 32, borderRadius: 999,
+            background: "rgba(0,0,0,.45)", border: "none",
+            display: "grid", placeItems: "center",
+            cursor: "pointer", backdropFilter: "blur(4px)",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* imagen con altura máxima para mobile */}
+        <div style={{ maxHeight: "min(48vw, 280px)", overflow: "hidden" }}>
+          <img src={msg.image} alt="" style={{ width: "100%", display: "block" }} />
+        </div>
 
         {/* contenido */}
-        <div style={{ padding: "22px 22px 24px" }}>
+        <div style={{ padding: "16px 18px 20px" }}>
 
           {/* feature list */}
           <div style={{
             background: "linear-gradient(135deg,#f5f3ff,#eef2ff)",
-            borderRadius: 16, padding: "13px 16px", marginBottom: 18,
+            borderRadius: 16, padding: "11px 14px", marginBottom: 14,
             display: "flex", flexDirection: "column", gap: 8,
           }}>
             {FEATURES.map((f) => (
@@ -198,18 +216,9 @@ export function SalePopup({ ctx, onClose }: Props) {
             </div>
           </button>
 
-          {/* close link — muy sutil */}
+          {/* close link */}
           <div style={{ textAlign: "center" }}>
-            <button
-              onClick={onClose}
-              style={{
-                background: "none", border: "none",
-                fontSize: 12.5, color: "var(--muted)",
-                cursor: "pointer", padding: "4px 8px",
-                textDecoration: "underline", textUnderlineOffset: 3,
-                opacity: 0.65,
-              }}
-            >
+            <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 12, color: "var(--muted)", cursor: "pointer", opacity: 0.55 }}>
               Quizás después
             </button>
           </div>
