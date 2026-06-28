@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 
 export type PaywallCtx = "flashcard" | "simulacro" | "resumen" | "generic";
 
@@ -68,15 +67,11 @@ export function SalePopup({ ctx, onClose }: Props) {
         animation: "fadeUp .3s both",
       }}>
         {/* imagen contextual */}
-        <div style={{ position: "relative", width: "100%", height: 200, background: "linear-gradient(135deg,#f0edff,#e8eeff)" }}>
-          <Image
-            src={msg.image}
-            alt=""
-            fill
-            style={{ objectFit: "cover" }}
-            priority
-          />
-        </div>
+        <img
+          src={msg.image}
+          alt=""
+          style={{ width: "100%", display: "block" }}
+        />
 
         {/* contenido */}
         <div style={{ padding: "22px 24px 26px" }}>
