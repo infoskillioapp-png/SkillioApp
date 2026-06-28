@@ -9,6 +9,9 @@ interface Props {
 export default async function RegistroPage({ searchParams }: Props) {
   const sp = await searchParams;
   const ref = sp.ref ? `?ref=${sp.ref}` : "";
+  const planParam = sp.plan && ["semanal", "mensual", "trimestral"].includes(sp.plan)
+    ? sp.plan
+    : null;
 
   return (
     <AuthShell
@@ -36,7 +39,7 @@ export default async function RegistroPage({ searchParams }: Props) {
         routing="path"
         path="/registro"
         signInUrl="/login"
-        forceRedirectUrl={`/onboarding${ref}`}
+        forceRedirectUrl={`/onboarding${ref}${planParam ? `${ref ? "&" : "?"}plan=${planParam}` : ""}`}
         appearance={{
           variables: {
             colorPrimary: "#9655E5",

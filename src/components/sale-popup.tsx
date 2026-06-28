@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type PaywallCtx = "flashcard" | "simulacro" | "resumen" | "generic";
+export type PlanPreference = "semanal" | "mensual" | "trimestral" | null;
 
 const CTX: Record<PaywallCtx, { image: string; title: string; sub: string }> = {
   flashcard: {
@@ -33,13 +34,13 @@ const FEATURES = [
   "Acceso a todos tus apuntes sin cortes",
 ];
 
-type Props = { ctx: PaywallCtx; onClose: () => void };
+type Props = { ctx: PaywallCtx; onClose: () => void; preferredPlan?: PlanPreference };
 
-export function SalePopup({ ctx, onClose }: Props) {
-  const [loading, setLoading] = useState<"semanal" | "pro" | null>(null);
+export function SalePopup({ ctx, onClose, preferredPlan }: Props) {
+  const [loading, setLoading] = useState<"semanal" | "pro" | "trimestral" | null>(null);
   const msg = CTX[ctx];
 
-  async function subscribe(plan: "semanal" | "pro") {
+  async function subscribe(plan: "semanal" | "pro" | "trimestral") {
     setLoading(plan);
     try {
       const res = await fetch("/api/subscription/create", {
@@ -52,6 +53,14 @@ export function SalePopup({ ctx, onClose }: Props) {
     } catch { /* noop */ }
     setLoading(null);
   }
+
+  // Si el usuario vino con un plan preferido desde la landing, auto-dispara al montar
+  useEffect(() => {
+    if (!preferredPlan) return;
+    const mp = preferredPlan === "semanal" ? "semanal" : preferredPlan === "trimestral" ? "trimestral" : "pro";
+    subscribe(mp);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div
@@ -120,6 +129,42 @@ export function SalePopup({ ctx, onClose }: Props) {
               </div>
             ))}
           </div>
+
+          {/* plan Trimestral — mayor ahorro */}
+          <button
+            onClick={() => subscribe("trimestral")}
+            disabled={!!loading}
+            style={{
+              width: "100%",
+              background: loading === "trimestral"
+                ? "linear-gradient(135deg,#9333ea,#db2777)"
+                : "linear-gradient(135deg,#c026d3,#db2777,#f43f5e)",
+              border: "none", borderRadius: 20,
+              padding: "14px 20px",
+              cursor: loading ? "not-allowed" : "pointer",
+              textAlign: "left",
+              marginBottom: 10,
+              boxShadow: "0 6px 20px rgba(192,38,211,.38)",
+              transition: "transform .15s, box-shadow .15s",
+              opacity: loading && loading !== "trimestral" ? 0.5 : 1,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}
+            onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 28px rgba(192,38,211,.48)"; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 6px 20px rgba(192,38,211,.38)"; }}
+          >
+            <div>
+              <div style={{ fontFamily: "var(--po)", fontWeight: 800, fontSize: 15, color: "#fff" }}>
+                Trimestral · Ahorras $12.800
+              </div>
+              <div style={{ fontSize: 11.5, color: "rgba(255,255,255,.78)", marginTop: 2 }}>90 días · el mayor valor</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontFamily: "var(--po)", fontWeight: 900, fontSize: 22, color: "#fff", lineHeight: 1 }}>
+                {loading === "trimestral" ? "…" : "$34.900"}
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,.7)" }}>/ trimestre</div>
+            </div>
+          </button>
 
           {/* plan PRO — hero */}
           <button

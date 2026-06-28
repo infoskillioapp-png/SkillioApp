@@ -141,7 +141,7 @@ function StickyMobileCTA({ onCTA }: { onCTA: () => void }) {
 
 export function LandingPage() {
   const router = useRouter();
-  const onCTA = useCallback(() => router.push("/registro?plan=pro"), [router]);
+  const onCTA = useCallback((plan?: string) => router.push(`/registro?plan=${plan ?? "pro"}`), [router]);
   useReveal();
 
   // Forzar light mode en la landing independientemente del tema del dashboard

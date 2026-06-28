@@ -7,7 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendWelcomeEmail, scheduleNudgeEmails } from "@/lib/email/resend";
 
 interface Props {
-  searchParams: Promise<{ ref?: string }>;
+  searchParams: Promise<{ ref?: string; plan?: string }>;
 }
 
 export default async function OnboardingPage({ searchParams }: Props) {
@@ -45,6 +45,11 @@ export default async function OnboardingPage({ searchParams }: Props) {
     await scheduleNudgeEmails(user.email, user.full_name);
   }
 
-  // Nuevo usuario cae en el home con el modal de subir archivo abierto
+  const planParam = sp.plan && ["semanal", "mensual", "trimestral"].includes(sp.plan)
+    ? sp.plan
+    : null;
+
+  // Si vino con intención de pagar, auto-abre el paywall en el plan correcto
+  if (planParam) redirect(`/app?upgrade=${planParam}&upload=1&registered=1`);
   redirect("/app?upload=1&registered=1");
 }

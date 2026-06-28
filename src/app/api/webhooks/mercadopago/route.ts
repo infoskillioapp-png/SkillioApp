@@ -26,9 +26,11 @@ function verifySignature(req: NextRequest, dataId: string): boolean {
 }
 
 const PRO_FULL_CREDITS = 500;
-const PRO_PRICE_ARS = 15900;   // precio mensual actualizado
+const PRO_PRICE_ARS = 15900;
 const SEMANAL_PRICE_ARS = 4900;
+const TRIMESTRAL_PRICE_ARS = 34900;
 const SEMANAL_DAYS = 7;
+const TRIMESTRAL_DAYS = 90;
 
 function looksLikeClerkId(s: string | null | undefined): s is string {
   return typeof s === "string" && s.startsWith("user_");
@@ -39,7 +41,7 @@ type Sb = ReturnType<typeof supabaseAdmin>;
 type MatchedUser = {
   id: string;
   email: string;
-  plan: "free" | "pro" | "semanal";
+  plan: "free" | "pro" | "semanal" | "trimestral";
   credits: number;
   referred_by: string | null;
   mp_subscription_id: string | null;
@@ -79,17 +81,30 @@ async function findUser(
   return { user: null, matchedBy: null };
 }
 
-// Detecta si el plan MP es semanal.
 function isSemanalPlan(preapprovalPlanId: string | undefined): boolean {
-  const semanalId = process.env.MP_PLAN_ID_SEMANAL;
-  return !!semanalId && preapprovalPlanId === semanalId;
+  const id = process.env.MP_PLAN_ID_SEMANAL;
+  return !!id && preapprovalPlanId === id;
 }
 
-// Activa o renueva un plan pagado (pro o semanal). Idempotente.
+function isTrimestralPlan(preapprovalPlanId: string | undefined): boolean {
+  const id = process.env.MP_PLAN_ID_TRIMESTRAL;
+  return !!id && preapprovalPlanId === id;
+}
+
+function detectPlanType(
+  preapprovalPlanId: string | undefined,
+  fallback: "pro" | "semanal" | "trimestral" = "pro",
+): "pro" | "semanal" | "trimestral" {
+  if (isSemanalPlan(preapprovalPlanId)) return "semanal";
+  if (isTrimestralPlan(preapprovalPlanId)) return "trimestral";
+  return fallback;
+}
+
+// Activa o renueva un plan pagado (pro, semanal o trimestral). Idempotente.
 async function activateOrRenewPlan(
   sb: Sb,
   user: MatchedUser,
-  opts: { subscriptionId?: string | null; planType: "pro" | "semanal" },
+  opts: { subscriptionId?: string | null; planType: "pro" | "semanal" | "trimestral" },
 ) {
   const { data: pendingReferral } = await sb
     .from("referrals")
@@ -108,8 +123,10 @@ async function activateOrRenewPlan(
 
   if (opts.planType === "semanal") {
     patch.credits = 0;
-    // Extiende (o fija) expires_at desde ahora + 7 días
     patch.expires_at = new Date(Date.now() + SEMANAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  } else if (opts.planType === "trimestral") {
+    patch.credits = PRO_FULL_CREDITS + referralBonus;
+    patch.expires_at = new Date(Date.now() + TRIMESTRAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
   } else {
     patch.credits = PRO_FULL_CREDITS + referralBonus;
     patch.expires_at = null;
@@ -191,7 +208,7 @@ async function handlePreapproval(subscriptionId: string) {
     externalRef: subscription.external_reference,
     payerEmail: subscription.payer_email,
   };
-  const planType = isSemanalPlan(subscription.preapproval_plan_id) ? "semanal" : "pro";
+  const planType = detectPlanType(subscription.preapproval_plan_id);
 
   if (subscription.status === "authorized") {
     const { user, matchedBy } = await findUser(sb, lookup);
@@ -250,23 +267,27 @@ async function handleAuthorizedPayment(authPaymentId: string) {
     return;
   }
 
-  // Detectar si la suscripción es semanal (necesitamos el plan del preapproval)
-  let planType: "pro" | "semanal" = "pro";
+  // Detectar el plan de la suscripción
+  let planType: "pro" | "semanal" | "trimestral" = "pro";
   if (ap.preapproval_id) {
     try {
       const sub = await mpGetSubscription(ap.preapproval_id);
-      planType = isSemanalPlan(sub.preapproval_plan_id) ? "semanal" : "pro";
+      planType = detectPlanType(sub.preapproval_plan_id);
     } catch {
-      planType = user.plan === "semanal" ? "semanal" : "pro";
+      planType = (user.plan === "semanal" || user.plan === "trimestral") ? user.plan : "pro";
     }
   } else {
-    planType = user.plan === "semanal" ? "semanal" : "pro";
+    planType = (user.plan === "semanal" || user.plan === "trimestral") ? user.plan : "pro";
   }
 
   await activateOrRenewPlan(sb, user, { subscriptionId: ap.preapproval_id, planType });
   console.log(`[webhook/authpay] ${user.email} ${planType} renovado (matchedBy=${matchedBy})`);
 
-  const amount = ap.transaction_amount ?? (planType === "semanal" ? SEMANAL_PRICE_ARS : PRO_PRICE_ARS);
+  const amount = ap.transaction_amount ?? (
+    planType === "semanal" ? SEMANAL_PRICE_ARS :
+    planType === "trimestral" ? TRIMESTRAL_PRICE_ARS :
+    PRO_PRICE_ARS
+  );
   await recordPayment(sb, {
     user,
     mpId: `authpay_${authPaymentId}`,
@@ -302,29 +323,34 @@ async function handlePayment(paymentId: string) {
     return;
   }
 
-  let planType: "pro" | "semanal" = "pro";
+  let planType: "pro" | "semanal" | "trimestral" = "pro";
   if (payment.preapproval_id) {
     try {
       const sub = await mpGetSubscription(payment.preapproval_id);
-      planType = isSemanalPlan(sub.preapproval_plan_id) ? "semanal" : "pro";
+      planType = detectPlanType(sub.preapproval_plan_id);
     } catch {
-      planType = user.plan === "semanal" ? "semanal" : "pro";
+      planType = (user.plan === "semanal" || user.plan === "trimestral") ? user.plan : "pro";
     }
   }
 
   await activateOrRenewPlan(sb, user, { subscriptionId: payment.preapproval_id, planType });
   console.log(`[webhook/payment] ${user.email} ${planType} (matchedBy=${matchedBy})`);
 
+  const payAmount =
+    planType === "semanal" ? SEMANAL_PRICE_ARS :
+    planType === "trimestral" ? TRIMESTRAL_PRICE_ARS :
+    PRO_PRICE_ARS;
+
   await recordPayment(sb, {
     user,
     mpId: `pay_${paymentId}`,
     kind: "payment",
-    amount: planType === "semanal" ? SEMANAL_PRICE_ARS : PRO_PRICE_ARS,
+    amount: payAmount,
   });
 
   await sendMetaPurchase({
     email: user.email,
-    value: planType === "semanal" ? SEMANAL_PRICE_ARS : PRO_PRICE_ARS,
+    value: payAmount,
     currency: "ARS",
     eventId: `purchase_${paymentId}`,
   });

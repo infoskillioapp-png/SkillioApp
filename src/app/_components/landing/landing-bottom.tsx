@@ -399,7 +399,7 @@ export function Transformacion() {
 // ============================================================
 type PricingCycle = "semanal" | "mensual" | "trimestral";
 
-export function Pricing({ onCTA }: { onCTA: () => void }) {
+export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
   const [cycle, setCycle] = useState<PricingCycle>("mensual");
 
   const plans: Record<PricingCycle, { price: string; period: string; label: string; saving: string | null }> = {
@@ -532,7 +532,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
                       padding: "3px 9px", borderRadius: "0 0 10px 10px", whiteSpace: "nowrap",
                       letterSpacing: "0.06em",
                     }}>
-                      MAS ELEGIDO
+                      MÁS ELEGIDO
                     </span>
                   )}
 
@@ -566,7 +566,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
 
           {/* CTA — blanco con texto violeta, maximo contraste */}
           <button
-            onClick={onCTA}
+            onClick={() => onCTA(cycle)}
             style={{
               width: "100%", padding: "16px 24px", borderRadius: 999,
               background: "#fff", color: "var(--accent)",
@@ -579,7 +579,7 @@ export function Pricing({ onCTA }: { onCTA: () => void }) {
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 14px 40px rgba(0,0,0,0.35)"; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 32px rgba(0,0,0,0.25)"; }}
           >
-            Continuar con el plan {current.label} <IconArrow size={18} />
+            Continuar con el plan {current.label} · {current.price} <IconArrow size={18} />
           </button>
 
           <p style={{ textAlign: "center", fontSize: 12.5, color: "rgba(255,255,255,0.48)", margin: "12px 0 0" }}>

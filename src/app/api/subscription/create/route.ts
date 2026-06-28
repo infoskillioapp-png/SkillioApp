@@ -9,13 +9,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  // "semanal" o cualquier otro valor → mensual (pro)
-  const planType: "semanal" | "pro" = body.plan === "semanal" ? "semanal" : "pro";
+  // "semanal" | "trimestral" | cualquier otro valor → mensual (pro)
+  const planType: "semanal" | "trimestral" | "pro" =
+    body.plan === "semanal" ? "semanal" : body.plan === "trimestral" ? "trimestral" : "pro";
 
   const planId =
     planType === "semanal"
       ? process.env.MP_PLAN_ID_SEMANAL
-      : process.env.MP_PLAN_ID_PRO;
+      : planType === "trimestral"
+        ? process.env.MP_PLAN_ID_TRIMESTRAL
+        : process.env.MP_PLAN_ID_PRO;
 
   if (!planId) {
     console.error(`[subscription/create] env var para plan=${planType} no configurada`);

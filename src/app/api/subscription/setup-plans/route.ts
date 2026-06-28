@@ -13,9 +13,10 @@ export async function GET(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://skillio.digital";
   const backUrl = `${appUrl}/app?upgraded=1`;
 
-  const [planMensual, planSemanal] = await Promise.all([
+  const [planMensual, planSemanal, planTrimestral] = await Promise.all([
     mpCreatePlan("Plan Mensual Skillio", 15900, backUrl),
     mpCreatePlan("Plan Semanal Skillio", 4900, backUrl, { frequency: 7, frequencyType: "days" }),
+    mpCreatePlan("Plan Trimestral Skillio", 34900, backUrl, { frequency: 3, frequencyType: "months" }),
   ]);
 
   return NextResponse.json({
@@ -23,5 +24,6 @@ export async function GET(req: NextRequest) {
     message: "Planes creados. Copiá los IDs a las env vars en Vercel.",
     MP_PLAN_ID_PRO: planMensual.id,
     MP_PLAN_ID_SEMANAL: planSemanal.id,
+    MP_PLAN_ID_TRIMESTRAL: planTrimestral.id,
   });
 }

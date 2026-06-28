@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { mpGetSubscription } from "@/lib/mercadopago";
 
 const SEMANAL_DAYS = 7;
+const TRIMESTRAL_DAYS = 90;
 const PRO_CREDITS = 500;
 
 export async function POST(req: NextRequest) {
@@ -32,11 +33,15 @@ export async function POST(req: NextRequest) {
   }
 
   // Determinar tipo de plan por el plan MP al que pertenece la suscripción
-  const isSemanal = subscription.preapproval_plan_id === process.env.MP_PLAN_ID_SEMANAL;
-  const plan = isSemanal ? ("semanal" as const) : ("pro" as const);
+  const pid = subscription.preapproval_plan_id;
+  const isSemanal = pid === process.env.MP_PLAN_ID_SEMANAL;
+  const isTrimestral = pid === process.env.MP_PLAN_ID_TRIMESTRAL;
+  const plan = isSemanal ? ("semanal" as const) : isTrimestral ? ("trimestral" as const) : ("pro" as const);
   const expiresAt = isSemanal
     ? new Date(Date.now() + SEMANAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
-    : null;
+    : isTrimestral
+      ? new Date(Date.now() + TRIMESTRAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      : null;
 
   const sb = supabaseAdmin();
   const { data: user } = await sb

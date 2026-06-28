@@ -3,10 +3,10 @@ import { listSubjects } from "@/lib/api/subjects";
 import { listNotes } from "@/lib/api/notes";
 import { HomeClient } from "./_components/home-client";
 
-type SearchParams = Promise<{ upload?: string }>;
+type SearchParams = Promise<{ upload?: string; upgrade?: string }>;
 
 export default async function DashboardPage({ searchParams }: { searchParams: SearchParams }) {
-  const { upload } = await searchParams;
+  const { upload, upgrade } = await searchParams;
 
   const [user, subjects, notes] = await Promise.all([
     syncUserToSupabase(),
@@ -34,6 +34,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       subjects={subjects.map((s) => ({ id: s.id, name: s.name, color: s.color }))}
       notes={notes.map((n) => ({ id: n.id, subject_id: n.subject_id, title: n.title, has_ai_content: n.has_ai_content }))}
       autoUpload={upload === "1"}
+      autoUpgrade={["semanal", "mensual", "trimestral"].includes(upgrade ?? "") ? (upgrade as "semanal" | "mensual" | "trimestral") : null}
     />
   );
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { UploadModal } from "./upload-modal";
 import { MateriasAccordion } from "./materias-accordion";
 import { OnboardingTour, useTourRequired, TourIconSparkles, TourIconUpload } from "./onboarding-tour";
+import { SalePopup } from "@/components/sale-popup";
 
 function useParallaxBg() {
   const ref = useRef<HTMLDivElement>(null);
@@ -110,12 +111,14 @@ type Props = {
   subjects: { id: string; name: string; color: string }[];
   notes: { id: string; subject_id: string | null; title: string; has_ai_content: boolean }[];
   autoUpload?: boolean;
+  autoUpgrade?: "semanal" | "mensual" | "trimestral" | null;
 };
 
 const HOME_TOUR_KEY = "skillio_home_tour_v1";
 
-export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false }: Props) {
+export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false, autoUpgrade = null }: Props) {
   const [modalOpen, setModalOpen] = useState(autoUpload);
+  const [showPaywall, setShowPaywall] = useState(!!autoUpgrade);
   const bgRef = useParallaxBg();
   const showTour = useTourRequired(HOME_TOUR_KEY);
 
@@ -215,6 +218,14 @@ export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false
       </div>
 
       <UploadModal open={modalOpen} onClose={() => setModalOpen(false)} />
+
+      {showPaywall && (
+        <SalePopup
+          ctx="generic"
+          preferredPlan={autoUpgrade}
+          onClose={() => setShowPaywall(false)}
+        />
+      )}
 
       {showTour && !modalOpen && (
         <OnboardingTour

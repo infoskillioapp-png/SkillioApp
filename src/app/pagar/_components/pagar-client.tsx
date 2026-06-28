@@ -6,11 +6,24 @@ import { SignOutButton } from "@clerk/nextjs";
 import { SkillioMark } from "@/app/_components/landing/landing-top";
 
 const PLANS = {
+  trimestral: {
+    name: "Trimestral",
+    price: "$34.900",
+    period: "/ trimestre",
+    duration: "90 días · el mayor ahorro",
+    badge: "Ahorras $12.800",
+    perks: [
+      "Todo lo del plan Mensual",
+      "Acceso por 90 días corridos desde el pago",
+      "Cancelás en cualquier momento",
+    ],
+  },
   mensual: {
     name: "Mensual",
     price: "$15.900",
     period: "/ mes",
     duration: "30 días de acceso completo",
+    badge: null,
     perks: [
       "Resúmenes, flashcards y simulacros ilimitados",
       "Modelo Sonnet (máxima calidad en resúmenes)",
@@ -24,6 +37,7 @@ const PLANS = {
     price: "$4.900",
     period: "/ semana",
     duration: "7 días · ideal para preparar el parcial",
+    badge: null,
     perks: [
       "Resúmenes, flashcards y simulacros completos",
       "Acceso por 7 días corridos desde el pago",
@@ -34,8 +48,13 @@ const PLANS = {
 
 type PlanKey = keyof typeof PLANS;
 
-export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) {
-  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("mensual");
+function getInitialPlan(plan?: string | null): PlanKey {
+  if (plan === "trimestral" || plan === "semanal") return plan;
+  return "mensual";
+}
+
+export function PagarClient({ hasReferral = false, initialPlan }: { hasReferral?: boolean; initialPlan?: string | null }) {
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey>(getInitialPlan(initialPlan));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +67,7 @@ export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) 
       const res = await fetch("/api/subscription/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: selectedPlan === "mensual" ? "pro" : "semanal" }),
+        body: JSON.stringify({ plan: selectedPlan === "mensual" ? "pro" : selectedPlan }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -94,8 +113,8 @@ export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) 
         )}
 
         {/* Selector de planes */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
-          {(Object.keys(PLANS) as PlanKey[]).map((key) => {
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          {(["trimestral", "mensual", "semanal"] as PlanKey[]).map((key) => {
             const p = PLANS[key];
             const isActive = selectedPlan === key;
             return (
@@ -103,7 +122,7 @@ export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) 
                 key={key}
                 type="button"
                 onClick={() => setSelectedPlan(key)}
-                className="rounded-2xl p-4 text-left transition border-2"
+                className="rounded-2xl p-4 text-left transition border-2 relative"
                 style={{
                   borderColor: isActive ? "var(--accent)" : "var(--rule)",
                   background: isActive ? "rgba(165,64,45,0.04)" : "var(--paper)",
@@ -119,9 +138,9 @@ export function PagarClient({ hasReferral = false }: { hasReferral?: boolean }) 
                   <span className="text-xs text-ink-softer">{p.period}</span>
                 </div>
                 <p className="text-[11px] text-ink-soft mt-1">{p.duration}</p>
-                {key === "mensual" && (
+                {p.badge && (
                   <span className="inline-block mt-2 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full" style={{ background: "var(--accent)", color: "#FBF1EF" }}>
-                    Más popular
+                    {p.badge}
                   </span>
                 )}
               </button>
