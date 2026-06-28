@@ -59,6 +59,78 @@ const GRADIENTS: [string, string][] = [
 type Apunte = { id: string; title: string; has_ai_content: boolean };
 type Materia = { id: string; name: string; color: string; apuntes: Apunte[] };
 
+function ApunteItem({ apunte, color }: { apunte: Apunte; color: string }) {
+  const [title, setTitle] = useState(apunte.title);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(apunte.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function save() {
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === title) { setEditing(false); return; }
+    setTitle(trimmed);
+    setEditing(false);
+    await fetch(`/api/notes/${apunte.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: trimmed }),
+    });
+  }
+
+  if (editing) {
+    return (
+      <div className="mat-apunte" style={{ cursor: "default" }}>
+        <ApunteRing pct={apunte.has_ai_content ? 50 : 0} color={color} />
+        <div style={{ flex: 1 }}>
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={save}
+            onKeyDown={e => { if (e.key === "Enter") save(); if (e.key === "Escape") { setEditing(false); setDraft(title); } }}
+            autoFocus
+            style={{
+              fontWeight: 600, fontSize: 14, color: "var(--ink)",
+              background: "#f3f0ff", border: "none",
+              borderBottom: "2px solid var(--violet)",
+              borderRadius: 4, padding: "2px 6px", width: "100%",
+              outline: "none",
+            }}
+          />
+          <div className="asub">{apunte.has_ai_content ? "50% dominio" : "Sin generar aún"}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Link href={`/app/ia?note_id=${apunte.id}`} className="mat-apunte">
+      <ApunteRing pct={apunte.has_ai_content ? 50 : 0} color={color} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="anm">{title}</div>
+        <div className="asub">{apunte.has_ai_content ? "50% dominio" : "Sin generar aún"}</div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+        <button
+          onClick={e => { e.preventDefault(); e.stopPropagation(); setDraft(title); setEditing(true); }}
+          aria-label="Renombrar"
+          style={{ background: "none", border: "none", padding: "4px 6px", cursor: "pointer", borderRadius: 8, color: "var(--muted)", display: "flex", alignItems: "center" }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z" />
+          </svg>
+        </button>
+        <span className="aarw">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 function MateriaRow({ materia, idx, defaultOpen }: { materia: Materia; idx: number; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -97,18 +169,7 @@ function MateriaRow({ materia, idx, defaultOpen }: { materia: Materia; idx: numb
           <div className="mat-empty">Todavía no hay apuntes en esta materia.</div>
         ) : (
           materia.apuntes.map((a) => (
-            <Link key={a.id} href={`/app/ia?note_id=${a.id}`} className="mat-apunte">
-              <ApunteRing pct={a.has_ai_content ? 50 : 0} color={col} />
-              <div>
-                <div className="anm">{a.title}</div>
-                <div className="asub">{a.has_ai_content ? "50% dominio" : "Sin generar aún"}</div>
-              </div>
-              <span className="aarw">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </span>
-            </Link>
+            <ApunteItem key={a.id} apunte={a} color={col} />
           ))
         )}
       </div>

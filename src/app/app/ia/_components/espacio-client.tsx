@@ -302,6 +302,22 @@ export function EspacioClient({ note, generating, fileName }: Props) {
   const [showPaywall, setShowPaywall] = useState(false);
   const bigringRef = useRef<HTMLDivElement>(null);
   const plusRef = useRef<HTMLDivElement>(null);
+  const [noteTitle, setNoteTitle] = useState(note.title);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(note.title);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  async function saveTitle() {
+    const trimmed = titleDraft.trim();
+    if (!trimmed || trimmed === noteTitle) { setEditingTitle(false); return; }
+    setNoteTitle(trimmed);
+    setEditingTitle(false);
+    await fetch(`/api/notes/${note.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: trimmed }),
+    });
+  }
 
   // Cargar progreso de localStorage
   useEffect(() => {
@@ -432,7 +448,37 @@ export function EspacioClient({ note, generating, fileName }: Props) {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M13 2 4 14h7l-1 8 10-12h-7z" /></svg>
                   {domPct >= 50 ? `¡Vamos por el ${Math.ceil(domPct / 10) * 10}%!` : "¡Empezá a dominar!"}
                 </span>
-                <h1 className="po">{note.title}</h1>
+                {editingTitle ? (
+                  <input
+                    ref={titleInputRef}
+                    value={titleDraft}
+                    onChange={e => setTitleDraft(e.target.value)}
+                    onBlur={saveTitle}
+                    onKeyDown={e => { if (e.key === "Enter") saveTitle(); if (e.key === "Escape") { setEditingTitle(false); setTitleDraft(noteTitle); } }}
+                    autoFocus
+                    style={{
+                      fontFamily: "var(--po)", fontWeight: 800, fontSize: "inherit",
+                      color: "#fff", background: "rgba(255,255,255,.15)",
+                      border: "none", borderBottom: "2px solid rgba(255,255,255,.6)",
+                      borderRadius: 6, padding: "2px 6px", width: "100%",
+                      outline: "none", lineHeight: 1.2,
+                    }}
+                  />
+                ) : (
+                  <h1 className="po" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {noteTitle}
+                    <button
+                      onClick={() => { setTitleDraft(noteTitle); setEditingTitle(true); }}
+                      aria-label="Renombrar"
+                      style={{ background: "rgba(255,255,255,.18)", border: "none", borderRadius: 8, padding: "4px 6px", cursor: "pointer", display: "inline-flex", alignItems: "center", flexShrink: 0 }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z" />
+                      </svg>
+                    </button>
+                  </h1>
+                )}
                 <p className="sub">{allTopics.length} temas listos para estudiar. Sumá Dominio jugando con resumen, tarjetas y simulacro.</p>
                 <div className="acts">
                   {note.fileUrl ? (
