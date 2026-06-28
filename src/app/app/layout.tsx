@@ -13,7 +13,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/login");
 
   if (user.onboarding_completed === false) redirect("/onboarding");
-  if (user.demo_completed === false) redirect("/demo");
 
   const firstName = user.full_name?.split(" ")[0] ?? "Estudiante";
   const initial = firstName[0]?.toUpperCase() ?? "E";
