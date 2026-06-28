@@ -427,7 +427,7 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
                 }}>
                   <div style={{ position: "relative", width: "100%", height: 140 }}>
                     <Image
-                      src="/paywalls%20desktop/paywall%20para%20botones%20de%20upsell.jpeg"
+                      src="/paywalls/upsell.jpeg"
                       alt=""
                       fill
                       style={{ objectFit: "cover" }}

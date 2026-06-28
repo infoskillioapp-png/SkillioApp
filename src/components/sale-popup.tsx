@@ -7,22 +7,22 @@ export type PaywallCtx = "flashcard" | "simulacro" | "resumen" | "generic";
 
 const CTX: Record<PaywallCtx, { image: string; title: string; sub: string }> = {
   flashcard: {
-    image: "/paywalls%20desktop/paywall%20flashcards.jpeg",
+    image: "/paywalls/flashcard.jpeg",
     title: "Hay más tarjetas para dominar",
     sub: "Desbloqueá el mazo completo y aprendé cada concepto con repetición espaciada.",
   },
   simulacro: {
-    image: "/paywalls%20desktop/paywall%20simulacro.jpeg",
+    image: "/paywalls/simulacro.jpeg",
     title: "Hay más preguntas en el simulacro",
     sub: "Completá el examen completo para detectar todas tus lagunas antes del parcial.",
   },
   resumen: {
-    image: "/paywalls%20desktop/paywall%20despues%20de%20que%20quiera%20subir%20un%20apunte%20nuevo.jpeg",
+    image: "/paywalls/resumen.jpeg",
     title: "Hay más puntos clave en el resumen",
     sub: "Accedé al resumen completo y dominá cada tema de tu apunte.",
   },
   generic: {
-    image: "/paywalls%20desktop/paywall%20generico%20desktop.jpeg",
+    image: "/paywalls/generic.jpeg",
     title: "Estudiá sin límites",
     sub: "Pasate a PRO y accedé a todo el contenido generado por Booki.",
   },

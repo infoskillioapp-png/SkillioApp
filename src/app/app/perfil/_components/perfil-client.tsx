@@ -112,7 +112,7 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
         <div className="plan-card in" style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ position: "relative", width: "100%", height: 180 }}>
             <Image
-              src="/paywalls%20desktop/paywall%20para%20botones%20de%20upsell.jpeg"
+              src="/paywalls/upsell.jpeg"
               alt=""
               fill
               style={{ objectFit: "cover" }}
