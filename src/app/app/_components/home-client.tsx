@@ -216,7 +216,7 @@ export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false
 
       <UploadModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
-      {showTour && (
+      {showTour && !modalOpen && (
         <OnboardingTour
           storageKey={HOME_TOUR_KEY}
           steps={[
