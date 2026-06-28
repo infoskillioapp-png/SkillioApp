@@ -226,8 +226,24 @@ export function SimulacroClient({ data, isPro }: { data: SimulacroData; isPro: b
             )}
 
             <button
-              className="simnav snbtn coral"
-              style={{ display: "inline-flex", padding: "13px 26px", fontSize: 15, borderRadius: 15 }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 9,
+                padding: "15px 34px",
+                borderRadius: 16,
+                fontSize: 16,
+                fontWeight: 700,
+                color: "#fff",
+                background: "linear-gradient(135deg, var(--coral, #ff5d79), var(--red, #e4264f))",
+                border: "none",
+                cursor: "pointer",
+                boxShadow: "0 10px 28px rgba(228,38,79,.38)",
+                transition: "transform .18s, box-shadow .18s",
+                letterSpacing: ".01em",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 16px 36px rgba(228,38,79,.48)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 10px 28px rgba(228,38,79,.38)"; }}
               onClick={() => startExam(visibleNormalized.map((_, i) => i))}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
