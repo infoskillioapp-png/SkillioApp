@@ -4,6 +4,7 @@ import { useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { SalePopup } from "@/components/sale-popup";
 
 type Props = {
   name: string;
@@ -34,6 +35,7 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
   const [cancelling, setCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [tourReset, setTourReset] = useState(false);
 
   function resetTours() {
@@ -59,6 +61,7 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
   }
 
   return (
+    <>
     <div className="perfil-wrap">
       {/* hero */}
       <div className="perfil-hero in">
@@ -121,12 +124,12 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
           <div style={{ padding: "18px 20px 20px" }}>
             <h3>Actualizá a PRO</h3>
             <p>Accedé a generaciones ilimitadas de resúmenes, tarjetas y simulacros. Estudia más rápido y retené más.</p>
-            <Link href="/pagar" className="upgrade-btn">
+            <button className="upgrade-btn" onClick={() => setShowPaywall(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               Ver planes PRO
-            </Link>
+            </button>
           </div>
         </div>
       )}
@@ -204,9 +207,9 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
         {!isPro && (
           <div className="perfil-row">
             <span className="prl">Plan PRO</span>
-            <Link href="/pagar" className="praction" style={{ background: "linear-gradient(135deg,var(--blue),var(--violet))", color: "#fff" }}>
+            <button className="praction" style={{ background: "linear-gradient(135deg,var(--blue),var(--violet))", color: "#fff" }} onClick={() => setShowPaywall(true)}>
               Actualizar
-            </Link>
+            </button>
           </div>
         )}
         <div className="perfil-row">
@@ -223,5 +226,8 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
         </div>
       </div>
     </div>
+
+    {showPaywall && <SalePopup ctx="generic" onClose={() => setShowPaywall(false)} />}
+    </>
   );
 }
