@@ -33,6 +33,8 @@ type MetaEventInput = {
   /** Mismo id que el píxel del navegador, para deduplicar. */
   eventId: string;
   customData?: Record<string, string | number>;
+  /** URL donde ocurrió el evento. Meta la usa para atribución. */
+  sourceUrl?: string;
 };
 
 /**
@@ -59,6 +61,7 @@ export async function sendMetaEvent(input: MetaEventInput): Promise<void> {
         event_time: Math.floor(Date.now() / 1000),
         action_source: "website",
         event_id: input.eventId,
+        event_source_url: input.sourceUrl ?? "https://skillio.digital",
         user_data: userData,
         ...(input.customData ? { custom_data: input.customData } : {}),
       },
@@ -98,9 +101,10 @@ export async function sendMetaPurchase(input: PurchaseInput): Promise<void> {
     email: input.email,
     phone: input.phone,
     eventId: input.eventId,
+    sourceUrl: "https://skillio.digital/pago-exitoso",
     customData: {
       currency: input.currency ?? "ARS",
-      value: String(input.value),
+      value: input.value,
     },
   });
 }

@@ -43,7 +43,7 @@ function PagoExitosoInner() {
     function fireStartTrial(plan: string, preapproval: string | null) {
       const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
       if (!fbq) return;
-      const value = 16000;
+      const value = plan === "semanal" ? 4900 : 15900;
       fbq(
         "track",
         "StartTrial",

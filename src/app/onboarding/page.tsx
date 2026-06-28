@@ -46,5 +46,5 @@ export default async function OnboardingPage({ searchParams }: Props) {
   }
 
   // Nuevo usuario cae en el home con el modal de subir archivo abierto
-  redirect("/app?upload=1");
+  redirect("/app?upload=1&registered=1");
 }
