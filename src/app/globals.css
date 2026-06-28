@@ -383,7 +383,11 @@ body.railed{padding-left:122px}
 .rtopbar .crumb-r b{color:var(--ink);font-weight:700;font-family:var(--po)}
 .rtopbar .rfiles{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);padding:7px 13px;border-radius:11px;background:#fff;box-shadow:var(--sh)}
 .rwrap{max-width:1180px;margin:0 auto;padding:22px;display:grid;grid-template-columns:300px 1fr;gap:22px;align-items:start}
-@media(max-width:880px){.rwrap{grid-template-columns:1fr}}
+@media(max-width:880px){
+  .rwrap{grid-template-columns:1fr}
+  .reader-main{order:1}
+  .rside{order:2;position:static;top:auto;margin-top:8px}
+}
 
 /* sidebar temas */
 .rside{position:sticky;top:84px;background:#fff;border-radius:24px;box-shadow:var(--sh);padding:18px 16px}
@@ -851,7 +855,8 @@ body.railed{padding-left:122px}
   .rv .rans{font-size:12.5px}
 
   /* ── Modal upload ── */
-  .um-card{padding:18px 14px 14px;border-radius:22px;max-height:88vh}
+  #upModal{padding:8px}
+  .um-card{width:calc(100vw - 16px);padding:18px 14px 14px;border-radius:22px;max-height:90vh}
   .um-head h3{font-size:12px}
   .um-tabs{gap:5px}
   .um-tab{padding:8px 10px;font-size:11.5px;gap:5px;border-radius:11px}
