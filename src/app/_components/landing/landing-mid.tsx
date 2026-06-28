@@ -202,7 +202,7 @@ export function HowItWorks() {
         </div>
 
         <div style={{ maxWidth: 900, margin: "44px auto 0" }} className="reveal">
-          <MediaSlot src="precarga.mp4" label="Tour guiado · onboarding en segundos" ratio="16 / 9" />
+          <MediaSlot src="demo.mp4" label="Mirá cómo funciona Skillio" ratio="16 / 9" />
         </div>
       </div>
 
