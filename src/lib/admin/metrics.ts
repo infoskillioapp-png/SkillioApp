@@ -6,12 +6,11 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 // ---------------------------------------------------------------------------
 export const PLAN_PRICES = { semanal: 4900, pro: 15900, trimestral: 34900 } as const;
 const MRR_MONTHLY = {
-  semanal: PLAN_PRICES.semanal * (52 / 12), // semanal → mensual-equivalente
+  semanal: PLAN_PRICES.semanal * (52 / 12),
   pro: PLAN_PRICES.pro,
   trimestral: PLAN_PRICES.trimestral / 3,
 };
 
-// Precios Anthropic (USD por millón de tokens) para estimar costo de IA.
 const PRICES: Record<string, { in: number; out: number }> = {
   "claude-haiku-4-5-20251001": { in: 1.0, out: 5.0 },
   "claude-haiku-4-5": { in: 1.0, out: 5.0 },
@@ -21,16 +20,19 @@ const DEFAULT_PRICE = { in: 3.0, out: 15.0 };
 
 type Plan = "free" | "pro" | "semanal" | "trimestral";
 
+export type RangeInput = { fromISO: string; toISO: string };
+
 function dayKey(iso: string): string {
   return iso.slice(0, 10);
 }
-function lastNDays(n: number): string[] {
-  const days: string[] = [];
-  const today = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    days.push(new Date(today.getTime() - i * 86400000).toISOString().slice(0, 10));
-  }
-  return days;
+// Lista de días (YYYY-MM-DD) entre from y to, inclusive (cap 180 para no explotar).
+function daysBetween(fromISO: string, toISO: string): string[] {
+  const out: string[] = [];
+  const start = new Date(fromISO.slice(0, 10) + "T00:00:00Z").getTime();
+  const end = new Date(toISO.slice(0, 10) + "T00:00:00Z").getTime();
+  const n = Math.min(180, Math.max(1, Math.round((end - start) / 86400000) + 1));
+  for (let i = 0; i < n; i++) out.push(new Date(start + i * 86400000).toISOString().slice(0, 10));
+  return out;
 }
 const isPaid = (p: Plan) => p === "pro" || p === "semanal" || p === "trimestral";
 
@@ -51,100 +53,141 @@ type OutputRow = {
   output_tokens: number | null;
   created_at: string;
 };
-type PaymentRow = { amount: number; created_at: string };
-type FunnelRow = { event: string; step: string | null; user_id: string | null };
-type PomodoroRow = { completed: boolean | null };
+type PaymentRow = { amount: number; created_at: string; user_id: string | null };
+type FunnelRow = { event: string; step: string | null; user_id: string | null; created_at: string };
+type NoteRow = { user_id: string | null; created_at: string };
+type PomodoroRow = { completed: boolean | null; started_at: string | null };
 
 export type DashboardData = Awaited<ReturnType<typeof getDashboard>>;
 
-export async function getDashboard() {
+export async function getDashboard(range: RangeInput) {
+  const { fromISO, toISO } = range;
+  const inRange = (iso: string | null | undefined) => !!iso && iso >= fromISO && iso <= toISO;
+
   const sb = supabaseAdmin();
-  const [usersRes, outputsRes, paymentsRes, funnelRes, pomoRes] = await Promise.all([
+  const [usersRes, outputsRes, paymentsRes, funnelRes, notesRes, pomoRes] = await Promise.all([
     sb
       .from("users")
       .select("id,plan,activated_at,onboarding_completed,created_at,acquisition,current_streak,total_xp")
-      .limit(10000),
-    sb
-      .from("ai_outputs")
-      .select("kind,model,input_tokens,output_tokens,created_at")
-      .order("created_at", { ascending: false })
-      .limit(30000),
-    sb.from("payments").select("amount,created_at").limit(10000),
-    sb.from("funnel_events").select("event,step,user_id").limit(100000),
-    sb.from("pomodoro_sessions").select("completed").limit(50000),
+      .limit(20000),
+    sb.from("ai_outputs").select("kind,model,input_tokens,output_tokens,created_at").limit(50000),
+    sb.from("payments").select("amount,created_at,user_id").limit(20000),
+    sb.from("funnel_events").select("event,step,user_id,created_at").limit(200000),
+    sb.from("notes").select("user_id,created_at").limit(100000),
+    sb.from("pomodoro_sessions").select("completed,started_at").limit(100000),
   ]);
 
-  const users = (usersRes.data ?? []) as UserRow[];
-  const outputs = (outputsRes.data ?? []) as OutputRow[];
-  const payments = (paymentsRes.data ?? []) as PaymentRow[];
-  const funnel = (funnelRes.data ?? []) as FunnelRow[];
-  const pomos = (pomoRes.data ?? []) as PomodoroRow[];
+  const allUsers = (usersRes.data ?? []) as UserRow[];
+  const allOutputs = (outputsRes.data ?? []) as OutputRow[];
+  const allPayments = (paymentsRes.data ?? []) as PaymentRow[];
+  const allFunnel = (funnelRes.data ?? []) as FunnelRow[];
+  const allNotes = (notesRes.data ?? []) as NoteRow[];
+  const allPomos = (pomoRes.data ?? []) as PomodoroRow[];
 
-  const now = Date.now();
-  const d7 = new Date(now - 7 * 86400000).toISOString();
-  const d30 = new Date(now - 30 * 86400000).toISOString();
+  // ====== PERÍODO SELECCIONADO ======
+  // Cohorte: usuarios registrados dentro del rango (base del funnel).
+  const cohort = allUsers.filter((u) => inRange(u.created_at));
+  const cohortIds = new Set(cohort.map((u) => u.id));
 
-  // ---- KPIs de usuarios / planes ----
-  const totalUsers = users.length;
-  const onboarded = users.filter((u) => u.onboarding_completed).length;
-  const activated = users.filter((u) => u.activated_at).length;
-  const reg7 = users.filter((u) => u.created_at >= d7).length;
-  const reg30 = users.filter((u) => u.created_at >= d30).length;
-  const act7 = users.filter((u) => u.activated_at && u.activated_at >= d7).length;
-  const activationRate = totalUsers > 0 ? activated / totalUsers : 0;
+  const outputs = allOutputs.filter((o) => inRange(o.created_at)); // volumen en ventana
+  const payments = allPayments.filter((p) => inRange(p.created_at));
+  const funnel = allFunnel.filter((f) => inRange(f.created_at));
+  const pomos = allPomos.filter((p) => inRange(p.started_at));
 
-  const planCounts: Record<Plan, number> = { free: 0, pro: 0, semanal: 0, trimestral: 0 };
-  for (const u of users) planCounts[u.plan] = (planCounts[u.plan] ?? 0) + 1;
-  const paying = planCounts.pro + planCounts.semanal + planCounts.trimestral;
-  const payRate = totalUsers > 0 ? paying / totalUsers : 0;
+  // KPIs del período
+  const registros = cohort.length;
+  const activadosCohort = cohort.filter((u) => u.activated_at).length;
+  const activationRate = registros > 0 ? activadosCohort / registros : 0;
+  const reg7 = allUsers.filter((u) => u.created_at >= new Date(Date.now() - 7 * 86400000).toISOString()).length;
 
-  const mrrArs =
-    planCounts.pro * MRR_MONTHLY.pro +
-    planCounts.semanal * MRR_MONTHLY.semanal +
-    planCounts.trimestral * MRR_MONTHLY.trimestral;
-
-  // ---- Generaciones / tokens / costo ----
-  const gen7 = outputs.filter((o) => o.created_at >= d7).length;
-  let inTok = 0;
-  let outTok = 0;
-  let costUsd = 0;
+  const generaciones = outputs.length;
+  let inTok = 0, outTok = 0, costUsd = 0;
   const byKind: Record<string, number> = {};
   const byModel: Record<string, { count: number; inTok: number; outTok: number }> = {};
   for (const o of outputs) {
     byKind[o.kind] = (byKind[o.kind] ?? 0) + 1;
-    const i = o.input_tokens ?? 0;
-    const ot = o.output_tokens ?? 0;
-    inTok += i;
-    outTok += ot;
+    const i = o.input_tokens ?? 0, ot = o.output_tokens ?? 0;
+    inTok += i; outTok += ot;
     const model = o.model ?? "desconocido";
     if (!byModel[model]) byModel[model] = { count: 0, inTok: 0, outTok: 0 };
-    byModel[model].count++;
-    byModel[model].inTok += i;
-    byModel[model].outTok += ot;
+    byModel[model].count++; byModel[model].inTok += i; byModel[model].outTok += ot;
     const p = PRICES[model] ?? DEFAULT_PRICE;
     costUsd += (i / 1e6) * p.in + (ot / 1e6) * p.out;
   }
-
-  // ---- Pagos reales ----
   const revenueArs = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
-  const rev30 = payments.filter((p) => p.created_at >= d30).reduce((s, p) => s + Number(p.amount || 0), 0);
 
-  // ---- Engagement de estudio ----
-  const pomosCompleted = pomos.filter((p) => p.completed).length;
-  const simulacros = byKind["simulacro"] ?? 0;
-  const usersWithStreak = users.filter((u) => (u.current_streak ?? 0) > 0).length;
-  const totalXp = users.reduce((s, u) => s + (u.total_xp ?? 0), 0);
+  // ====== ESTADO ACTUAL (global, no depende del rango) ======
+  const planCounts: Record<Plan, number> = { free: 0, pro: 0, semanal: 0, trimestral: 0 };
+  for (const u of allUsers) planCounts[u.plan] = (planCounts[u.plan] ?? 0) + 1;
+  const paying = planCounts.pro + planCounts.semanal + planCounts.trimestral;
+  const payRate = allUsers.length > 0 ? paying / allUsers.length : 0;
+  const mrrArs =
+    planCounts.pro * MRR_MONTHLY.pro +
+    planCounts.semanal * MRR_MONTHLY.semanal +
+    planCounts.trimestral * MRR_MONTHLY.trimestral;
+  const totalRevenueAll = allPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-  // ---- Series diarias (últimos 30 días) ----
-  const days = lastNDays(30);
+  // ====== FUNNEL (sobre la cohorte registrada en el rango) ======
+  // Sets históricos por usuario (cualquier fecha): "¿hasta dónde llegó esta cohorte?"
+  const notesUserSet = new Set(allNotes.map((n) => n.user_id).filter(Boolean) as string[]);
+  const paywallSeenSet = new Set(
+    allFunnel.filter((f) => f.event === "paywall_visto" && f.user_id).map((f) => f.user_id!),
+  );
+  const checkoutSet = new Set(
+    allFunnel.filter((f) => f.event === "checkout_iniciado" && f.user_id).map((f) => f.user_id!),
+  );
+  const paidUserSet = new Set(allPayments.map((p) => p.user_id).filter(Boolean) as string[]);
+  const payingNowSet = new Set(allUsers.filter((u) => isPaid(u.plan)).map((u) => u.id));
+
+  const countCohort = (set: Set<string>) => {
+    let c = 0;
+    for (const id of cohortIds) if (set.has(id)) c++;
+    return c;
+  };
+  const subieron = countCohort(notesUserSet);
+  const activaron = cohort.filter((u) => u.activated_at).length;
+  const vieronPaywall = countCohort(paywallSeenSet);
+  const iniciaronCheckout = countCohort(checkoutSet);
+  const pagaron = (() => {
+    let c = 0;
+    for (const id of cohortIds) if (paidUserSet.has(id) || payingNowSet.has(id)) c++;
+    return c;
+  })();
+
+  const funnelSteps = [
+    { label: "Registros", value: registros },
+    { label: "Subieron un apunte", value: subieron },
+    { label: "Activaron (generaron con lo suyo)", value: activaron },
+    { label: "Vieron el paywall", value: vieronPaywall },
+    { label: "Iniciaron checkout", value: iniciaronCheckout },
+    { label: "Pagaron", value: pagaron },
+  ];
+
+  const paywallConv = {
+    visto: vieronPaywall,
+    checkout: iniciaronCheckout,
+    pago: pagaron,
+    checkoutRate: vieronPaywall > 0 ? iniciaronCheckout / vieronPaywall : 0,
+    pagoRate: vieronPaywall > 0 ? pagaron / vieronPaywall : 0,
+  };
+
+  // Plan elegido al clickear en el paywall (eventos del período)
+  const planClickMap: Record<string, number> = {};
+  for (const f of funnel) {
+    if (f.event === "paywall_plan_click" && f.step) planClickMap[f.step] = (planClickMap[f.step] ?? 0) + 1;
+  }
+  const planClicks = Object.entries(planClickMap)
+    .map(([plan, count]) => ({ plan, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // ====== SERIES diarias (en el rango) ======
+  const days = daysBetween(fromISO, toISO);
   const regByDay: Record<string, number> = {};
   const actByDay: Record<string, number> = {};
   const genByDay: Record<string, number> = {};
   const revByDay: Record<string, number> = {};
-  for (const u of users) {
-    regByDay[dayKey(u.created_at)] = (regByDay[dayKey(u.created_at)] ?? 0) + 1;
-    if (u.activated_at) actByDay[dayKey(u.activated_at)] = (actByDay[dayKey(u.activated_at)] ?? 0) + 1;
-  }
+  for (const u of cohort) regByDay[dayKey(u.created_at)] = (regByDay[dayKey(u.created_at)] ?? 0) + 1;
+  for (const u of allUsers) if (inRange(u.activated_at)) actByDay[dayKey(u.activated_at!)] = (actByDay[dayKey(u.activated_at!)] ?? 0) + 1;
   for (const o of outputs) genByDay[dayKey(o.created_at)] = (genByDay[dayKey(o.created_at)] ?? 0) + 1;
   for (const p of payments) revByDay[dayKey(p.created_at)] = (revByDay[dayKey(p.created_at)] ?? 0) + Number(p.amount || 0);
   const series = days.map((day) => ({
@@ -155,58 +198,15 @@ export async function getDashboard() {
     ingresos: Math.round(revByDay[day] ?? 0),
   }));
 
-  // ---- Funnel nuevo (usuarios únicos por paso) ----
-  const uniqUsers = (pred: (f: FunnelRow) => boolean) => {
-    const set = new Set<string>();
-    for (const f of funnel) if (f.user_id && pred(f)) set.add(f.user_id);
-    return set.size;
-  };
-  const subieron = uniqUsers((f) => f.event === "apunte_subido");
-  const vieronPaywall = uniqUsers((f) => f.event === "paywall_visto");
-  const iniciaronCheckout = uniqUsers((f) => f.event === "checkout_iniciado");
+  // ====== Engagement (en el rango) ======
+  const pomosCompleted = pomos.filter((p) => p.completed).length;
+  const simulacros = byKind["simulacro"] ?? 0;
+  const usersWithStreak = allUsers.filter((u) => (u.current_streak ?? 0) > 0).length; // estado actual
+  const totalXp = allUsers.reduce((s, u) => s + (u.total_xp ?? 0), 0); // estado actual
 
-  const funnelSteps = [
-    { label: "Registros", value: totalUsers },
-    { label: "Subieron un apunte", value: subieron },
-    { label: "Activaron (generaron con lo suyo)", value: activated },
-    { label: "Vieron el paywall", value: vieronPaywall },
-    { label: "Iniciaron checkout", value: iniciaronCheckout },
-    { label: "Pagaron", value: paying },
-  ];
-
-  // Conversión del paywall: de los que lo vieron, cuántos avanzaron
-  const paywallConv = {
-    visto: vieronPaywall,
-    checkout: iniciaronCheckout,
-    pago: paying,
-    checkoutRate: vieronPaywall > 0 ? iniciaronCheckout / vieronPaywall : 0,
-    pagoRate: vieronPaywall > 0 ? paying / vieronPaywall : 0,
-  };
-
-  // Qué paywall se ve más (por contexto)
-  const paywallByCtxMap: Record<string, number> = {};
-  for (const f of funnel) {
-    if (f.event === "paywall_visto") {
-      const c = f.step ?? "generic";
-      paywallByCtxMap[c] = (paywallByCtxMap[c] ?? 0) + 1;
-    }
-  }
-  const paywallByCtx = Object.entries(paywallByCtxMap)
-    .map(([ctx, count]) => ({ ctx, count }))
-    .sort((a, b) => b.count - a.count);
-
-  // Plan elegido al hacer click en el paywall
-  const planClickMap: Record<string, number> = {};
-  for (const f of funnel) {
-    if (f.event === "paywall_plan_click" && f.step) planClickMap[f.step] = (planClickMap[f.step] ?? 0) + 1;
-  }
-  const planClicks = Object.entries(planClickMap)
-    .map(([plan, count]) => ({ plan, count }))
-    .sort((a, b) => b.count - a.count);
-
-  // ---- Adquisición por UTM ----
+  // ====== Adquisición por UTM (cohorte del rango) ======
   const acqMap: Record<string, { total: number; activated: number; paying: number }> = {};
-  for (const u of users) {
+  for (const u of cohort) {
     const src = u.acquisition?.utm_source ?? "directo / orgánico";
     if (!acqMap[src]) acqMap[src] = { total: 0, activated: 0, paying: 0 };
     acqMap[src].total++;
@@ -217,41 +217,33 @@ export async function getDashboard() {
     .map(([source, v]) => ({ source, ...v }))
     .sort((a, b) => b.total - a.total);
 
-  const usageByKind = Object.entries(byKind)
-    .map(([kind, count]) => ({ kind, count }))
-    .sort((a, b) => b.count - a.count);
-  const usageByModel = Object.entries(byModel)
-    .map(([model, v]) => ({ model, ...v }))
-    .sort((a, b) => b.count - a.count);
+  const usageByKind = Object.entries(byKind).map(([kind, count]) => ({ kind, count })).sort((a, b) => b.count - a.count);
+  const usageByModel = Object.entries(byModel).map(([model, v]) => ({ model, ...v })).sort((a, b) => b.count - a.count);
 
   const planBreakdown = [
-    { plan: "Mensual PRO", count: planCounts.pro, price: PLAN_PRICES.pro },
-    { plan: "Trimestral", count: planCounts.trimestral, price: PLAN_PRICES.trimestral },
-    { plan: "Semanal", count: planCounts.semanal, price: PLAN_PRICES.semanal },
-    { plan: "Free", count: planCounts.free, price: 0 },
+    { plan: "Mensual PRO", count: planCounts.pro },
+    { plan: "Trimestral", count: planCounts.trimestral },
+    { plan: "Semanal", count: planCounts.semanal },
+    { plan: "Free", count: planCounts.free },
   ];
 
   return {
+    range: { fromISO, toISO },
     kpis: {
-      totalUsers,
-      onboarded,
-      activated,
-      reg7,
-      reg30,
-      act7,
+      registros,
+      activadosCohort,
       activationRate,
+      reg7,
+      generaciones,
+      inTok, outTok, totalTokens: inTok + outTok,
+      costUsd,
+      revenueArs,
+      // estado actual
       paying,
       payRate,
       mrrArs,
-      revenueArs,
-      rev30,
-      paymentsCount: payments.length,
-      totalGenerations: outputs.length,
-      gen7,
-      inTok,
-      outTok,
-      totalTokens: inTok + outTok,
-      costUsd,
+      totalUsers: allUsers.length,
+      totalRevenueAll,
       pomosCompleted,
       simulacros,
       usersWithStreak,
@@ -260,7 +252,6 @@ export async function getDashboard() {
     series,
     funnelSteps,
     paywallConv,
-    paywallByCtx,
     planClicks,
     planBreakdown,
     acquisition,
@@ -340,7 +331,7 @@ export async function getUserDetail(id: string) {
   return {
     user: u.data as AdminUserRow | null,
     outputs: (outputs.data ?? []) as OutputRow[],
-    payments: (pays.data ?? []) as PaymentRow[],
+    payments: (pays.data ?? []) as { amount: number; created_at: string }[],
     funnelEvents: (fevents.data ?? []) as { event: string; step: string | null; created_at: string }[],
   };
 }

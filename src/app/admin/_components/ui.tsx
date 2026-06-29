@@ -90,27 +90,40 @@ export function BarChart({
   data,
   height = 120,
   color = C.violet,
+  fmt,
 }: {
   data: { day: string; value: number }[];
   height?: number;
   color?: string;
+  fmt?: (n: number) => string;
 }) {
   const max = Math.max(1, ...data.map((d) => d.value));
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const peak = data.reduce((a, b) => (b.value > a.value ? b : a), data[0] ?? { day: "", value: 0 });
   return (
-    <div className="flex items-end gap-[3px]" style={{ height }}>
-      {data.map((d, i) => (
-        <div key={i} className="flex-1 flex flex-col justify-end" title={`${d.day}: ${d.value}`}>
+    <div>
+      <div className="flex items-end gap-[2px]" style={{ height }}>
+        {data.map((d, i) => (
           <div
-            className="w-full rounded-t-[3px]"
+            key={i}
+            className="flex-1 rounded-t-[2px] transition-all"
+            title={`${d.day}: ${d.value}`}
             style={{
-              height: `${(d.value / max) * 100}%`,
-              minHeight: d.value > 0 ? 2 : 0,
+              // % de la altura del contenedor (height fijo arriba) → la barra crece de verdad
+              height: `${Math.max((d.value / max) * 100, d.value > 0 ? 3 : 0)}%`,
               background: color,
-              opacity: 0.85,
+              opacity: d.value > 0 ? 0.9 : 0.12,
+              minWidth: 2,
             }}
           />
-        </div>
-      ))}
+        ))}
+      </div>
+      <div className="flex items-center justify-between mt-2 text-[10.5px]" style={{ color: C.muted }}>
+        <span>Total: <b style={{ color: C.ink }}>{fmt ? fmt(total) : total.toLocaleString("es-AR")}</b></span>
+        {peak && peak.value > 0 && (
+          <span>Pico {fmt ? fmt(peak.value) : peak.value} · {peak.day.slice(5)}</span>
+        )}
+      </div>
     </div>
   );
 }
