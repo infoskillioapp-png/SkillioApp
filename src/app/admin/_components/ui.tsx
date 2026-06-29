@@ -102,17 +102,19 @@ export function BarChart({
   const peak = data.reduce((a, b) => (b.value > a.value ? b : a), data[0] ?? { day: "", value: 0 });
   return (
     <div>
-      <div className="flex items-end gap-[2px]" style={{ height }}>
+      <div className="flex items-end gap-[3px]" style={{ height }}>
         {data.map((d, i) => (
           <div
             key={i}
-            className="flex-1 rounded-t-[2px] transition-all"
+            className="flex-1 rounded-t-[3px] transition-all"
             title={`${d.day}: ${d.value}`}
             style={{
-              // % de la altura del contenedor (height fijo arriba) → la barra crece de verdad
-              height: `${Math.max((d.value / max) * 100, d.value > 0 ? 3 : 0)}%`,
+              // % de la altura del contenedor (height fijo arriba) → la barra crece de verdad.
+              height: `${Math.max((d.value / max) * 100, d.value > 0 ? 4 : 0)}%`,
               background: color,
               opacity: d.value > 0 ? 0.9 : 0.12,
+              // tope de ancho: con pocos días no se vuelve un bloque gigante
+              maxWidth: 44,
               minWidth: 2,
             }}
           />

@@ -11,12 +11,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!email) redirect("/app");
 
   return (
-    <div style={{ minHeight: "100vh", background: "#eef0fb", color: "#1f2347", fontFamily: '"Inter",system-ui,sans-serif' }}>
+    <div style={{ minHeight: "100vh", width: "100%", background: "#eef0fb", color: "#1f2347", fontFamily: '"Inter",system-ui,sans-serif' }}>
       <header
         className="sticky top-0 z-30"
         style={{ borderBottom: "1px solid #e7e9f5", background: "rgba(255,255,255,0.85)", backdropFilter: "blur(10px)" }}
       >
-        <div className="max-w-7xl mx-auto flex items-center gap-5 px-5 py-3">
+        <div className="w-full flex items-center gap-5 px-6 py-3">
           <Link
             href="/admin"
             className="text-lg tracking-[-0.03em]"
@@ -44,7 +44,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-5 py-6">{children}</main>
+      <main className="w-full px-6 py-6">{children}</main>
       <AutoRefresh seconds={60} />
     </div>
   );
