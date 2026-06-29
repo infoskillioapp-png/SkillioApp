@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "./toast";
 
-// Detecta ?registered=1 (lo setea completeOnboarding al terminar el alta) y:
+// Detecta ?registered=1 (lo setea el onboarding al terminar el alta) y:
 //  1) dispara el evento de Registro al Pixel de Meta (CompleteRegistration),
 //  2) muestra un toast de bienvenida,
 //  3) limpia el query param para que no se vuelva a disparar.

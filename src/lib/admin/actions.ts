@@ -22,16 +22,28 @@ export async function adminGrantCredits(userId: string, amount: number) {
   revalidatePath("/admin/usuarios");
 }
 
-/** Cambia el plan de un usuario (free/pro) — útil para cortesías o soporte. */
-export async function adminSetPlan(userId: string, plan: "free" | "pro") {
+export type AdminPlan = "free" | "pro" | "semanal" | "trimestral";
+
+/** Cambia el plan de un usuario — útil para cortesías o soporte. */
+export async function adminSetPlan(userId: string, plan: AdminPlan) {
   await assertAdmin();
   const sb = supabaseAdmin();
-  const patch: Record<string, unknown> = { plan };
-  // Si lo pasamos a PRO sin créditos, le damos el tier completo.
-  if (plan === "pro") {
-    const { data: u } = await sb.from("users").select("credits").eq("id", userId).maybeSingle();
-    if (u && (u.credits ?? 0) < 500) patch.credits = 500;
+  const patch: Record<string, unknown> = { plan, updated_at: new Date().toISOString() };
+
+  if (plan === "free") {
+    patch.expires_at = null;
+  } else if (plan === "semanal") {
+    patch.credits = 0;
+    patch.expires_at = new Date(Date.now() + 7 * 86400000).toISOString();
+  } else if (plan === "trimestral") {
+    patch.credits = 500;
+    patch.expires_at = new Date(Date.now() + 90 * 86400000).toISOString();
+  } else {
+    // pro (mensual): créditos plenos, sin vencimiento
+    patch.credits = 500;
+    patch.expires_at = null;
   }
+
   await sb.from("users").update(patch).eq("id", userId);
   revalidatePath(`/admin/usuarios/${userId}`);
   revalidatePath("/admin/usuarios");

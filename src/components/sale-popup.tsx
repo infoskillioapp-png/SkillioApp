@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track, pixel } from "@/lib/track-client";
+
+// Valor (ARS) por plan, para los eventos de Meta.
+const PLAN_VALUE: Record<string, number> = { semanal: 4900, pro: 15900, mensual: 15900, trimestral: 34900 };
 
 export type PaywallCtx = "flashcard" | "simulacro" | "resumen" | "generic";
 export type PlanPreference = "semanal" | "mensual" | "trimestral" | null;
@@ -42,6 +46,9 @@ export function SalePopup({ ctx, onClose, preferredPlan }: Props) {
 
   async function subscribe(plan: "semanal" | "pro" | "trimestral") {
     setLoading(plan);
+    // Funnel + Meta: el usuario eligió un plan en el paywall (alta intención)
+    track("paywall_plan_click", plan);
+    pixel("InitiateCheckout", { value: PLAN_VALUE[plan] ?? 0, currency: "ARS", content_name: `Plan ${plan}` });
     try {
       const res = await fetch("/api/subscription/create", {
         method: "POST",
@@ -53,6 +60,13 @@ export function SalePopup({ ctx, onClose, preferredPlan }: Props) {
     } catch { /* noop */ }
     setLoading(null);
   }
+
+  // Funnel + Meta: se mostró el paywall (señal de intermediación de compra)
+  useEffect(() => {
+    track("paywall_visto", ctx);
+    pixel("ViewContent", { content_name: `Paywall ${ctx}`, content_category: "paywall", currency: "ARS" });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Si el usuario vino con un plan preferido desde la landing, auto-dispara al montar
   useEffect(() => {

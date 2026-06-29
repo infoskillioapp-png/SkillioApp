@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listUsers } from "@/lib/admin/metrics";
+import { PlanBadge, C } from "../_components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -26,23 +27,29 @@ export default async function AdminUsers({
           name="q"
           defaultValue={q ?? ""}
           placeholder="Buscar por email, nombre o carrera…"
-          className="flex-1 px-4 py-2.5 rounded-full border border-rule bg-paper text-sm focus:outline-none focus:border-accent transition"
+          className="flex-1 px-4 py-2.5 rounded-full text-sm focus:outline-none"
+          style={{ border: `1px solid ${C.line}`, background: C.card }}
         />
-        <button className="px-5 py-2.5 rounded-full bg-accent text-[#FBF1EF] font-display font-semibold text-sm hover:bg-accent-hover transition">
+        <button
+          className="px-5 py-2.5 rounded-full text-white text-sm"
+          style={{ fontFamily: C.po, fontWeight: 600, background: `linear-gradient(135deg,${C.violet},${C.blue})` }}
+        >
           Buscar
         </button>
       </form>
 
-      <div className="text-[12px] text-ink-soft">{users.length} usuarios{q ? ` para "${q}"` : ""}</div>
+      <div className="text-[12px]" style={{ color: C.muted }}>
+        {users.length} usuarios{q ? ` para "${q}"` : ""}
+      </div>
 
-      <div className="rounded-2xl border border-rule-soft bg-paper overflow-hidden">
+      <div className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
         <div className="overflow-x-auto">
-          <table className="w-full text-[12.5px] min-w-[760px]">
+          <table className="w-full text-[12.5px] min-w-[820px]">
             <thead>
-              <tr className="text-ink-soft text-left bg-paper-warm">
+              <tr className="text-left" style={{ color: C.muted, background: C.line2 }}>
                 <th className="font-semibold px-4 py-2.5">Usuario</th>
                 <th className="font-semibold px-2 py-2.5">Plan</th>
-                <th className="font-semibold px-2 py-2.5 text-right">Créditos</th>
+                <th className="font-semibold px-2 py-2.5 text-right">Créditos / Gratis</th>
                 <th className="font-semibold px-2 py-2.5">Estado</th>
                 <th className="font-semibold px-2 py-2.5">Fuente</th>
                 <th className="font-semibold px-2 py-2.5">Alta</th>
@@ -51,36 +58,28 @@ export default async function AdminUsers({
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-t border-rule-soft hover:bg-paper-warm transition">
+                <tr key={u.id} style={{ borderTop: `1px solid ${C.line}` }}>
                   <td className="px-4 py-2.5">
                     <div className="font-semibold truncate max-w-[220px]">{u.full_name ?? "—"}</div>
-                    <div className="text-ink-soft truncate max-w-[220px]">{u.email}</div>
+                    <div className="truncate max-w-[220px]" style={{ color: C.muted }}>{u.email}</div>
+                  </td>
+                  <td className="px-2 py-2.5"><PlanBadge plan={u.plan} /></td>
+                  <td className="px-2 py-2.5 text-right">
+                    {u.plan === "free" ? `${u.free_generations_used}/3 gratis` : `${u.credits} créd.`}
                   </td>
                   <td className="px-2 py-2.5">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10.5px] font-bold ${
-                        u.plan === "pro" ? "bg-accent text-[#FBF1EF]" : "bg-paper-warm text-ink-soft"
-                      }`}
-                    >
-                      {u.plan === "pro" ? "PRO" : "Free"}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2.5 text-right num">
-                    {u.plan === "pro" ? u.credits : `${u.free_generations_used}/3`}
-                  </td>
-                  <td className="px-2 py-2.5">
-                    <div className="flex gap-1">
-                      {u.activated_at && <Dot label="Activado" tone="var(--success)" />}
-                      {u.demo_completed && <Dot label="Demo" tone="var(--accent)" />}
-                      {!u.onboarding_completed && <Dot label="Sin onboarding" tone="var(--warning)" />}
+                    <div className="flex gap-1.5 items-center">
+                      {u.activated_at && <Dot label="Activado" tone={C.green} />}
+                      {!u.onboarding_completed && <Dot label="Sin onboarding" tone={C.amber} />}
+                      {u.expires_at && new Date(u.expires_at) < new Date() && <Dot label="Vencido" tone={C.red} />}
                     </div>
                   </td>
-                  <td className="px-2 py-2.5 text-ink-soft truncate max-w-[110px]">
+                  <td className="px-2 py-2.5 truncate max-w-[110px]" style={{ color: C.muted }}>
                     {u.acquisition?.utm_source ?? "—"}
                   </td>
-                  <td className="px-2 py-2.5 text-ink-soft whitespace-nowrap">{timeAgo(u.created_at)}</td>
+                  <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: C.muted }}>{timeAgo(u.created_at)}</td>
                   <td className="px-2 py-2.5 text-right">
-                    <Link href={`/admin/usuarios/${u.id}`} className="text-accent font-semibold whitespace-nowrap">
+                    <Link href={`/admin/usuarios/${u.id}`} className="font-semibold whitespace-nowrap" style={{ color: C.violet }}>
                       Ver →
                     </Link>
                   </td>
@@ -95,11 +94,5 @@ export default async function AdminUsers({
 }
 
 function Dot({ label, tone }: { label: string; tone: string }) {
-  return (
-    <span
-      title={label}
-      className="inline-block w-2 h-2 rounded-full"
-      style={{ background: tone }}
-    />
-  );
+  return <span title={label} className="inline-block w-2 h-2 rounded-full" style={{ background: tone }} />;
 }

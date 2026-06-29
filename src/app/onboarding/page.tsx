@@ -5,6 +5,7 @@ import { checkEmailAllowed } from "@/lib/anti-fraude";
 import { applyReferral } from "@/lib/api/referrals";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendWelcomeEmail, scheduleNudgeEmails } from "@/lib/email/resend";
+import { recordFunnelEvent } from "@/lib/api/funnel";
 
 interface Props {
   searchParams: Promise<{ ref?: string; plan?: string }>;
@@ -35,7 +36,6 @@ export default async function OnboardingPage({ searchParams }: Props) {
   const sb = supabaseAdmin();
   await sb.from("users").update({
     onboarding_completed: true,
-    demo_completed: true,
     offer_started_at: new Date().toISOString(),
   }).eq("clerk_user_id", userId);
 
@@ -48,6 +48,9 @@ export default async function OnboardingPage({ searchParams }: Props) {
   const planParam = sp.plan && ["semanal", "mensual", "trimestral"].includes(sp.plan)
     ? sp.plan
     : null;
+
+  // Funnel: alta completada (con plan preferido si vino de la landing de precios)
+  await recordFunnelEvent("registro_completado", planParam);
 
   // Si vino con intención de pagar, auto-abre el paywall en el plan correcto
   if (planParam) redirect(`/app?upgrade=${planParam}&upload=1&registered=1`);

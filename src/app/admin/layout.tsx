@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAdminEmail } from "@/lib/admin/auth";
 import { AutoRefresh } from "./_components/auto-refresh";
+import { NavLink } from "./_components/nav-link";
 
 // Panel privado. Guard: solo emails en la allowlist (ADMIN_EMAILS). Cualquier
 // otro usuario logueado se va a /app; sin sesión, a /login.
@@ -10,29 +11,34 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!email) redirect("/app");
 
   return (
-    <div className="min-h-screen bg-bg text-ink">
-      <header className="sticky top-0 z-30 border-b border-rule bg-paper/90 backdrop-blur">
+    <div style={{ minHeight: "100vh", background: "#eef0fb", color: "#1f2347", fontFamily: '"Inter",system-ui,sans-serif' }}>
+      <header
+        className="sticky top-0 z-30"
+        style={{ borderBottom: "1px solid #e7e9f5", background: "rgba(255,255,255,0.85)", backdropFilter: "blur(10px)" }}
+      >
         <div className="max-w-7xl mx-auto flex items-center gap-5 px-5 py-3">
-          <Link href="/admin" className="font-display font-extrabold text-lg tracking-[-0.03em]">
-            Skill<span className="text-accent">io</span>
-            <span className="ml-2 text-[10px] font-bold uppercase tracking-[0.18em] text-ink-softer align-middle">
+          <Link
+            href="/admin"
+            className="text-lg tracking-[-0.03em]"
+            style={{ fontFamily: '"Poppins",system-ui,sans-serif', fontWeight: 800 }}
+          >
+            Skill<span style={{ color: "#8b5cf6" }}>io</span>
+            <span className="ml-2 text-[10px] font-bold uppercase align-middle" style={{ letterSpacing: "0.18em", color: "#aab2c8" }}>
               Admin
             </span>
           </Link>
           <nav className="flex items-center gap-1 text-[13px] font-semibold">
-            <Link href="/admin" className="px-3 py-1.5 rounded-full hover:bg-paper-warm transition">
-              Resumen
-            </Link>
-            <Link href="/admin/usuarios" className="px-3 py-1.5 rounded-full hover:bg-paper-warm transition">
-              Usuarios
-            </Link>
-            <Link href="/admin/pagos" className="px-3 py-1.5 rounded-full hover:bg-paper-warm transition">
-              Pagos
-            </Link>
+            <NavLink href="/admin" label="Resumen" />
+            <NavLink href="/admin/usuarios" label="Usuarios" />
+            <NavLink href="/admin/pagos" label="Pagos" />
           </nav>
-          <div className="ml-auto flex items-center gap-3 text-[12px] text-ink-soft">
+          <div className="ml-auto flex items-center gap-3 text-[12px]" style={{ color: "#8487a6" }}>
             <span className="hidden sm:inline">{email}</span>
-            <Link href="/app" className="px-3 py-1.5 rounded-full border border-rule hover:border-accent hover:text-accent transition">
+            <Link
+              href="/app"
+              className="px-3 py-1.5 rounded-full transition"
+              style={{ border: "1px solid #e7e9f5" }}
+            >
               ← App
             </Link>
           </div>

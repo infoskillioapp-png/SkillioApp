@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { mpGetPlan } from "@/lib/mercadopago";
+import { recordFunnelEvent } from "@/lib/api/funnel";
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -45,6 +46,9 @@ export async function POST(req: NextRequest) {
   // Inyectamos external_reference (clerk userId) en el init_point
   const url = new URL(plan.init_point);
   url.searchParams.set("external_reference", userId);
+
+  // Funnel: el usuario llegó hasta el checkout de MercadoPago
+  await recordFunnelEvent("checkout_iniciado", planType);
 
   return NextResponse.json({ init_point: url.toString(), plan: planType });
 }

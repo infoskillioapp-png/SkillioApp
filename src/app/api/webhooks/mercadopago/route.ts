@@ -8,6 +8,7 @@ import {
   mpGetAuthorizedPayment,
 } from "@/lib/mercadopago";
 import { sendMetaPurchase } from "@/lib/meta-capi";
+import { recordFunnelEventForUser } from "@/lib/api/funnel";
 
 function verifySignature(req: NextRequest, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -145,6 +146,9 @@ async function activateOrRenewPlan(
   console.log(
     `[webhook] ${user.email} → ${opts.planType} (era ${user.plan}, sub=${opts.subscriptionId ?? user.mp_subscription_id ?? "-"})`,
   );
+
+  // Funnel: pago confirmado (cobro inicial o renovación)
+  await recordFunnelEventForUser(user.id, "pago_confirmado", opts.planType);
 
   if (isFirstPayment && pendingReferral) {
     await sb

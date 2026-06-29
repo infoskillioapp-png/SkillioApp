@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { recordFunnelEvent } from "@/lib/api/funnel";
 
 const BUCKET = "notes-uploads";
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -172,6 +173,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "insert_failed" }, { status: 500 });
     }
 
+    await recordFunnelEvent("apunte_subido", resolved.kind, { segments: inserted.length });
     return NextResponse.json({ ok: true, notes: inserted, note: inserted[0] });
   }
 
@@ -198,5 +200,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "insert_failed" }, { status: 500 });
   }
 
+  await recordFunnelEvent("apunte_subido", resolved.kind);
   return NextResponse.json({ ok: true, note: inserted });
 }
