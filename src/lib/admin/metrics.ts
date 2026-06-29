@@ -403,6 +403,65 @@ export async function getUserDetail(id: string) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Costos de IA: tokens y USD por segmento (FREE / PRO / TOTAL) y por usuario pago.
+// "PRO" = cualquier plan pagado (semanal, mensual/pro o trimestral). Se clasifica
+// cada generación por el plan ACTUAL del usuario que la hizo.
+// ---------------------------------------------------------------------------
+export type AiCostBucket = { gen: number; inTok: number; outTok: number; usd: number };
+export type AiCostUser = { id: string; email: string; plan: Plan; gen: number; inTok: number; outTok: number; usd: number };
+
+export async function getAiCosts(range: RangeInput) {
+  const { fromISO, toISO } = range;
+  const sb = supabaseAdmin();
+  const [outRes, userRes] = await Promise.all([
+    sb
+      .from("ai_outputs")
+      .select("user_id,model,input_tokens,output_tokens,created_at")
+      .gte("created_at", fromISO)
+      .lte("created_at", toISO)
+      .limit(100000),
+    sb.from("users").select("id,email,plan").limit(20000),
+  ]);
+  const outputs = (outRes.data ?? []) as {
+    user_id: string | null; model: string | null; input_tokens: number | null; output_tokens: number | null;
+  }[];
+  const users = (userRes.data ?? []) as { id: string; email: string; plan: Plan }[];
+  const planById = new Map(users.map((u) => [u.id, u.plan]));
+  const emailById = new Map(users.map((u) => [u.id, u.email]));
+
+  const blank = (): AiCostBucket => ({ gen: 0, inTok: 0, outTok: 0, usd: 0 });
+  const free = blank(), pro = blank(), total = blank();
+  const perUser = new Map<string, AiCostUser>();
+
+  for (const o of outputs) {
+    const i = o.input_tokens ?? 0;
+    const ot = o.output_tokens ?? 0;
+    const price = PRICES[o.model ?? ""] ?? DEFAULT_PRICE;
+    const usd = (i / 1e6) * price.in + (ot / 1e6) * price.out;
+    const plan = (o.user_id ? planById.get(o.user_id) : undefined) ?? "free";
+    const paid = isPaid(plan);
+
+    const b = paid ? pro : free;
+    b.gen++; b.inTok += i; b.outTok += ot; b.usd += usd;
+    total.gen++; total.inTok += i; total.outTok += ot; total.usd += usd;
+
+    if (paid && o.user_id) {
+      let u = perUser.get(o.user_id);
+      if (!u) {
+        u = { id: o.user_id, email: emailById.get(o.user_id) ?? "—", plan, gen: 0, inTok: 0, outTok: 0, usd: 0 };
+        perUser.set(o.user_id, u);
+      }
+      u.gen++; u.inTok += i; u.outTok += ot; u.usd += usd;
+    }
+  }
+
+  return {
+    segments: { free, pro, total },
+    proUsers: [...perUser.values()].sort((a, b) => b.usd - a.usd),
+  };
+}
+
 export async function getRecentPayments(limit = 50) {
   const sb = supabaseAdmin();
   const { data } = await sb

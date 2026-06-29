@@ -7,9 +7,12 @@ const items = [
   { href: "/admin", label: "Resumen", icon: IconGrid, exact: true },
   { href: "/admin/embudo", label: "Embudo", icon: IconFunnel },
   { href: "/admin/tour", label: "Tour guiado", icon: IconRoute },
+  { href: "/admin/costos", label: "Costos IA", icon: IconChip },
   { href: "/admin/usuarios", label: "Usuarios", icon: IconUsers },
   { href: "/admin/pagos", label: "Pagos", icon: IconCard },
 ];
+
+const RANGE_PATHS = ["/admin", "/admin/embudo", "/admin/tour", "/admin/costos"];
 
 export function SidebarNav() {
   const pathname = usePathname();
@@ -21,7 +24,7 @@ export function SidebarNav() {
     <nav className="adm__nav">
       {items.map((it) => {
         const active = it.exact ? pathname === it.href : pathname.startsWith(it.href);
-        const keepRange = it.href === "/admin" || it.href === "/admin/embudo" || it.href === "/admin/tour";
+        const keepRange = RANGE_PATHS.includes(it.href);
         const Icon = it.icon;
         return (
           <Link
@@ -58,6 +61,14 @@ function IconRoute() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="6" cy="19" r="2.5" /><circle cx="18" cy="5" r="2.5" />
       <path d="M8.5 19H14a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5" />
+    </svg>
+  );
+}
+function IconChip() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6.5" y="6.5" width="11" height="11" rx="2" />
+      <path d="M9.5 3v2M14.5 3v2M9.5 19v2M14.5 19v2M3 9.5h2M3 14.5h2M19 9.5h2M19 14.5h2" />
     </svg>
   );
 }
