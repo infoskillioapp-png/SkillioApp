@@ -1,5 +1,5 @@
 import { getRecentPayments } from "@/lib/admin/metrics";
-import { fmtArs, KpiCard, C } from "../_components/ui";
+import { Strip, fmtArs } from "../_components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -10,39 +10,41 @@ export default async function AdminPayments() {
   const total30 = payments.filter((p) => p.created_at >= d30).reduce((s, p) => s + Number(p.amount || 0), 0);
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Pagos registrados" value={String(payments.length)} />
-        <KpiCard label="Total cobrado" value={fmtArs(total)} tone="green" />
-        <KpiCard label="Cobrado · 30d" value={fmtArs(total30)} tone="violet" />
-      </div>
+    <>
+      <header className="adm__head">
+        <div>
+          <h1 className="adm__title">Pagos</h1>
+          <p className="adm__sub">Se llenan desde el webhook de MercadoPago al confirmarse un cobro.</p>
+        </div>
+      </header>
 
-      <div className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
+      <Strip
+        items={[
+          { value: String(payments.length), label: "Pagos registrados" },
+          { value: fmtArs(total), label: "Total cobrado" },
+          { value: fmtArs(total30), label: "Cobrado · 30 días" },
+        ]}
+      />
+
+      <div className="panel" style={{ padding: "8px 26px" }}>
         {payments.length === 0 ? (
-          <div className="p-8 text-center text-[13px]" style={{ color: C.muted }}>
-            Todavía no hay pagos registrados. Aparecen cuando MercadoPago confirma un cobro
-            (la tabla se llena desde el webhook).
+          <div className="tbl__empty" style={{ textAlign: "center", padding: "36px 0" }}>
+            Todavía no hay pagos registrados.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[12.5px] min-w-[560px]">
+          <div className="tbl__scroll">
+            <table className="tbl" style={{ minWidth: 560 }}>
               <thead>
-                <tr className="text-left" style={{ color: C.muted, background: C.line2 }}>
-                  <th className="font-semibold px-4 py-2.5">Fecha</th>
-                  <th className="font-semibold px-2 py-2.5">Email</th>
-                  <th className="font-semibold px-2 py-2.5">Tipo</th>
-                  <th className="font-semibold px-2 py-2.5">Estado</th>
-                  <th className="font-semibold px-4 py-2.5 text-right">Monto</th>
-                </tr>
+                <tr><th>Fecha</th><th>Email</th><th>Tipo</th><th>Estado</th><th className="num">Monto</th></tr>
               </thead>
               <tbody>
                 {payments.map((p, i) => (
-                  <tr key={i} style={{ borderTop: `1px solid ${C.line}` }}>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{new Date(p.created_at).toLocaleString("es-AR")}</td>
-                    <td className="px-2 py-2.5 truncate max-w-[180px]">{p.email ?? "—"}</td>
-                    <td className="px-2 py-2.5">{p.kind === "authorized_payment" ? "Suscripción" : "Pago"}</td>
-                    <td className="px-2 py-2.5">{p.status}</td>
-                    <td className="px-4 py-2.5 text-right font-semibold">{fmtArs(Number(p.amount))}</td>
+                  <tr key={i}>
+                    <td className="mono" style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>{new Date(p.created_at).toLocaleString("es-AR")}</td>
+                    <td style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.email ?? "—"}</td>
+                    <td>{p.kind === "authorized_payment" ? "Suscripción" : "Pago"}</td>
+                    <td>{p.status}</td>
+                    <td className="num" style={{ fontWeight: 700 }}>{fmtArs(Number(p.amount))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -50,6 +52,6 @@ export default async function AdminPayments() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

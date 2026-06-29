@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getUserDetail } from "@/lib/admin/metrics";
 import { ActionsPanel } from "./actions-panel";
-import { fmtInt, PlanBadge, C } from "../../_components/ui";
+import { Panel, PlanBadge, fmtInt } from "../../_components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
   const rows: [string, React.ReactNode][] = [
     ["Email", user.email],
     ["Créditos", String(user.credits)],
-    ["Generaciones gratis usadas", `${user.free_generations_used} / 3`],
+    ["Generaciones gratis", `${user.free_generations_used} / 3`],
     ["Activado", user.activated_at ? fmtDate(user.activated_at) : "No"],
     ["Onboarding", user.onboarding_completed ? "Sí" : "No"],
     ["Vence", user.expires_at ? fmtDate(user.expires_at) : "—"],
@@ -42,117 +42,95 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
     ["Teléfono", user.phone ?? "—"],
     ["Alta", fmtDate(user.created_at)],
   ];
-
-  const utm = user.acquisition
-    ? Object.entries(user.acquisition).map(([k, v]) => `${k}=${v}`).join(" · ")
-    : "—";
-
-  const card = { background: C.card, border: `1px solid ${C.line}`, boxShadow: "0 2px 4px rgba(40,44,90,.04), 0 10px 22px rgba(72,56,142,.08)" };
+  const utm = user.acquisition ? Object.entries(user.acquisition).map(([k, v]) => `${k}=${v}`).join(" · ") : "—";
 
   return (
-    <div className="space-y-5">
-      <Link href="/admin/usuarios" className="text-[13px]" style={{ color: C.muted }}>← Volver a usuarios</Link>
+    <>
+      <header className="adm__head">
+        <div>
+          <Link href="/admin/usuarios" className="muted" style={{ fontSize: 13 }}>← Usuarios</Link>
+          <h1 className="adm__title" style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 12 }}>
+            {user.full_name ?? user.email}
+            <PlanBadge plan={user.plan} />
+          </h1>
+        </div>
+      </header>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <h1 className="text-2xl tracking-[-0.02em]" style={{ fontFamily: C.po, fontWeight: 800 }}>
-          {user.full_name ?? user.email}
-        </h1>
-        <PlanBadge plan={user.plan} />
-      </div>
-
-      <div className="grid md:grid-cols-[1fr_320px] gap-5">
-        <div className="space-y-5">
-          <div className="rounded-2xl p-5" style={card}>
-            <h2 className="text-[15px] mb-3" style={{ fontFamily: C.po, fontWeight: 700 }}>Datos</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
-              {rows.map(([k, v]) => (
-                <div key={String(k)} className="flex justify-between gap-3 py-1.5" style={{ borderBottom: `1px solid ${C.line}` }}>
-                  <dt style={{ color: C.muted }}>{k}</dt>
-                  <dd className="font-semibold text-right truncate">{v}</dd>
+      <div className="grid2--side grid2">
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <Panel title="Datos">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 28px" }}>
+              {rows.map(([label, val]) => (
+                <div key={String(label)} className="row" style={{ margin: 0, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                  <span className="muted" style={{ fontSize: 13 }}>{label}</span>
+                  <span style={{ fontWeight: 600, fontSize: 13.5, textAlign: "right" }}>{val}</span>
                 </div>
               ))}
-            </dl>
-            <div className="mt-3 text-[11.5px]" style={{ color: C.muted }}>
-              <span className="font-semibold">Adquisición:</span> {utm}
             </div>
-          </div>
+            <p className="panel__hint"><span style={{ color: "var(--ink)", fontWeight: 700 }}>Adquisición:</span> {utm}</p>
+          </Panel>
 
-          {/* Línea de tiempo del funnel */}
-          <div className="rounded-2xl p-5" style={card}>
-            <h2 className="text-[15px] mb-3" style={{ fontFamily: C.po, fontWeight: 700 }}>
-              Recorrido en el funnel ({funnelEvents.length})
-            </h2>
+          <Panel title={`Recorrido en el funnel · ${funnelEvents.length}`}>
             {funnelEvents.length === 0 ? (
-              <div className="text-[12.5px]" style={{ color: C.muted }}>Sin eventos registrados.</div>
+              <div className="faint" style={{ fontSize: 13.5 }}>Sin eventos registrados.</div>
             ) : (
-              <ol className="space-y-2">
+              <div className="list">
                 {funnelEvents.map((e, i) => (
-                  <li key={i} className="flex items-center gap-3 text-[12.5px]">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: C.violet }} />
-                    <span className="flex-1">
+                  <div key={i} className="list__item">
+                    <span className="b" />
+                    <span style={{ flex: 1 }}>
                       {EVENT_LABELS[e.event] ?? e.event}
-                      {e.step && <span style={{ color: C.muted }}> · {e.step}</span>}
+                      {e.step && <span className="faint"> · {e.step}</span>}
                     </span>
-                    <span className="whitespace-nowrap" style={{ color: C.muted }}>{fmtDate(e.created_at)}</span>
-                  </li>
+                    <span className="faint mono" style={{ fontSize: 12, whiteSpace: "nowrap" }}>{fmtDate(e.created_at)}</span>
+                  </div>
                 ))}
-              </ol>
+              </div>
             )}
-          </div>
+          </Panel>
 
-          <div className="rounded-2xl p-5" style={card}>
-            <h2 className="text-[15px] mb-3" style={{ fontFamily: C.po, fontWeight: 700 }}>
-              Últimas generaciones ({outputs.length})
-            </h2>
+          <Panel title={`Últimas generaciones · ${outputs.length}`}>
             {outputs.length === 0 ? (
-              <div className="text-[12.5px]" style={{ color: C.muted }}>Todavía no generó nada.</div>
+              <div className="faint" style={{ fontSize: 13.5 }}>Todavía no generó nada.</div>
             ) : (
-              <table className="w-full text-[12px]">
-                <thead>
-                  <tr className="text-left" style={{ color: C.muted }}>
-                    <th className="font-semibold pb-1.5">Tipo</th>
-                    <th className="font-semibold pb-1.5">Modelo</th>
-                    <th className="font-semibold pb-1.5 text-right">Tokens</th>
-                    <th className="font-semibold pb-1.5 text-right">Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {outputs.map((o, i) => (
-                    <tr key={i} style={{ borderTop: `1px solid ${C.line}` }}>
-                      <td className="py-1.5 capitalize">{o.kind}</td>
-                      <td className="py-1.5 truncate max-w-[120px]">{(o.model ?? "").replace("claude-", "")}</td>
-                      <td className="py-1.5 text-right">{fmtInt((o.input_tokens ?? 0) + (o.output_tokens ?? 0))}</td>
-                      <td className="py-1.5 text-right whitespace-nowrap" style={{ color: C.muted }}>
-                        {new Date(o.created_at).toLocaleDateString("es-AR")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="tbl__scroll">
+                <table className="tbl">
+                  <thead><tr><th>Tipo</th><th>Modelo</th><th className="num">Tokens</th><th className="num">Fecha</th></tr></thead>
+                  <tbody>
+                    {outputs.map((o, i) => (
+                      <tr key={i}>
+                        <td style={{ textTransform: "capitalize" }}>{o.kind}</td>
+                        <td>{(o.model ?? "").replace("claude-", "")}</td>
+                        <td className="num">{fmtInt((o.input_tokens ?? 0) + (o.output_tokens ?? 0))}</td>
+                        <td className="num faint">{new Date(o.created_at).toLocaleDateString("es-AR")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </div>
+          </Panel>
 
           {payments.length > 0 && (
-            <div className="rounded-2xl p-5" style={card}>
-              <h2 className="text-[15px] mb-3" style={{ fontFamily: C.po, fontWeight: 700 }}>Pagos ({payments.length})</h2>
-              <table className="w-full text-[12px]">
-                <tbody>
-                  {payments.map((p, i) => (
-                    <tr key={i} style={{ borderTop: `1px solid ${C.line}` }}>
-                      <td className="py-1.5">{new Date(p.created_at).toLocaleDateString("es-AR")}</td>
-                      <td className="py-1.5 text-right font-semibold">
-                        ${Math.round(Number(p.amount)).toLocaleString("es-AR")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Panel title={`Pagos · ${payments.length}`}>
+              <div className="tbl__scroll">
+                <table className="tbl">
+                  <tbody>
+                    {payments.map((p, i) => (
+                      <tr key={i}>
+                        <td>{new Date(p.created_at).toLocaleDateString("es-AR")}</td>
+                        <td className="num" style={{ fontWeight: 700 }}>${Math.round(Number(p.amount)).toLocaleString("es-AR")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
           )}
         </div>
 
         <ActionsPanel userId={user.id} plan={user.plan} />
       </div>
-    </div>
+    </>
   );
 }
