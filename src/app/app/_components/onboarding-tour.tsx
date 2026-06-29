@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { track } from "@/lib/track-client";
 
 // ─── Public constants & helpers ───────────────────────────────────────────────
 
@@ -101,6 +102,24 @@ export function OnboardingTour({ steps, storageKey = TOUR_KEY, onComplete, onSki
 
   const cur = steps[idx];
 
+  // Nombre legible del tour para el tracking (skillio_home_tour_v1 → "home").
+  const tourName = (storageKey || TOUR_KEY).replace(/^skillio_/, "").replace(/_tour_v1$/, "");
+
+  // Funnel: inicio del tour (se monta solo cuando useTourRequired lo habilita,
+  // así que montar = el usuario realmente lo vio). startedRef evita doble disparo.
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    track("tour_inicio", tourName, { steps: steps.length });
+  }, [tourName, steps.length]);
+
+  // Funnel: cada etapa vista (para saber dónde se cae la gente).
+  useEffect(() => {
+    if (!visible) return;
+    track("tour_paso", `${tourName}:${idx + 1}`, { title: steps[idx]?.title });
+  }, [idx, visible, tourName, steps]);
+
   // Detect mobile
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -152,9 +171,12 @@ export function OnboardingTour({ steps, storageKey = TOUR_KEY, onComplete, onSki
 
   const finish = useCallback((mode: "done" | "skipped") => {
     localStorage.setItem(storageKey, mode);
+    // Funnel: completó todo el tour, o lo skipeó (y en qué etapa).
+    if (mode === "done") track("tour_completado", tourName, { steps: steps.length });
+    else track("tour_skip", `${tourName}:${idx + 1}`, { title: steps[idx]?.title });
     setVisible(false);
     mode === "done" ? onComplete?.() : onSkip?.();
-  }, [onComplete, onSkip]);
+  }, [onComplete, onSkip, storageKey, tourName, idx, steps]);
 
   const next = useCallback(() => {
     cur?.onNext?.();

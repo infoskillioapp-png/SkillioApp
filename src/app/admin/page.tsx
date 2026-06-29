@@ -166,6 +166,70 @@ export default async function AdminOverview({
         </Section>
       </div>
 
+      {/* ====== TOUR GUIADO ====== */}
+      <SectionTitle>Tour guiado</SectionTitle>
+      {d.tours.length === 0 ? (
+        <Section title="Tour guiado">
+          <div className="text-[12.5px]" style={{ color: C.muted }}>
+            Todavía no hay datos del tour en el período. Empiezan a aparecer cuando usuarios nuevos vean los tours.
+          </div>
+        </Section>
+      ) : (
+        <div className="grid lg:grid-cols-2 gap-4">
+          {d.tours.map((t) => (
+            <Section key={t.name} title={`Tour: ${t.name}`}>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <Chip label="Iniciaron" value={fmtInt(t.started)} tone={C.violet} />
+                <Chip label="Completaron" value={`${fmtInt(t.completed)} · ${fmtPct(t.completionRate)}`} tone={C.green} />
+                <Chip label="Skipearon" value={`${fmtInt(t.skipped)} · ${fmtPct(t.skipRate)}`} tone={C.red} />
+              </div>
+              <Funnel
+                steps={[
+                  { label: "Iniciaron", value: t.started },
+                  ...t.steps.map((s) => ({ label: `Etapa ${s.n}`, value: s.users })),
+                  { label: "Completaron", value: t.completed },
+                ]}
+              />
+              {t.skipBy.length > 0 && (
+                <div className="mt-3 pt-3 text-[12px]" style={{ borderTop: `1px solid ${C.line}`, color: C.muted }}>
+                  <span className="font-semibold" style={{ color: C.ink }}>Abandonos por etapa:</span>{" "}
+                  {t.skipBy.map((s) => `Etapa ${s.n}: ${s.count}`).join(" · ")}
+                </div>
+              )}
+            </Section>
+          ))}
+        </div>
+      )}
+
+      {d.tourSkippers.length > 0 && (
+        <Section title="Quiénes skipearon el tour (últimos del período)">
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px] min-w-[460px]">
+              <thead>
+                <tr className="text-left" style={{ color: C.muted }}>
+                  <th className="font-semibold pb-2">Email</th>
+                  <th className="font-semibold pb-2">Tour</th>
+                  <th className="font-semibold pb-2 text-right">Etapa</th>
+                  <th className="font-semibold pb-2 text-right">Cuándo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.tourSkippers.map((s, i) => (
+                  <tr key={i} style={{ borderTop: `1px solid ${C.line}` }}>
+                    <td className="py-1.5 truncate max-w-[220px]">{s.email}</td>
+                    <td className="py-1.5">{s.tour}</td>
+                    <td className="py-1.5 text-right">{s.step || "—"}</td>
+                    <td className="py-1.5 text-right whitespace-nowrap" style={{ color: C.muted }}>
+                      {new Date(s.at).toLocaleString("es-AR")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
+
       {/* ====== ESTADO ACTUAL (no depende del rango) ====== */}
       <SectionTitle>Estado actual (total, no depende del rango)</SectionTitle>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -217,6 +281,16 @@ function Row({ label, value, hint, tone }: { label: string; value: string; hint?
         <span className="text-[15px]" style={{ fontFamily: C.po, fontWeight: 800, color: tone ?? C.ink }}>{value}</span>
       </span>
     </div>
+  );
+}
+
+function Chip({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px]" style={{ background: C.line2 }}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: tone }} />
+      <span style={{ color: C.muted }}>{label}</span>
+      <span style={{ fontFamily: C.po, fontWeight: 700, color: C.ink }}>{value}</span>
+    </span>
   );
 }
 

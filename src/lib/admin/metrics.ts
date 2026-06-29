@@ -38,6 +38,7 @@ const isPaid = (p: Plan) => p === "pro" || p === "semanal" || p === "trimestral"
 
 type UserRow = {
   id: string;
+  email: string;
   plan: Plan;
   activated_at: string | null;
   onboarding_completed: boolean;
@@ -68,7 +69,7 @@ export async function getDashboard(range: RangeInput) {
   const [usersRes, outputsRes, paymentsRes, funnelRes, notesRes, pomoRes] = await Promise.all([
     sb
       .from("users")
-      .select("id,plan,activated_at,onboarding_completed,created_at,acquisition,current_streak,total_xp")
+      .select("id,email,plan,activated_at,onboarding_completed,created_at,acquisition,current_streak,total_xp")
       .limit(20000),
     sb.from("ai_outputs").select("kind,model,input_tokens,output_tokens,created_at").limit(50000),
     sb.from("payments").select("amount,created_at,user_id").limit(20000),
@@ -227,6 +228,70 @@ export async function getDashboard(range: RangeInput) {
     { plan: "Free", count: planCounts.free },
   ];
 
+  // ====== TOUR GUIADO (eventos del período) ======
+  // Eventos: tour_inicio (step=tour), tour_paso (step=tour:N), tour_completado,
+  // tour_skip (step=tour:N). Agregamos por tour y por etapa.
+  const emailById = new Map(allUsers.map((u) => [u.id, u.email]));
+  const tStart: Record<string, Set<string>> = {};
+  const tDone: Record<string, Set<string>> = {};
+  const tSkip: Record<string, Set<string>> = {};
+  const tStep: Record<string, Record<number, Set<string>>> = {};
+  const tSkipAt: Record<string, Record<number, number>> = {};
+  const tourNamesSet = new Set<string>();
+  for (const f of funnel) {
+    if (!f.event.startsWith("tour_") || !f.user_id) continue;
+    const parts = (f.step ?? "").split(":");
+    const name = parts[0] || "tour";
+    const n = parseInt(parts[1] ?? "0", 10) || 0;
+    tourNamesSet.add(name);
+    if (f.event === "tour_inicio") (tStart[name] ??= new Set()).add(f.user_id);
+    else if (f.event === "tour_completado") (tDone[name] ??= new Set()).add(f.user_id);
+    else if (f.event === "tour_skip") {
+      (tSkip[name] ??= new Set()).add(f.user_id);
+      (tSkipAt[name] ??= {})[n] = (tSkipAt[name]?.[n] ?? 0) + 1;
+    } else if (f.event === "tour_paso") {
+      ((tStep[name] ??= {})[n] ??= new Set()).add(f.user_id);
+    }
+  }
+  const tours = [...tourNamesSet]
+    .map((name) => {
+      const started = tStart[name]?.size ?? 0;
+      const completed = tDone[name]?.size ?? 0;
+      const skipped = tSkip[name]?.size ?? 0;
+      const steps = Object.entries(tStep[name] ?? {})
+        .map(([n, set]) => ({ n: Number(n), users: set.size }))
+        .sort((a, b) => a.n - b.n);
+      const skipBy = Object.entries(tSkipAt[name] ?? {})
+        .map(([n, count]) => ({ n: Number(n), count }))
+        .sort((a, b) => a.n - b.n);
+      return {
+        name,
+        started,
+        completed,
+        skipped,
+        completionRate: started > 0 ? completed / started : 0,
+        skipRate: started > 0 ? skipped / started : 0,
+        steps,
+        skipBy,
+      };
+    })
+    .sort((a, b) => b.started - a.started);
+
+  // Lista de quién skipeó (últimos del período)
+  const tourSkippers = funnel
+    .filter((f) => f.event === "tour_skip" && f.user_id)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, 25)
+    .map((f) => {
+      const parts = (f.step ?? "").split(":");
+      return {
+        email: emailById.get(f.user_id!) ?? "—",
+        tour: parts[0] || "tour",
+        step: Number(parts[1] ?? 0) || 0,
+        at: f.created_at,
+      };
+    });
+
   return {
     range: { fromISO, toISO },
     kpis: {
@@ -257,6 +322,8 @@ export async function getDashboard(range: RangeInput) {
     acquisition,
     usageByKind,
     usageByModel,
+    tours,
+    tourSkippers,
   };
 }
 

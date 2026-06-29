@@ -13,6 +13,10 @@ const EVENT_LABELS: Record<string, string> = {
   paywall_plan_click: "Eligió un plan",
   checkout_iniciado: "Inició el checkout",
   pago_confirmado: "Pago confirmado",
+  tour_inicio: "Inició un tour",
+  tour_paso: "Tour · etapa",
+  tour_completado: "Completó el tour",
+  tour_skip: "Skipeó el tour",
 };
 
 function fmtDate(iso: string) {
