@@ -6,7 +6,7 @@ import Image from "next/image";
 import { PdfSplitter } from "./pdf-splitter";
 import { DEMO_TOPICS } from "@/lib/demo-content";
 import type { DemoTopic } from "@/lib/demo-content";
-import { OnboardingTour, useTourRequired, TourIconUpload, TourIconSparkles } from "./onboarding-tour";
+import { track } from "@/lib/track-client";
 
 const PDF_PAGE_LIMIT = 30;
 
@@ -24,7 +24,6 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   const [demoPct, setDemoPct] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const showUploadTour = useTourRequired("skillio_upload_modal_tour_v1");
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -76,6 +75,9 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   async function startDemo(topic: DemoTopic) {
     setDemoLoading(topic);
     setDemoPct(0);
+    // Funnel: probó un apunte demo (no cuenta como activación — la activación es
+    // solo con material propio vía IA).
+    track("demo_apunte_abierto", topic);
     // Animación de carga falsa: 0→95 en ~1.8s, luego navega
     const steps = [15, 30, 52, 71, 88, 95];
     for (let i = 0; i < steps.length; i++) {
@@ -286,30 +288,6 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
       </div>
 
     </div>
-
-      {showUploadTour && open && tab === "file" && !splitterFile && !demoLoading && (
-        <OnboardingTour
-          storageKey="skillio_upload_modal_tour_v1"
-          steps={[
-            {
-              icon: <TourIconUpload />,
-              title: "Subí tu propio apunte",
-              body: "PDF, foto, Word, PPT, audio — lo que uses para estudiar. Booki lo convierte en resumen, tarjetas y simulacro al instante.",
-              target: '[data-tour="um-pick"]',
-              placement: "top",
-              nextLabel: "¿No tengo nada? ›",
-            },
-            {
-              icon: <TourIconSparkles />,
-              title: "¿No tenés nada a mano?",
-              body: "Explorá Skillio con uno de nuestros apuntes demo gratuitos. Tocá cualquiera y en segundos tenés tu suite de estudio lista.",
-              target: '[data-tour="demo-pills"]',
-              placement: "top",
-              nextLabel: "¡Entendido!",
-            },
-          ]}
-        />
-      )}
     </>
   );
 }

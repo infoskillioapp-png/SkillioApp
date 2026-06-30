@@ -147,6 +147,11 @@ export async function getDashboard(range: RangeInput) {
   };
   const subieron = countCohort(notesUserSet);
   const activaron = cohort.filter((u) => u.activated_at).length;
+  // Probaron un apunte demo (evento del período). El demo es contenido enlatado:
+  // no genera con IA ni activa al usuario — la activación es 100% material propio.
+  const demoTried = new Set(
+    funnel.filter((f) => f.event === "demo_apunte_abierto" && f.user_id).map((f) => f.user_id!),
+  ).size;
   const vieronPaywall = countCohort(paywallSeenSet);
   const iniciaronCheckout = countCohort(checkoutSet);
   const pagaron = (() => {
@@ -298,6 +303,7 @@ export async function getDashboard(range: RangeInput) {
       registros,
       activadosCohort,
       activationRate,
+      demoTried,
       reg7,
       generaciones,
       inTok, outTok, totalTokens: inTok + outTok,

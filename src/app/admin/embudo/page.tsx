@@ -29,6 +29,13 @@ export default async function AdminEmbudo({
         hint={`De los ${fmtInt(d.kpis.registros)} que se registraron en este período, hasta dónde llegaron. El % es la retención respecto del paso anterior — donde más cae, ahí hay que trabajar.`}
       >
         <Funnel steps={d.funnelSteps} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18 }}>
+          <span className="chip"><span className="d" style={{ background: "var(--green)" }} /><span>Activaron con apunte propio</span><b>{fmtInt(d.kpis.activadosCohort)}</b></span>
+          <span className="chip"><span className="d" style={{ background: "var(--amber)" }} /><span>Solo probaron apunte demo</span><b>{fmtInt(d.kpis.demoTried)}</b></span>
+        </div>
+        <p className="panel__hint">
+          La <b style={{ color: "var(--ink)" }}>activación</b> cuenta solo generaciones con material propio. Un apunte demo es contenido de ejemplo (sin IA): se mide aparte y no activa.
+        </p>
       </Panel>
 
       <div className="grid2">
