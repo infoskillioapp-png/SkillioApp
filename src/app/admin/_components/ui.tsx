@@ -3,6 +3,22 @@
 import type { RangeInput } from "@/lib/admin/metrics";
 
 // ---- formato ----
+// Todas las fechas del panel se muestran en hora de Argentina (UTC-3) y 24h,
+// sin importar la zona del servidor (Vercel corre en UTC).
+const TZ = "America/Argentina/Buenos_Aires";
+
+export function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("es-AR", {
+    timeZone: TZ, hour12: false,
+    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+export function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    timeZone: TZ, day: "2-digit", month: "2-digit", year: "numeric",
+  });
+}
+
 export function fmtInt(n: number): string {
   return Math.round(n).toLocaleString("es-AR");
 }

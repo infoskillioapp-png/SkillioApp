@@ -1,5 +1,5 @@
 import { getRecentPayments } from "@/lib/admin/metrics";
-import { Strip, fmtArs } from "../_components/ui";
+import { Strip, fmtArs, fmtDateTime } from "../_components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export default async function AdminPayments() {
               <tbody>
                 {payments.map((p, i) => (
                   <tr key={i}>
-                    <td className="mono" style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>{new Date(p.created_at).toLocaleString("es-AR")}</td>
+                    <td className="mono" style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>{fmtDateTime(p.created_at)}</td>
                     <td style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.email ?? "—"}</td>
                     <td>{p.kind === "authorized_payment" ? "Suscripción" : "Pago"}</td>
                     <td>{p.status}</td>

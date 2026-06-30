@@ -1,5 +1,5 @@
 import { getDashboard } from "@/lib/admin/metrics";
-import { Panel, Funnel, fmtInt, fmtPct, resolveRange, rangeLabel } from "../_components/ui";
+import { Panel, Funnel, fmtInt, fmtPct, fmtDateTime, resolveRange, rangeLabel } from "../_components/ui";
 import { RangePicker } from "../_components/range-picker";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +69,7 @@ export default async function AdminTour({
                     <td style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.email}</td>
                     <td>{s.tour}</td>
                     <td className="num">{s.step || "—"}</td>
-                    <td className="num faint" style={{ whiteSpace: "nowrap" }}>{new Date(s.at).toLocaleString("es-AR")}</td>
+                    <td className="num faint" style={{ whiteSpace: "nowrap" }}>{fmtDateTime(s.at)}</td>
                   </tr>
                 ))}
               </tbody>

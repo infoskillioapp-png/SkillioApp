@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listUsers } from "@/lib/admin/metrics";
-import { PlanBadge } from "../_components/ui";
+import { PlanBadge, fmtDate } from "../_components/ui";
 
 // Teléfono copiable + link a WhatsApp (wa.me necesita solo dígitos).
 function PhoneCell({ phone }: { phone: string | null }) {
@@ -27,7 +27,7 @@ function timeAgo(iso: string) {
   if (d === 0) return "hoy";
   if (d === 1) return "ayer";
   if (d < 30) return `hace ${d}d`;
-  return new Date(iso).toLocaleDateString("es-AR");
+  return fmtDate(iso);
 }
 
 export default async function AdminUsers({ searchParams }: { searchParams: Promise<{ q?: string }> }) {

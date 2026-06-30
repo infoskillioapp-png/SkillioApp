@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getUserDetail } from "@/lib/admin/metrics";
 import { ActionsPanel } from "./actions-panel";
-import { Panel, PlanBadge, fmtInt } from "../../_components/ui";
+import { Panel, PlanBadge, fmtInt, fmtDate, fmtDateTime } from "../../_components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +19,6 @@ const EVENT_LABELS: Record<string, string> = {
   tour_skip: "Skipeó el tour",
 };
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleString("es-AR");
-}
-
 export default async function AdminUserDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { user, outputs, payments, funnelEvents } = await getUserDetail(id);
@@ -32,15 +28,15 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
     ["Email", user.email],
     ["Créditos", String(user.credits)],
     ["Generaciones gratis", `${user.free_generations_used} / 3`],
-    ["Activado", user.activated_at ? fmtDate(user.activated_at) : "No"],
+    ["Activado", user.activated_at ? fmtDateTime(user.activated_at) : "No"],
     ["Onboarding", user.onboarding_completed ? "Sí" : "No"],
-    ["Vence", user.expires_at ? fmtDate(user.expires_at) : "—"],
+    ["Vence", user.expires_at ? fmtDateTime(user.expires_at) : "—"],
     ["Racha", `${user.current_streak} días`],
     ["XP", String(user.total_xp)],
     ["Carrera", user.career ?? "—"],
     ["Institución", user.institution ?? "—"],
     ["Teléfono", user.phone ?? "—"],
-    ["Alta", fmtDate(user.created_at)],
+    ["Alta", fmtDateTime(user.created_at)],
   ];
   const utm = user.acquisition ? Object.entries(user.acquisition).map(([k, v]) => `${k}=${v}`).join(" · ") : "—";
 
@@ -82,7 +78,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
                       {EVENT_LABELS[e.event] ?? e.event}
                       {e.step && <span className="faint"> · {e.step}</span>}
                     </span>
-                    <span className="faint mono" style={{ fontSize: 12, whiteSpace: "nowrap" }}>{fmtDate(e.created_at)}</span>
+                    <span className="faint mono" style={{ fontSize: 12, whiteSpace: "nowrap" }}>{fmtDateTime(e.created_at)}</span>
                   </div>
                 ))}
               </div>
@@ -102,7 +98,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
                         <td style={{ textTransform: "capitalize" }}>{o.kind}</td>
                         <td>{(o.model ?? "").replace("claude-", "")}</td>
                         <td className="num">{fmtInt((o.input_tokens ?? 0) + (o.output_tokens ?? 0))}</td>
-                        <td className="num faint">{new Date(o.created_at).toLocaleDateString("es-AR")}</td>
+                        <td className="num faint">{fmtDate(o.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -118,7 +114,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
                   <tbody>
                     {payments.map((p, i) => (
                       <tr key={i}>
-                        <td>{new Date(p.created_at).toLocaleDateString("es-AR")}</td>
+                        <td>{fmtDate(p.created_at)}</td>
                         <td className="num" style={{ fontWeight: 700 }}>${Math.round(Number(p.amount)).toLocaleString("es-AR")}</td>
                       </tr>
                     ))}
