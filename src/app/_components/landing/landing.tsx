@@ -50,11 +50,14 @@ function CustomCursor() {
     const onMove = (e: MouseEvent) => { posRef.current = { x: e.clientX, y: e.clientY }; };
     document.addEventListener("mousemove", onMove);
 
+    const INTERACTIVE = "a, button, [role=button], input, select, textarea";
     const onEnter = (e: MouseEvent) => {
-      if ((e.target as Element).closest("a, button, [role=button], input, select, textarea")) bigRef.current = true;
+      const t = e.target;
+      if (t instanceof Element && t.closest(INTERACTIVE)) bigRef.current = true;
     };
     const onLeave = (e: MouseEvent) => {
-      if ((e.target as Element).closest("a, button, [role=button], input, select, textarea")) bigRef.current = false;
+      const t = e.target;
+      if (t instanceof Element && t.closest(INTERACTIVE)) bigRef.current = false;
     };
     document.addEventListener("mouseenter", onEnter, true);
     document.addEventListener("mouseleave", onLeave, true);
