@@ -2,6 +2,24 @@ import Link from "next/link";
 import { listUsers } from "@/lib/admin/metrics";
 import { PlanBadge } from "../_components/ui";
 
+// Teléfono copiable + link a WhatsApp (wa.me necesita solo dígitos).
+function PhoneCell({ phone }: { phone: string | null }) {
+  if (!phone) return <span className="faint">—</span>;
+  const digits = phone.replace(/\D/g, "");
+  return (
+    <a
+      href={`https://wa.me/${digits}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mono"
+      style={{ fontSize: 13, color: "var(--ink)" }}
+      title="Abrir en WhatsApp"
+    >
+      {phone}
+    </a>
+  );
+}
+
 export const dynamic = "force-dynamic";
 
 function timeAgo(iso: string) {
@@ -37,10 +55,10 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
 
       <div className="panel" style={{ padding: "8px 26px" }}>
         <div className="tbl__scroll">
-          <table className="tbl" style={{ minWidth: 760 }}>
+          <table className="tbl" style={{ minWidth: 900 }}>
             <thead>
               <tr>
-                <th>Usuario</th><th>Plan</th><th className="num">Créditos</th>
+                <th>Usuario</th><th>Teléfono</th><th>Plan</th><th className="num">Créditos</th>
                 <th>Estado</th><th>Fuente</th><th className="num">Alta</th><th></th>
               </tr>
             </thead>
@@ -51,6 +69,7 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
                     <div style={{ fontWeight: 600 }}>{u.full_name ?? "—"}</div>
                     <div className="faint" style={{ fontSize: 12.5 }}>{u.email}</div>
                   </td>
+                  <td><PhoneCell phone={u.phone} /></td>
                   <td><PlanBadge plan={u.plan} /></td>
                   <td className="num">{u.plan === "free" ? `${u.free_generations_used}/3` : u.credits}</td>
                   <td>

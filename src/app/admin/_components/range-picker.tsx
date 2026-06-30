@@ -28,7 +28,7 @@ export function RangePicker({ from, to }: { from: string; to: string }) {
   const today = iso(new Date());
   const span = t === today ? Math.round((new Date(t).getTime() - new Date(f).getTime()) / 86400000) + 1 : -1;
   const presets: { label: string; days: number | "all" }[] = [
-    { label: "7d", days: 7 }, { label: "30d", days: 30 }, { label: "90d", days: 90 }, { label: "Todo", days: "all" },
+    { label: "Hoy", days: 1 }, { label: "7d", days: 7 }, { label: "30d", days: 30 }, { label: "90d", days: 90 }, { label: "Todo", days: "all" },
   ];
 
   return (
