@@ -19,7 +19,8 @@ const MAP_MODEL = MODEL_FREE;
 /** Devuelve true si el usuario tiene acceso pago activo (créditos o tiempo vigente). */
 export function isPaidPlan(plan: string, expiresAt: string | null): boolean {
   if (plan === "pro") return true;
-  if (plan === "semanal") return !!expiresAt && new Date(expiresAt) > new Date();
+  if (plan === "semanal" || plan === "trimestral")
+    return !!expiresAt && new Date(expiresAt) > new Date();
   return false;
 }
 

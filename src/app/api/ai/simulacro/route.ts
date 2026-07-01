@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "tipo de archivo no soportado" }, { status: 415 });
 
     const isPaid = isPaidPlan(userRow.plan, userRow.expires_at);
-    const isProCredits = userRow.plan === "pro";
+    const isProCredits = false; // sistema de créditos deprecado: todos los pagos son ilimitados
     const model = modelForGeneration(userRow.plan, userRow.expires_at, "simulacro");
 
     if (isProCredits && userRow.credits < COST)

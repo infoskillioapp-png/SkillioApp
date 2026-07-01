@@ -132,7 +132,7 @@ export async function POST(req: Request) {
       );
 
     const isPaid = isPaidPlan(userRow.plan, userRow.expires_at);
-    const isProCredits = userRow.plan === "pro"; // solo pro usa créditos
+    const isProCredits = false; // sistema de créditos deprecado: todos los pagos son ilimitados
     const model = modelForGeneration(userRow.plan, userRow.expires_at, "summarize");
     if (isProCredits && userRow.credits < COST)
       return NextResponse.json(
