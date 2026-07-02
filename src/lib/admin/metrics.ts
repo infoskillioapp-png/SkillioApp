@@ -477,3 +477,40 @@ export async function getRecentPayments(limit = 50) {
     .limit(limit);
   return data ?? [];
 }
+
+// ---------------------------------------------------------------------------
+// Feedback / reseñas de usuarios (tabla feedback: rating 1-5, comment, page).
+// ---------------------------------------------------------------------------
+export type FeedbackItem = {
+  rating: number;
+  comment: string | null;
+  page: string | null;
+  created_at: string;
+  email: string;
+};
+
+export async function getFeedback(limit = 300) {
+  const sb = supabaseAdmin();
+  const [fbRes, usersRes] = await Promise.all([
+    sb.from("feedback").select("rating,comment,page,created_at,user_id").order("created_at", { ascending: false }).limit(limit),
+    sb.from("users").select("id,email").limit(20000),
+  ]);
+  const fb = (fbRes.data ?? []) as {
+    rating: number; comment: string | null; page: string | null; created_at: string; user_id: string | null;
+  }[];
+  const emailById = new Map((usersRes.data ?? []).map((u) => [u.id, u.email]));
+
+  const total = fb.length;
+  const avg = total ? fb.reduce((s, f) => s + (f.rating || 0), 0) / total : 0;
+  const withComment = fb.filter((f) => f.comment && f.comment.trim()).length;
+  const byRating = [5, 4, 3, 2, 1].map((stars) => ({ stars, count: fb.filter((f) => f.rating === stars).length }));
+  const items: FeedbackItem[] = fb.map((f) => ({
+    rating: f.rating,
+    comment: f.comment,
+    page: f.page,
+    created_at: f.created_at,
+    email: f.user_id ? emailById.get(f.user_id) ?? "—" : "anónimo",
+  }));
+
+  return { total, avg, withComment, byRating, items };
+}

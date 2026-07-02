@@ -8,6 +8,7 @@ const items = [
   { href: "/admin/embudo", label: "Embudo", icon: IconFunnel },
   { href: "/admin/tour", label: "Tour guiado", icon: IconRoute },
   { href: "/admin/costos", label: "Costos IA", icon: IconChip },
+  { href: "/admin/feedback", label: "Feedback", icon: IconStar },
   { href: "/admin/usuarios", label: "Usuarios", icon: IconUsers },
   { href: "/admin/pagos", label: "Pagos", icon: IconCard },
 ];
@@ -69,6 +70,13 @@ function IconChip() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <rect x="6.5" y="6.5" width="11" height="11" rx="2" />
       <path d="M9.5 3v2M14.5 3v2M9.5 19v2M14.5 19v2M3 9.5h2M3 14.5h2M19 9.5h2M19 14.5h2" />
+    </svg>
+  );
+}
+function IconStar() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8z" />
     </svg>
   );
 }
