@@ -101,6 +101,19 @@ function detectPlanType(
   return fallback;
 }
 
+// Determina el plan por el MONTO cobrado (para pagos sueltos sin preapproval_id).
+function planTypeFromAmount(
+  amount: number,
+  current?: string,
+): "pro" | "semanal" | "trimestral" {
+  if (amount === SEMANAL_PRICE_ARS) return "semanal";
+  if (amount === TRIMESTRAL_PRICE_ARS) return "trimestral";
+  if (amount === PRO_PRICE_ARS) return "pro";
+  // Monto desconocido: respetar el plan pago actual si lo hay, sino pro.
+  if (current === "semanal" || current === "trimestral") return current;
+  return "pro";
+}
+
 // Activa o renueva un plan pagado (pro, semanal o trimestral). Idempotente.
 async function activateOrRenewPlan(
   sb: Sb,
@@ -327,20 +340,27 @@ async function handlePayment(paymentId: string) {
     return;
   }
 
-  let planType: "pro" | "semanal" | "trimestral" = "pro";
+  // El plan se determina por el plan de la suscripción si el pago la referencia;
+  // si no (regular_payment sin preapproval_id), por el MONTO real del pago. NUNCA
+  // asumir "pro" a ciegas: eso daba PRO ilimitado a quien pagaba semanal.
+  const amount = payment.transaction_amount ?? 0;
+  let planType: "pro" | "semanal" | "trimestral";
   if (payment.preapproval_id) {
     try {
       const sub = await mpGetSubscription(payment.preapproval_id);
       planType = detectPlanType(sub.preapproval_plan_id);
     } catch {
-      planType = (user.plan === "semanal" || user.plan === "trimestral") ? user.plan : "pro";
+      planType = planTypeFromAmount(amount, user.plan);
     }
+  } else {
+    planType = planTypeFromAmount(amount, user.plan);
   }
 
   await activateOrRenewPlan(sb, user, { subscriptionId: payment.preapproval_id, planType });
-  console.log(`[webhook/payment] ${user.email} ${planType} (matchedBy=${matchedBy})`);
+  console.log(`[webhook/payment] ${user.email} ${planType} $${amount} (matchedBy=${matchedBy})`);
 
-  const payAmount =
+  // Monto real cobrado; si MP no lo trae, caemos al precio de lista del plan.
+  const payAmount = amount > 0 ? amount :
     planType === "semanal" ? SEMANAL_PRICE_ARS :
     planType === "trimestral" ? TRIMESTRAL_PRICE_ARS :
     PRO_PRICE_ARS;

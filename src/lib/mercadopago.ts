@@ -107,6 +107,7 @@ export interface MpPayment {
   preapproval_id: string | null;
   external_reference: string | null;
   payer: { email: string };
+  transaction_amount: number | null;
 }
 
 export function mpGetPayment(id: string): Promise<MpPayment> {
