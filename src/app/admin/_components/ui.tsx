@@ -30,12 +30,26 @@ export function fmtPct(n: number): string {
 }
 
 // ---- rango de fechas (compartido por las páginas) ----
+// El día "hoy" y el rango se calculan en hora de Argentina (UTC-3, sin DST), no
+// en la zona del servidor. Los ISO llevan offset -03:00 para que el rango cubra
+// el día argentino completo (00:00–23:59 ART).
+function todayAR(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+}
+function shiftDayAR(day: string, deltaDays: number): string {
+  const ms = Date.parse(`${day}T12:00:00-03:00`) + deltaDays * 86400000;
+  return new Date(ms).toLocaleDateString("en-CA", { timeZone: TZ });
+}
 export function resolveRange(from?: string, to?: string): RangeInput & { fromDay: string; toDay: string } {
-  const today = new Date();
-  const toDay = to && /^\d{4}-\d{2}-\d{2}$/.test(to) ? to : today.toISOString().slice(0, 10);
-  const defFrom = new Date(today.getTime() - 29 * 86400000).toISOString().slice(0, 10);
-  const fromDay = from && /^\d{4}-\d{2}-\d{2}$/.test(from) ? from : defFrom;
-  return { fromDay, toDay, fromISO: fromDay + "T00:00:00.000Z", toISO: toDay + "T23:59:59.999Z" };
+  const valid = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const toDay = valid(to) ? to! : todayAR();
+  const fromDay = valid(from) ? from! : shiftDayAR(toDay, -29);
+  return {
+    fromDay,
+    toDay,
+    fromISO: `${fromDay}T00:00:00.000-03:00`,
+    toISO: `${toDay}T23:59:59.999-03:00`,
+  };
 }
 export function rangeLabel(fromDay: string, toDay: string): string {
   const d = Math.round((new Date(toDay).getTime() - new Date(fromDay).getTime()) / 86400000) + 1;

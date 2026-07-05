@@ -3,8 +3,10 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 
+// Fecha YYYY-MM-DD en hora de Argentina (para que "Hoy" y los presets usen el
+// día argentino, consistente con el filtrado del server).
 function iso(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
 }
 
 // Selector de rango de fechas. Escribe ?from=&to= en la sección actual; el

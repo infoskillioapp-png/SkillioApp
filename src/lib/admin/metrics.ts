@@ -22,8 +22,11 @@ type Plan = "free" | "pro" | "semanal" | "trimestral";
 
 export type RangeInput = { fromISO: string; toISO: string };
 
+const TZ_AR = "America/Argentina/Buenos_Aires";
+// Fecha (YYYY-MM-DD) del instante, en hora de Argentina — NO en UTC. Así un
+// evento de las 22:00 ART cuenta en su día real y no "salta" al día siguiente.
 function dayKey(iso: string): string {
-  return iso.slice(0, 10);
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: TZ_AR });
 }
 // Lista de días (YYYY-MM-DD) entre from y to, inclusive (cap 180 para no explotar).
 function daysBetween(fromISO: string, toISO: string): string[] {
@@ -63,7 +66,15 @@ export type DashboardData = Awaited<ReturnType<typeof getDashboard>>;
 
 export async function getDashboard(range: RangeInput) {
   const { fromISO, toISO } = range;
-  const inRange = (iso: string | null | undefined) => !!iso && iso >= fromISO && iso <= toISO;
+  // Comparación por INSTANTE (epoch), no por texto: created_at viene con offset
+  // +00 y el rango con -03:00; comparar strings daría resultados incorrectos.
+  const fromMs = Date.parse(fromISO);
+  const toMs = Date.parse(toISO);
+  const inRange = (iso: string | null | undefined) => {
+    if (!iso) return false;
+    const t = Date.parse(iso);
+    return t >= fromMs && t <= toMs;
+  };
 
   const sb = supabaseAdmin();
   const [usersRes, outputsRes, paymentsRes, funnelRes, notesRes, pomoRes] = await Promise.all([
