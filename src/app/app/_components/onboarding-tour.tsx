@@ -93,6 +93,13 @@ const CARD_W = 316;
 const SPOT_PAD = 10;
 const GAP = 18;
 
+// Guards a nivel de módulo: evitan que re-renders y remontajes inflen el tracking.
+// Cada tour registra inicio / etapa / cierre UNA sola vez por carga de página
+// (persisten mientras la SPA no se recargue; el localStorage evita re-mostrarlo).
+const _tourStarted = new Set<string>();
+const _tourStepSeen = new Set<string>();
+const _tourFinished = new Set<string>();
+
 export function OnboardingTour({ steps, storageKey = TOUR_KEY, onComplete, onSkip }: Props) {
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
@@ -105,20 +112,23 @@ export function OnboardingTour({ steps, storageKey = TOUR_KEY, onComplete, onSki
   // Nombre legible del tour para el tracking (skillio_home_tour_v1 → "home").
   const tourName = (storageKey || TOUR_KEY).replace(/^skillio_/, "").replace(/_tour_v1$/, "");
 
-  // Funnel: inicio del tour (se monta solo cuando useTourRequired lo habilita,
-  // así que montar = el usuario realmente lo vio). startedRef evita doble disparo.
-  const startedRef = useRef(false);
+  // Funnel: inicio del tour (una vez por tour por carga de página).
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
+    if (_tourStarted.has(tourName)) return;
+    _tourStarted.add(tourName);
     track("tour_inicio", tourName, { steps: steps.length });
-  }, [tourName, steps.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourName]);
 
-  // Funnel: cada etapa vista (para saber dónde se cae la gente).
+  // Funnel: cada etapa vista, una sola vez (para saber dónde se cae la gente).
   useEffect(() => {
     if (!visible) return;
-    track("tour_paso", `${tourName}:${idx + 1}`, { title: steps[idx]?.title });
-  }, [idx, visible, tourName, steps]);
+    const key = `${tourName}:${idx + 1}`;
+    if (_tourStepSeen.has(key)) return;
+    _tourStepSeen.add(key);
+    track("tour_paso", key, { title: steps[idx]?.title });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx, visible, tourName]);
 
   // Detect mobile
   useEffect(() => {
@@ -171,9 +181,12 @@ export function OnboardingTour({ steps, storageKey = TOUR_KEY, onComplete, onSki
 
   const finish = useCallback((mode: "done" | "skipped") => {
     localStorage.setItem(storageKey, mode);
-    // Funnel: completó todo el tour, o lo skipeó (y en qué etapa).
-    if (mode === "done") track("tour_completado", tourName, { steps: steps.length });
-    else track("tour_skip", `${tourName}:${idx + 1}`, { title: steps[idx]?.title });
+    // Funnel: completó / skipeó (una sola vez por tour por carga de página).
+    if (!_tourFinished.has(tourName)) {
+      _tourFinished.add(tourName);
+      if (mode === "done") track("tour_completado", tourName, { steps: steps.length });
+      else track("tour_skip", `${tourName}:${idx + 1}`, { title: steps[idx]?.title });
+    }
     setVisible(false);
     mode === "done" ? onComplete?.() : onSkip?.();
   }, [onComplete, onSkip, storageKey, tourName, idx, steps]);
