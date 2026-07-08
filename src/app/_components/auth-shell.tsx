@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { InAppBrowserBanner } from "./in-app-browser-banner";
 
 type Props = {
   step: string;
@@ -88,7 +87,6 @@ export function AuthShell({ step, title, lead, children, footerLink }: Props) {
               {lead}
             </p>
 
-            <InAppBrowserBanner />
             {children}
 
             {footerLink && (
