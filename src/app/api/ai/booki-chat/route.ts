@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { auth } from "@clerk/nextjs/server";
+import { recordAiUsage } from "@/lib/ai/usage";
+
+const CHAT_MODEL = "claude-haiku-4-5-20251001";
 
 const SYSTEM = `Sos Booki, el asistente de estudio de Skillio. Hablás en español rioplatense, con tono amigable y cercano como el de un compañero de estudio que sabe mucho.
 
@@ -43,12 +46,13 @@ export async function POST(req: Request) {
     const system = pageContext ? `${SYSTEM}\n\nContexto de la página actual: ${pageContext}` : SYSTEM;
 
     const result = await generateText({
-      model: anthropic("claude-haiku-4-5-20251001"),
+      model: anthropic(CHAT_MODEL),
       system,
       messages,
       maxOutputTokens: 300,
     });
 
+    await recordAiUsage({ kind: "chat", model: CHAT_MODEL, usage: result.usage, clerkUserId: userId });
     return NextResponse.json({ text: result.text.trim() });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

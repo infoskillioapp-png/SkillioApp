@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { auth } from "@clerk/nextjs/server";
+import { recordAiUsage } from "@/lib/ai/usage";
 
 const MODEL = "claude-haiku-4-5-20251001";
 
@@ -40,6 +41,7 @@ Generá 2 preguntas de opción múltiple específicamente sobre este concepto.`;
       system: SYSTEM,
       messages: [{ role: "user", content: prompt }],
     });
+    await recordAiUsage({ kind: "practica", model: MODEL, usage: result.usage, clerkUserId: userId });
     return NextResponse.json(result.object);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";

@@ -414,13 +414,15 @@ export type AiCostUser = { id: string; email: string; plan: Plan; gen: number; i
 export async function getAiCosts(range: RangeInput) {
   const { fromISO, toISO } = range;
   const sb = supabaseAdmin();
+  // ai_usage registra TODAS las llamadas a la IA (generaciones + chat + tips +
+  // práctica) → costo real, no solo el de las 3 generaciones que van a ai_outputs.
   const [outRes, userRes] = await Promise.all([
     sb
-      .from("ai_outputs")
+      .from("ai_usage")
       .select("user_id,model,input_tokens,output_tokens,created_at")
       .gte("created_at", fromISO)
       .lte("created_at", toISO)
-      .limit(100000),
+      .limit(200000),
     sb.from("users").select("id,email,plan").limit(20000),
   ]);
   const outputs = (outRes.data ?? []) as {

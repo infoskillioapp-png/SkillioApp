@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
+import { recordAiUsage } from "@/lib/ai/usage";
 import {
   buildUserContent,
   chargeCredits,
@@ -104,6 +105,7 @@ export async function POST(req: Request) {
       output_tokens: result.usage?.outputTokens ?? null,
     });
 
+    await recordAiUsage({ kind: "simulacro", model, usage: result.usage, userDbId: userRow.id });
     const activationEventId = await markActivationIfFirst(userRow.id);
 
     return NextResponse.json({
