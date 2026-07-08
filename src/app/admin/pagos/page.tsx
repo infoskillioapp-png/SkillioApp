@@ -33,15 +33,16 @@ export default async function AdminPayments() {
           </div>
         ) : (
           <div className="tbl__scroll">
-            <table className="tbl" style={{ minWidth: 560 }}>
+            <table className="tbl" style={{ minWidth: 720 }}>
               <thead>
-                <tr><th>Fecha</th><th>Email</th><th>Tipo</th><th>Estado</th><th className="num">Monto</th></tr>
+                <tr><th>Fecha</th><th>Usuario (Skillio)</th><th>Email MercadoPago</th><th>Tipo</th><th>Estado</th><th className="num">Monto</th></tr>
               </thead>
               <tbody>
                 {payments.map((p, i) => (
                   <tr key={i}>
                     <td className="mono" style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>{fmtDateTime(p.created_at)}</td>
-                    <td style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.email ?? "—"}</td>
+                    <td style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.user_email ?? "—"}</td>
+                    <td className="faint" style={{ maxWidth: 190, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12.5 }}>{p.email && p.email !== p.user_email ? p.email : "—"}</td>
                     <td>{p.kind === "authorized_payment" ? "Suscripción" : "Pago"}</td>
                     <td>{p.status}</td>
                     <td className="num" style={{ fontWeight: 700 }}>{fmtArs(Number(p.amount))}</td>

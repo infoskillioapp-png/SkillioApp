@@ -99,7 +99,6 @@ export async function getDashboard(range: RangeInput) {
   // ====== PERÍODO SELECCIONADO ======
   // Cohorte: usuarios registrados dentro del rango (base del funnel).
   const cohort = allUsers.filter((u) => inRange(u.created_at));
-  const cohortIds = new Set(cohort.map((u) => u.id));
 
   const outputs = allOutputs.filter((o) => inRange(o.created_at)); // volumen en ventana
   const payments = allPayments.filter((p) => inRange(p.created_at));
@@ -108,8 +107,9 @@ export async function getDashboard(range: RangeInput) {
 
   // KPIs del período
   const registros = cohort.length;
-  const activadosCohort = cohort.filter((u) => u.activated_at).length;
-  const activationRate = registros > 0 ? activadosCohort / registros : 0;
+  // Activados = activaciones que OCURRIERON en el rango (actividad, no cohorte).
+  const activados = allUsers.filter((u) => inRange(u.activated_at)).length;
+  const activationRate = registros > 0 ? activados / registros : 0;
   const reg7 = allUsers.filter((u) => u.created_at >= new Date(Date.now() - 7 * 86400000).toISOString()).length;
 
   const generaciones = outputs.length;
@@ -139,42 +139,25 @@ export async function getDashboard(range: RangeInput) {
     planCounts.trimestral * MRR_MONTHLY.trimestral;
   const totalRevenueAll = allPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-  // ====== FUNNEL (sobre la cohorte registrada en el rango) ======
-  // Sets históricos por usuario (cualquier fecha): "¿hasta dónde llegó esta cohorte?"
-  const notesUserSet = new Set(allNotes.map((n) => n.user_id).filter(Boolean) as string[]);
-  const paywallSeenSet = new Set(
-    allFunnel.filter((f) => f.event === "paywall_visto" && f.user_id).map((f) => f.user_id!),
-  );
-  const checkoutSet = new Set(
-    allFunnel.filter((f) => f.event === "checkout_iniciado" && f.user_id).map((f) => f.user_id!),
-  );
-  const paidUserSet = new Set(allPayments.map((p) => p.user_id).filter(Boolean) as string[]);
-  const payingNowSet = new Set(allUsers.filter((u) => isPaid(u.plan)).map((u) => u.id));
+  // ====== FUNNEL — ACTIVIDAD del período ======
+  // Cuenta lo que OCURRIÓ dentro del rango (sin importar cuándo se registró cada
+  // usuario) → así coincide con lo que ves en Meta Ads, que también es actividad.
+  const uniqEventUsers = (event: string) =>
+    new Set(funnel.filter((f) => f.event === event && f.user_id).map((f) => f.user_id!)).size;
 
-  const countCohort = (set: Set<string>) => {
-    let c = 0;
-    for (const id of cohortIds) if (set.has(id)) c++;
-    return c;
-  };
-  const subieron = countCohort(notesUserSet);
-  const activaron = cohort.filter((u) => u.activated_at).length;
-  // Probaron un apunte demo (evento del período). El demo es contenido enlatado:
-  // no genera con IA ni activa al usuario — la activación es 100% material propio.
-  const demoTried = new Set(
-    funnel.filter((f) => f.event === "demo_apunte_abierto" && f.user_id).map((f) => f.user_id!),
+  const subieron = new Set(
+    allNotes.filter((n) => n.user_id && inRange(n.created_at)).map((n) => n.user_id!),
   ).size;
-  const vieronPaywall = countCohort(paywallSeenSet);
-  const iniciaronCheckout = countCohort(checkoutSet);
-  const pagaron = (() => {
-    let c = 0;
-    for (const id of cohortIds) if (paidUserSet.has(id) || payingNowSet.has(id)) c++;
-    return c;
-  })();
+  // Probaron un apunte demo (contenido enlatado: no genera con IA ni activa).
+  const demoTried = uniqEventUsers("demo_apunte_abierto");
+  const vieronPaywall = uniqEventUsers("paywall_visto");
+  const iniciaronCheckout = uniqEventUsers("checkout_iniciado");
+  const pagaron = new Set(payments.map((p) => p.user_id).filter(Boolean) as string[]).size;
 
   const funnelSteps = [
     { label: "Registros", value: registros },
     { label: "Subieron un apunte", value: subieron },
-    { label: "Activaron (generaron con lo suyo)", value: activaron },
+    { label: "Activaron (generaron con lo suyo)", value: activados },
     { label: "Vieron el paywall", value: vieronPaywall },
     { label: "Iniciaron checkout", value: iniciaronCheckout },
     { label: "Pagaron", value: pagaron },
@@ -312,7 +295,7 @@ export async function getDashboard(range: RangeInput) {
     range: { fromISO, toISO },
     kpis: {
       registros,
-      activadosCohort,
+      activados,
       activationRate,
       demoTried,
       reg7,
@@ -483,10 +466,24 @@ export async function getRecentPayments(limit = 50) {
   const sb = supabaseAdmin();
   const { data } = await sb
     .from("payments")
-    .select("amount,currency,kind,status,email,created_at")
+    .select("amount,currency,kind,status,email,created_at,user_id")
     .order("created_at", { ascending: false })
     .limit(limit);
-  return data ?? [];
+  const pays = (data ?? []) as {
+    amount: number; currency: string; kind: string; status: string;
+    email: string | null; created_at: string; user_id: string | null;
+  }[];
+  // El email de payments es el del pagador en MercadoPago, que puede diferir del
+  // email de Skillio (Google). Traemos el email real del usuario para identificarlo.
+  const ids = [...new Set(pays.map((p) => p.user_id).filter(Boolean) as string[])];
+  const { data: users } = ids.length
+    ? await sb.from("users").select("id,email").in("id", ids)
+    : { data: [] as { id: string; email: string }[] };
+  const emailById = new Map((users ?? []).map((u) => [u.id, u.email]));
+  return pays.map((p) => ({
+    ...p,
+    user_email: p.user_id ? emailById.get(p.user_id) ?? null : null,
+  }));
 }
 
 // ---------------------------------------------------------------------------

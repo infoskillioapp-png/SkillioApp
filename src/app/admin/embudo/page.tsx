@@ -25,12 +25,12 @@ export default async function AdminEmbudo({
       </header>
 
       <Panel
-        title="Conversión de la cohorte"
-        hint={`De los ${fmtInt(d.kpis.registros)} que se registraron en este período, hasta dónde llegaron. El % es la retención respecto del paso anterior — donde más cae, ahí hay que trabajar.`}
+        title="Actividad del período"
+        hint="Cuenta lo que OCURRIÓ en estas fechas (registros, subidas, activaciones, paywall, checkout, pagos), sin importar cuándo se registró cada usuario — por eso coincide con lo que ves en Meta Ads. El % es la caída respecto del paso anterior."
       >
         <Funnel steps={d.funnelSteps} />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18 }}>
-          <span className="chip"><span className="d" style={{ background: "var(--green)" }} /><span>Activaron con apunte propio</span><b>{fmtInt(d.kpis.activadosCohort)}</b></span>
+          <span className="chip"><span className="d" style={{ background: "var(--green)" }} /><span>Activaron con apunte propio</span><b>{fmtInt(d.kpis.activados)}</b></span>
           <span className="chip"><span className="d" style={{ background: "var(--amber)" }} /><span>Solo probaron apunte demo</span><b>{fmtInt(d.kpis.demoTried)}</b></span>
         </div>
         <p className="panel__hint">
