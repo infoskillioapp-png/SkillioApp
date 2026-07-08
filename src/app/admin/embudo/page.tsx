@@ -38,6 +38,21 @@ export default async function AdminEmbudo({
         </p>
       </Panel>
 
+      {d.inAppBrowser.total > 0 && (
+        <Panel
+          title="Navegador embebido (Instagram/Facebook/TikTok)"
+          hint="Google bloquea el login OAuth dentro de estos navegadores — es una causa directa de gente que clickea el anuncio pero no logra registrarse. Se muestra un aviso pidiéndole que abra el link en Chrome/Safari."
+        >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <span className="chip"><span className="d" style={{ background: "var(--amber)" }} /><span>Cayeron en navegador embebido</span><b>{fmtInt(d.inAppBrowser.total)}</b></span>
+            <span className="chip"><span className="d" style={{ background: "var(--green)" }} /><span>Tocaron &quot;Abrir en Chrome&quot;</span><b>{fmtInt(d.inAppBrowser.openedChrome)}</b></span>
+            {d.inAppBrowser.byApp.map((a) => (
+              <span key={a.app} className="chip"><span className="d" style={{ background: "var(--violet)" }} /><span style={{ textTransform: "capitalize" }}>{a.app}</span><b>{fmtInt(a.count)}</b></span>
+            ))}
+          </div>
+        </Panel>
+      )}
+
       <div className="grid2">
         <Panel title="Conversión del paywall">
           <div className="row"><span className="muted">Vieron el paywall</span><span className="mono" style={{ fontSize: 17, fontWeight: 700 }}>{fmtInt(pc.visto)}</span></div>

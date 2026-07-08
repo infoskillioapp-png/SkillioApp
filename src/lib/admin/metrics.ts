@@ -163,6 +163,20 @@ export async function getDashboard(range: RangeInput) {
     { label: "Pagaron", value: pagaron },
   ];
 
+  // In-app browser (Instagram/Facebook/TikTok): Google bloquea el OAuth ahí, así
+  // que es una causa directa de caída landing→registro en tráfico de ads. Estos
+  // eventos ocurren ANTES del registro → casi siempre sin user_id, se cuenta por
+  // ocurrencia (no por usuario único).
+  const inAppDetected = funnel.filter((f) => f.event === "in_app_browser_detectado");
+  const inAppByApp: Record<string, number> = {};
+  for (const f of inAppDetected) if (f.step) inAppByApp[f.step] = (inAppByApp[f.step] ?? 0) + 1;
+  const inAppOpenedChrome = funnel.filter((f) => f.event === "in_app_browser_abrir_chrome_click").length;
+  const inAppBrowser = {
+    total: inAppDetected.length,
+    byApp: Object.entries(inAppByApp).map(([app, count]) => ({ app, count })).sort((a, b) => b.count - a.count),
+    openedChrome: inAppOpenedChrome,
+  };
+
   const paywallConv = {
     visto: vieronPaywall,
     checkout: iniciaronCheckout,
@@ -324,6 +338,7 @@ export async function getDashboard(range: RangeInput) {
     usageByModel,
     tours,
     tourSkippers,
+    inAppBrowser,
   };
 }
 
