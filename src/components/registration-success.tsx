@@ -5,9 +5,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "./toast";
 
 // Detecta ?registered=1 (lo setea el onboarding al terminar el alta) y:
-//  1) dispara el evento de Registro al Pixel de Meta (CompleteRegistration),
-//  2) muestra un toast de bienvenida,
-//  3) limpia el query param para que no se vuelva a disparar.
+//  1) muestra un toast de bienvenida,
+//  2) limpia el query param para que no se vuelva a disparar.
+//
+// Ya NO dispara CompleteRegistration al Pixel: la señal real de intención es la
+// ACTIVACIÓN (primera generación con material propio), que se mide server-side
+// por CAPI en markActivationIfFirst. El registro dejó de ser el paso relevante
+// del embudo (registro diferido).
 export function RegistrationSuccess() {
   const params = useSearchParams();
   const router = useRouter();
@@ -15,9 +19,6 @@ export function RegistrationSuccess() {
 
   useEffect(() => {
     if (params.get("registered") !== "1") return;
-
-    const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
-    if (fbq) fbq("track", "CompleteRegistration");
 
     toast.success(
       "¡Bienvenido a Skillio! 🎉",

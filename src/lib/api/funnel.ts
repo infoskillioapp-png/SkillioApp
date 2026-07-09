@@ -1,5 +1,6 @@
 import "server-only";
 import { auth } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // Instrumentación del funnel. Una fila por evento en public.funnel_events.
@@ -44,14 +45,27 @@ export async function recordFunnelEvent(
 ): Promise<void> {
   try {
     const { userId } = await auth();
+    const sb = supabaseAdmin();
     let dbUserId: string | null = null;
     if (userId) {
-      const { data } = await supabaseAdmin()
+      const { data } = await sb
         .from("users")
         .select("id")
         .eq("clerk_user_id", userId)
         .maybeSingle();
       dbUserId = data?.id ?? null;
+    } else {
+      // Registro diferido: sin sesión de Clerk, atribuimos el evento a la sesión
+      // anónima (cookie) para no perder paywall_visto / paywall_plan_click, etc.
+      const session = (await cookies()).get("skillio_anon")?.value;
+      if (session) {
+        const { data } = await sb
+          .from("users")
+          .select("id")
+          .eq("anon_session_id", session)
+          .maybeSingle();
+        dbUserId = data?.id ?? null;
+      }
     }
     await insertEvent(dbUserId, event, step, meta);
   } catch (e) {
