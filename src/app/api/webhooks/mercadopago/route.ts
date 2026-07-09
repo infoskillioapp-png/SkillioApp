@@ -71,6 +71,17 @@ async function findUser(
       .maybeSingle();
     if (data) return { user: data as MatchedUser, matchedBy: "external_reference" };
   }
+  // Registro diferido: el external_reference de una sesión anónima es su
+  // anon_session_id (UUID, sin prefijo user_). Activa el plan sobre esa fila; la
+  // cuenta Clerk se crea al confirmar el mail en /pago-exitoso.
+  if (opts.externalRef && !looksLikeClerkId(opts.externalRef)) {
+    const { data } = await sb
+      .from("users")
+      .select(USER_COLS)
+      .eq("anon_session_id", opts.externalRef)
+      .maybeSingle();
+    if (data) return { user: data as MatchedUser, matchedBy: "anon_session_id" };
+  }
   if (opts.payerEmail) {
     const { data } = await sb
       .from("users")
