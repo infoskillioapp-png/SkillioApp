@@ -144,11 +144,12 @@ function StickyMobileCTA({ onCTA }: { onCTA: () => void }) {
 
 export function LandingPage() {
   const router = useRouter();
-  // plan puede venir como string (desde Pricing) o no venir; si un onClick pasa el
-  // evento por accidente, lo ignoramos y caemos a "pro" (evita ?plan=[object Object]).
-  const onCTA = useCallback((plan?: string) => {
-    const p = typeof plan === "string" ? plan : "pro";
-    router.push(`/registro?plan=${p}`);
+  // Registro diferido: TODOS los CTAs del landing llevan al embudo público
+  // (/generar): subir un apunte sin cuenta. El plan ya no se elige acá —
+  // aparece en el paywall, después de ver el resultado. El plan que manda
+  // Pricing se ignora a propósito.
+  const onCTA = useCallback((_plan?: string) => {
+    router.push("/generar");
   }, [router]);
   useReveal();
 
