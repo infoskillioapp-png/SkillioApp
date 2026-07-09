@@ -215,3 +215,23 @@ export async function sendCreditsExhaustedEmail(to: string, name?: string | null
     }),
   });
 }
+
+/**
+ * Mail de rescate del embudo anónimo (registro diferido). Se dispara cuando el
+ * usuario cierra el paywall sin pagar y deja su mail para "no perder" el
+ * resultado. `resultPath` incluye el token de sesión anónima (?s=…) para que
+ * pueda volver a su resultado desde cualquier dispositivo.
+ */
+export async function sendResultRescueEmail(to: string, resultPath: string): Promise<void> {
+  await send({
+    to,
+    subject: "Tu resumen te está esperando 📚",
+    html: wrap({
+      preview: "Volvé cuando quieras: tu resumen quedó guardado.",
+      heading: "Guardamos tu resumen 📚",
+      body: `Generaste un resumen con Skillio y lo dejamos guardado para que no lo pierdas.<br><br>Volvé cuando quieras desde este link — te lleva directo a tu resultado, sin tener que subir el apunte de nuevo.<br><br>Cuando quieras el resumen completo (todos los temas desbloqueados), lo desbloqueás desde ahí mismo. 💜`,
+      ctaText: "Volver a mi resumen →",
+      ctaPath: resultPath,
+    }),
+  });
+}
