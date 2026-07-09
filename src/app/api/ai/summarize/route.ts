@@ -3,6 +3,7 @@ import { generateObject, generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { recordAiUsage } from "@/lib/ai/usage";
+import { resolveActor } from "@/lib/actor";
 import {
   buildUserContent,
   chargeCredits,
@@ -125,7 +126,9 @@ export async function POST(req: Request) {
     if (!FORMAT_PROMPTS[format])
       return NextResponse.json({ error: "invalid format" }, { status: 400 });
 
-    const { note, content, userRow } = await getNoteContent(note_id);
+    // Identidad: Clerk (con cuenta) o sesión anónima (registro diferido).
+    const actor = await resolveActor();
+    const { note, content, userRow } = await getNoteContent(note_id, actor);
     if (content.type === "unsupported")
       return NextResponse.json(
         { error: "tipo de archivo no soportado (subí PDF, imagen o texto)" },

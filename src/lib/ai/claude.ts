@@ -49,22 +49,40 @@ export type NoteContent =
   | { type: "image"; data: Uint8Array; mime: string; fileName: string }
   | { type: "unsupported"; fileName: string };
 
-export async function getNoteContent(noteId: string): Promise<{
+type NoteUserRow = {
+  id: string;
+  credits: number;
+  plan: string;
+  free_generations_used: number;
+  expires_at: string | null;
+};
+
+export async function getNoteContent(
+  noteId: string,
+  actor?: NoteUserRow,
+): Promise<{
   note: Note;
   content: NoteContent;
-  userRow: { id: string; credits: number; plan: string; free_generations_used: number; expires_at: string | null };
+  userRow: NoteUserRow;
 }> {
-  const { userId } = await auth();
-  if (!userId) throw new Error("unauthenticated");
-
   const sb = supabaseAdmin();
 
-  const { data: u } = await sb
-    .from("users")
-    .select("id, credits, plan, free_generations_used, expires_at")
-    .eq("clerk_user_id", userId)
-    .single();
-  if (!u) throw new Error("user_not_found");
+  // Identidad: si el caller ya resolvió el actor (embudo público, Clerk o
+  // anónimo) lo usamos tal cual; si no, mantenemos el flujo Clerk histórico.
+  let u: NoteUserRow;
+  if (actor) {
+    u = actor;
+  } else {
+    const { userId } = await auth();
+    if (!userId) throw new Error("unauthenticated");
+    const { data } = await sb
+      .from("users")
+      .select("id, credits, plan, free_generations_used, expires_at")
+      .eq("clerk_user_id", userId)
+      .single();
+    if (!data) throw new Error("user_not_found");
+    u = data as NoteUserRow;
+  }
 
   const { data: note } = await sb
     .from("notes")

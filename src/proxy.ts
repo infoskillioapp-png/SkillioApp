@@ -11,8 +11,18 @@ const isProtectedRoute = createRouteMatcher([
   "/api/ai(.*)",
 ]);
 
+// Embudo público (registro diferido): subir apunte + generar resumen sin cuenta.
+// Estos endpoints resuelven la identidad por dentro (Clerk o sesión anónima),
+// así que quedan fuera de auth.protect(). El resto de /api/notes y /api/ai sigue
+// protegido igual que antes.
+const isPublicFunnelRoute = createRouteMatcher([
+  "/api/notes/upload",
+  "/api/notes/pdf-info",
+  "/api/ai/summarize",
+]);
+
 export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
+  if (isProtectedRoute(req) && !isPublicFunnelRoute(req)) {
     await auth.protect();
   }
 });

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { recordFunnelEvent } from "@/lib/api/funnel";
+import { recordFunnelEventForUser } from "@/lib/api/funnel";
+import { resolveActor } from "@/lib/actor";
 
 const BUCKET = "notes-uploads";
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -80,9 +80,6 @@ function resolveFile(file: File): { allowed: boolean; kind: string; mime: string
 }
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-
   const form = await req.formData().catch(() => null);
   if (!form) return NextResponse.json({ error: "invalid form" }, { status: 400 });
 
@@ -111,13 +108,14 @@ export async function POST(req: Request) {
 
   const sb = supabaseAdmin();
 
-  // Resolver user_id
-  const { data: u } = await sb
-    .from("users")
-    .select("id")
-    .eq("clerk_user_id", userId)
-    .single();
-  if (!u) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
+  // Identidad: Clerk (con cuenta) o sesión anónima (registro diferido). En el
+  // caso anónimo esto crea la fila users y setea la cookie skillio_anon.
+  let u: { id: string };
+  try {
+    u = await resolveActor();
+  } catch {
+    return NextResponse.json({ error: "user_not_found" }, { status: 404 });
+  }
 
   // Upload a Storage (usamos el mime resuelto, no el del navegador que puede venir vacío)
   const path = `${u.id}/${Date.now()}-${slugify(file.name)}`;
@@ -173,7 +171,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "insert_failed" }, { status: 500 });
     }
 
-    await recordFunnelEvent("apunte_subido", resolved.kind, { segments: inserted.length });
+    await recordFunnelEventForUser(u.id, "apunte_subido", resolved.kind, { segments: inserted.length });
     return NextResponse.json({ ok: true, notes: inserted, note: inserted[0] });
   }
 
@@ -200,6 +198,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "insert_failed" }, { status: 500 });
   }
 
-  await recordFunnelEvent("apunte_subido", resolved.kind);
+  await recordFunnelEventForUser(u.id, "apunte_subido", resolved.kind);
   return NextResponse.json({ ok: true, note: inserted });
 }
