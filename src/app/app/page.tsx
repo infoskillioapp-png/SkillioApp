@@ -1,12 +1,45 @@
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { syncUserToSupabase } from "@/lib/sync-user";
 import { listSubjects } from "@/lib/api/subjects";
 import { listNotes } from "@/lib/api/notes";
+import { getActorReadonly } from "@/lib/actor";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { HomeClient } from "./_components/home-client";
 
 type SearchParams = Promise<{ upload?: string; upgrade?: string }>;
 
 export default async function DashboardPage({ searchParams }: { searchParams: SearchParams }) {
   const { upload, upgrade } = await searchParams;
+
+  // Invitado (registro diferido): home limpia con el modal de subir abierto. No
+  // cargamos datos que asumen cuenta de Clerk.
+  const { userId } = await auth();
+  if (!userId) {
+    // Si ya generó su resumen gratis, lo llevamos a su resultado (no puede
+    // volver a generar).
+    const guest = await getActorReadonly();
+    if (guest) {
+      const { data: out } = await supabaseAdmin()
+        .from("ai_outputs")
+        .select("note_id")
+        .eq("user_id", guest.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (out?.note_id) redirect(`/app/ia/resumen?note_id=${out.note_id}`);
+    }
+    return (
+      <HomeClient
+        user={{ firstName: "Estudiante", initial: "E" }}
+        lastNote={null}
+        subjects={[]}
+        notes={[]}
+        autoUpload
+        isGuest
+      />
+    );
+  }
 
   const [user, subjects, notes] = await Promise.all([
     syncUserToSupabase(),

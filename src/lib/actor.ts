@@ -1,7 +1,10 @@
 import "server-only";
 import { auth } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getOrCreateAnonUser } from "@/lib/anon";
+
+const ANON_COOKIE = "skillio_anon";
 
 export type Actor = {
   id: string;
@@ -43,4 +46,33 @@ export async function resolveActor(): Promise<Actor> {
 
   const anon = await getOrCreateAnonUser();
   return { ...anon, isAnon: true };
+}
+
+/**
+ * Versión de sólo lectura para Server Components (render de páginas), donde NO se
+ * pueden setear cookies: resuelve el actor si ya existe (Clerk logueado o cookie
+ * anónima ya creada en un route handler previo), o devuelve null. Nunca crea la
+ * sesión anónima ni toca cookies.
+ */
+export async function getActorReadonly(): Promise<Actor | null> {
+  const { userId } = await auth();
+  const sb = supabaseAdmin();
+
+  if (userId) {
+    const { data } = await sb
+      .from("users")
+      .select(COLS)
+      .eq("clerk_user_id", userId)
+      .maybeSingle();
+    return data ? { ...(data as Omit<Actor, "isAnon">), isAnon: false } : null;
+  }
+
+  const session = (await cookies()).get(ANON_COOKIE)?.value;
+  if (!session) return null;
+  const { data } = await sb
+    .from("users")
+    .select(COLS)
+    .eq("anon_session_id", session)
+    .maybeSingle();
+  return data ? { ...(data as Omit<Actor, "isAnon">), isAnon: true } : null;
 }

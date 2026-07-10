@@ -5,16 +5,17 @@ const ANON_COOKIE = "skillio_anon";
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
 // Adopta una sesión anónima desde el link de rescate por mail (?s=…) y redirige
-// al resultado, seteando la cookie skillio_anon en este dispositivo. Riesgo
-// bajo: el contenido bloqueado no tiene valor real, así que "robar" una sesión
-// solo da acceso a un resumen recortado.
+// a la vista de resultado (/app/ia/resumen), seteando la cookie skillio_anon en
+// este dispositivo. Riesgo bajo: el contenido bloqueado no tiene valor real, así
+// que "robar" una sesión solo da acceso a un resumen recortado.
 export async function GET(req: NextRequest) {
   const s = req.nextUrl.searchParams.get("s") ?? "";
-  const to = req.nextUrl.searchParams.get("to") ?? "";
+  const noteId = req.nextUrl.searchParams.get("note_id") ?? "";
   const origin = req.nextUrl.origin;
 
-  // Solo permitimos volver a una pantalla de resultado /r/<id>.
-  const safeTo = /^\/r\/[a-zA-Z0-9-]+$/.test(to) ? to : "/generar";
+  const safeTo = /^[a-zA-Z0-9-]+$/.test(noteId)
+    ? `/app/ia/resumen?note_id=${noteId}`
+    : "/app";
   const res = NextResponse.redirect(new URL(safeTo, origin));
 
   if (!s) return res;

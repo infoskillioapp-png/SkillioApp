@@ -1,22 +1,19 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isPaidPlan } from "@/lib/ai/claude";
 import { isDemoNoteId, getDemoResumen } from "@/lib/demo-content";
+import { getActorReadonly } from "@/lib/actor";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ResumenClient } from "./_components/resumen-client";
 import type { ResumenData } from "./_components/resumen-client";
 
-type SearchParams = Promise<{ note_id?: string }>;
+type SearchParams = Promise<{ note_id?: string; s?: string }>;
 
 type SummaryPoint = { emoji?: string; title: string; description: string; category?: string };
 type SummaryContent = { title?: string; intro?: string; points?: SummaryPoint[] };
 
 
 export default async function ResumenPage({ searchParams }: { searchParams: SearchParams }) {
-  const { userId } = await auth();
-  if (!userId) redirect("/login");
-
-  const { note_id } = await searchParams;
+  const { note_id, s } = await searchParams;
   if (!note_id) redirect("/app");
 
   // Demo: contenido hardcodeado, cero tokens, carga instantánea
@@ -26,12 +23,19 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     return <ResumenClient data={demoData} isPro={true} isDemo />;
   }
 
+  // Link de rescate cross-device (?s=…): adoptamos la sesión anónima y volvemos
+  // limpios (sin el parámetro). No se puede setear la cookie desde acá (Server
+  // Component en render), por eso pasa por el route handler.
+  if (s) redirect(`/api/public/adopt?s=${encodeURIComponent(s)}&note_id=${encodeURIComponent(note_id)}`);
+
+  // Identidad: cuenta de Clerk o sesión anónima (registro diferido). Sin ninguna
+  // de las dos, no hay nada que mostrar.
+  const actor = await getActorReadonly();
+  if (!actor) redirect("/app");
+
   const sb = supabaseAdmin();
 
-  const { data: userRow } = await sb.from("users").select("id,plan,expires_at").eq("clerk_user_id", userId).single();
-  if (!userRow) redirect("/login");
-
-  const { data: note } = await sb.from("notes").select("id,title,subject_id,file_path").eq("id", note_id).eq("user_id", userRow.id).single();
+  const { data: note } = await sb.from("notes").select("id,title,subject_id,file_path").eq("id", note_id).eq("user_id", actor.id).single();
   if (!note) redirect("/app");
 
   const subjectName = note.subject_id
@@ -42,7 +46,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     .from("ai_outputs")
     .select("kind, content")
     .eq("note_id", note_id)
-    .eq("user_id", userRow.id);
+    .eq("user_id", actor.id);
 
   // La API guarda content = { format, data: SummaryContent }
   type SummaryWrapper = { data?: SummaryContent } & SummaryContent;
@@ -75,9 +79,11 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     fileUrl: fileSignedUrl?.signedUrl ?? null,
   };
 
-  if (rawPoints.length === 0) redirect(`/app/ia?note_id=${note_id}`);
+  // Invitado: /app/ia no está disponible (requiere cuenta) — si por algún motivo
+  // todavía no hay puntos generados, lo mandamos a la home a reintentar.
+  if (rawPoints.length === 0) redirect(actor.isAnon ? "/app" : `/app/ia?note_id=${note_id}`);
 
-  const isPro = isPaidPlan(userRow.plan, userRow.expires_at ?? null);
+  const isPro = isPaidPlan(actor.plan, actor.expires_at);
 
-  return <ResumenClient data={data} isPro={isPro} />;
+  return <ResumenClient data={data} isPro={isPro} isGuest={actor.isAnon} />;
 }

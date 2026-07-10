@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { SalePopup } from "@/components/sale-popup";
+import { RescuePrompt } from "@/components/rescue-prompt";
 import { OnboardingTour, useTourRequired, TourIconSparkles, TourIconBook } from "../../../_components/onboarding-tour";
 
 const KX_COLORS = [
@@ -427,7 +428,17 @@ function ResumenSidebar({
 }
 
 // ---- componente principal ----
-export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenData; isPro: boolean; isDemo?: boolean }) {
+export function ResumenClient({
+  data,
+  isPro,
+  isDemo = false,
+  isGuest = false,
+}: {
+  data: ResumenData;
+  isPro: boolean;
+  isDemo?: boolean;
+  isGuest?: boolean;
+}) {
   // allPoints con indices de sección para sync con espacio mapa
   const allPoints: { point: SummaryPoint; secName: string; secIdx: number; pointIdx: number }[] = [];
   data.sections.forEach((sec, si) => {
@@ -452,7 +463,16 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
   });
   const [leadMode, setLeadMode] = useState<"normal" | "eli5" | "more">("normal");
   const [showPaywall, setShowPaywall] = useState(false);
-  const showResumenTour = useTourRequired("skillio_resumen_tour_v1");
+  const [rescueOpen, setRescueOpen] = useState(false);
+  const [rescueDone, setRescueDone] = useState(false);
+  const showResumenTour = useTourRequired("skillio_resumen_tour_v1") && !isGuest;
+
+  // Al cerrar el paywall sin pagar, invitados: ofrecemos el rescate por mail
+  // (una sola vez).
+  function closePaywall() {
+    setShowPaywall(false);
+    if (isGuest && !rescueDone) setRescueOpen(true);
+  }
 
   const safeActiveIdx = Math.min(activeIdx, visiblePoints.length - 1);
   const active = visiblePoints[safeActiveIdx];
@@ -513,7 +533,17 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
     <>
       <div id="confetti-layer" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 80, overflow: "hidden" }} />
 
-      {showPaywall && <SalePopup ctx="resumen" onClose={() => setShowPaywall(false)} />}
+      {showPaywall && <SalePopup ctx="resumen" onClose={closePaywall} />}
+      {rescueOpen && !rescueDone && (
+        <RescuePrompt
+          noteId={data.noteId}
+          onClose={() => setRescueOpen(false)}
+          onDone={() => {
+            setRescueDone(true);
+            setRescueOpen(false);
+          }}
+        />
+      )}
 
       {showResumenTour && (
         <OnboardingTour
@@ -568,7 +598,7 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
 
       {/* topbar */}
       <div className="rtopbar">
-        <Link href={`/app/ia?note_id=${data.noteId}`} className="back">
+        <Link href={isGuest ? "/app" : `/app/ia?note_id=${data.noteId}`} className="back">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M11 18l-6-6 6-6" />
           </svg>
@@ -655,7 +685,7 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
                 ))}
             </ul>
 
-            <BookiTip point={point} />
+            {!isGuest && <BookiTip point={point} />}
 
             {/* upgrade CTA inline si hay temas bloqueados */}
             {!isPro && lockedCount > 0 && safeActiveIdx === visiblePoints.length - 1 && (
@@ -687,13 +717,15 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
             )}
           </div>
 
-          {/* práctica rápida — preguntas generadas dinámicamente por tema */}
-          <PracticaQuiz
-            key={`${data.noteId}-${safeActiveIdx}`}
-            point={point}
-            topicName={point.title}
-            onDone={handleQuizDone}
-          />
+          {/* práctica rápida — preguntas generadas dinámicamente por tema (requiere cuenta) */}
+          {!isGuest && (
+            <PracticaQuiz
+              key={`${data.noteId}-${safeActiveIdx}`}
+              point={point}
+              topicName={point.title}
+              onDone={handleQuizDone}
+            />
+          )}
 
           {/* nav entre temas */}
           <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
@@ -725,28 +757,55 @@ export function ResumenClient({ data, isPro, isDemo = false }: { data: ResumenDa
             ) : null}
           </div>
 
-          {/* Continuar con otros modos */}
+          {/* Continuar con otros modos — para invitados, tarjetas/simulacro requieren
+              cuenta: el click abre el paywall en vez de navegar. */}
           <div data-tour="mode-nav" style={{ display: "flex", gap: 10, marginTop: 20, paddingBottom: 40, flexWrap: "wrap" }}>
-            <Link href={`/app/ia/tarjetas?note_id=${data.noteId}`} style={{
-              flex: 1, minWidth: 130,
-              padding: "12px 16px", borderRadius: 14,
-              background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
-              color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
-              display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
-              textDecoration: "none", boxShadow: "0 6px 18px rgba(124,58,237,.28)",
-            }}>
-              🃏 Ir a Tarjetas
-            </Link>
-            <Link href={`/app/ia/simulacro?note_id=${data.noteId}`} style={{
-              flex: 1, minWidth: 130,
-              padding: "12px 16px", borderRadius: 14,
-              background: "linear-gradient(135deg,#ff5d79,#e4264f)",
-              color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
-              display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
-              textDecoration: "none", boxShadow: "0 6px 18px rgba(255,93,121,.28)",
-            }}>
-              📝 Hacer Simulacro
-            </Link>
+            {isGuest ? (
+              <button onClick={() => setShowPaywall(true)} style={{
+                flex: 1, minWidth: 130, border: "none", cursor: "pointer",
+                padding: "12px 16px", borderRadius: 14,
+                background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+                display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+                boxShadow: "0 6px 18px rgba(124,58,237,.28)",
+              }}>
+                🔒 Tarjetas
+              </button>
+            ) : (
+              <Link href={`/app/ia/tarjetas?note_id=${data.noteId}`} style={{
+                flex: 1, minWidth: 130,
+                padding: "12px 16px", borderRadius: 14,
+                background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+                display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+                textDecoration: "none", boxShadow: "0 6px 18px rgba(124,58,237,.28)",
+              }}>
+                🃏 Ir a Tarjetas
+              </Link>
+            )}
+            {isGuest ? (
+              <button onClick={() => setShowPaywall(true)} style={{
+                flex: 1, minWidth: 130, border: "none", cursor: "pointer",
+                padding: "12px 16px", borderRadius: 14,
+                background: "linear-gradient(135deg,#ff5d79,#e4264f)",
+                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+                display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+                boxShadow: "0 6px 18px rgba(255,93,121,.28)",
+              }}>
+                🔒 Simulacro
+              </button>
+            ) : (
+              <Link href={`/app/ia/simulacro?note_id=${data.noteId}`} style={{
+                flex: 1, minWidth: 130,
+                padding: "12px 16px", borderRadius: 14,
+                background: "linear-gradient(135deg,#ff5d79,#e4264f)",
+                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+                display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+                textDecoration: "none", boxShadow: "0 6px 18px rgba(255,93,121,.28)",
+              }}>
+                📝 Hacer Simulacro
+              </Link>
+            )}
           </div>
         </main>
       </div>

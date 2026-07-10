@@ -144,12 +144,12 @@ function StickyMobileCTA({ onCTA }: { onCTA: () => void }) {
 
 export function LandingPage() {
   const router = useRouter();
-  // Registro diferido: TODOS los CTAs del landing llevan al embudo público
-  // (/generar): subir un apunte sin cuenta. El plan ya no se elige acá —
-  // aparece en el paywall, después de ver el resultado. El plan que manda
-  // Pricing se ignora a propósito.
+  // Registro diferido: TODOS los CTAs del landing llevan directo a la app
+  // (/app?upload=1), sin cuenta: abre el modal de subir apunte. El plan ya no
+  // se elige acá — aparece en el paywall, después de ver el resultado. El plan
+  // que manda Pricing se ignora a propósito.
   const onCTA = useCallback((_plan?: string) => {
-    router.push("/generar");
+    router.push("/app?upload=1");
   }, [router]);
   useReveal();
 

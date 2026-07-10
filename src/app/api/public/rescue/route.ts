@@ -12,17 +12,17 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Rescate del embudo anónimo: al cerrar el paywall sin pagar, el usuario deja su
 // mail para no perder el resultado. Guardamos el mail en la fila anónima (deja
 // armado el match del webhook por email en Fase 3) y le mandamos un link para
-// volver desde cualquier dispositivo.
+// volver desde cualquier dispositivo, a su resultado dentro de /app.
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-    const outputId = typeof body.output_id === "string" ? body.output_id : "";
+    const noteId = typeof body.note_id === "string" ? body.note_id : "";
 
     if (!EMAIL_RE.test(email) || isDisposableEmail(email))
       return NextResponse.json({ error: "invalid_email" }, { status: 400 });
-    if (!outputId)
-      return NextResponse.json({ error: "output_id_required" }, { status: 400 });
+    if (!noteId)
+      return NextResponse.json({ error: "note_id_required" }, { status: 400 });
 
     const actor = await resolveActor();
     const sb = supabaseAdmin();
@@ -39,9 +39,12 @@ export async function POST(req: Request) {
       if (error) console.warn("[rescue] no se guardó el mail en la fila anon:", error.message);
     }
 
-    // Token de la sesión anónima → link para volver cross-device.
+    // El link pasa por /api/public/adopt: adopta la sesión (por si se abre en otro
+    // dispositivo) y recién ahí redirige a la vista de resultado ya limpia.
     const session = (await cookies()).get(ANON_COOKIE)?.value ?? "";
-    const path = session ? `/r/${outputId}?s=${session}` : `/r/${outputId}`;
+    const path = session
+      ? `/api/public/adopt?s=${session}&note_id=${noteId}`
+      : `/app/ia/resumen?note_id=${noteId}`;
 
     await sendResultRescueEmail(email, path);
     await recordFunnelEventForUser(actor.id, "rescate_mail", "resumen");

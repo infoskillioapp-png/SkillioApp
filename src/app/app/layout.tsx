@@ -7,7 +7,18 @@ import { BookiFab } from "./_components/booki-fab";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
-  if (!userId) redirect("/login");
+
+  // Invitado (registro diferido): el middleware sólo lo deja llegar a la home y a
+  // la vista de resultado. Le mostramos un shell recortado (sin onboarding, sin
+  // asistente Booki) para que suba un apunte y vea el resultado sin cuenta.
+  if (!userId) {
+    return (
+      <AppProviders>
+        <Sidebar isGuest />
+        <div className="content-rail">{children}</div>
+      </AppProviders>
+    );
+  }
 
   const user = await syncUserToSupabase();
   if (!user) redirect("/login");
