@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { isPaidPlan } from "@/lib/ai/claude";
 import { isDemoNoteId, getDemoResumen } from "@/lib/demo-content";
 import { getActorReadonly } from "@/lib/actor";
@@ -16,11 +17,14 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
   const { note_id, s } = await searchParams;
   if (!note_id) redirect("/app");
 
-  // Demo: contenido hardcodeado, cero tokens, carga instantánea
+  // Demo: contenido hardcodeado, cero tokens, carga instantánea. Disponible
+  // también para invitados (sin cuenta): pasa isGuest para ocultar lo que
+  // requiere cuenta (booki-tip, práctica rápida, tour).
   if (isDemoNoteId(note_id)) {
     const demoData = getDemoResumen(note_id);
     if (!demoData) redirect("/app");
-    return <ResumenClient data={demoData} isPro={true} isDemo />;
+    const { userId } = await auth();
+    return <ResumenClient data={demoData} isPro={true} isDemo isGuest={!userId} />;
   }
 
   // Link de rescate cross-device (?s=…): adoptamos la sesión anónima y volvemos

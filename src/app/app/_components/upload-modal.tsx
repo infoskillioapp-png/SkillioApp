@@ -122,7 +122,11 @@ export function UploadModal({
     await new Promise((r) => setTimeout(r, 400));
     setDemoLoading(null);
     onClose();
-    router.push(`/app/ia?note_id=demo-${topic}`);
+    // Invitado: /app/ia (el "espacio" completo) requiere cuenta — el demo va
+    // directo al resumen, que ya es compatible con invitados.
+    router.push(
+      isGuest ? `/app/ia/resumen?note_id=demo-${topic}` : `/app/ia?note_id=demo-${topic}`,
+    );
   }
 
   async function uploadText() {
@@ -250,8 +254,8 @@ export function UploadModal({
                 </svg>
                 {generatingMsg ? generatingMsg : uploading ? "Subiendo…" : "Seleccionar archivo"}
               </button>
-              {/* Demo pills: requieren /app/ia, no disponible para invitados */}
-              {isGuest ? null : demoLoading ? (
+              {/* Demo pills */}
+              {demoLoading ? (
                 <div style={{ marginTop: 16, textAlign: "center" }}>
                   <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
                     Generando tu set de estudio… <b>{demoPct}%</b>

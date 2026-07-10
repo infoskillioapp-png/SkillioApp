@@ -586,7 +586,7 @@ export function ResumenClient({
           gap: 12, flexWrap: "wrap", fontSize: 13,
         }}>
           <span>✨ Estás viendo una demo — subí tu propio apunte para generar tu set de estudio.</span>
-          <Link href="/app/materias" style={{
+          <Link href={isGuest ? "/app?upload=1" : "/app/materias"} style={{
             background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.35)",
             color: "#fff", padding: "6px 14px", borderRadius: 10,
             fontWeight: 700, fontSize: 12, whiteSpace: "nowrap",
