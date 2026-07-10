@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { resolveActor } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const BUCKET = "notes-uploads";
@@ -9,18 +9,9 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> },
 ) {
   const { id } = await ctx.params;
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  const u = await resolveActor();
 
   const sb = supabaseAdmin();
-
-  // Permitir descargar si: es del propio user, o es publico
-  const { data: u } = await sb
-    .from("users")
-    .select("id")
-    .eq("clerk_user_id", userId)
-    .single();
-  if (!u) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
 
   const { data: note } = await sb
     .from("notes")

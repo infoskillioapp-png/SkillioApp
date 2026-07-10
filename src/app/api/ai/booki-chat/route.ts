@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { auth } from "@clerk/nextjs/server";
+import { resolveActor } from "@/lib/actor";
 import { recordAiUsage } from "@/lib/ai/usage";
 
 const CHAT_MODEL = "claude-haiku-4-5-20251001";
@@ -18,14 +18,12 @@ Reglas:
 
 // GET: endpoint de diagnóstico — abrí /api/ai/booki-chat en el browser
 export async function GET() {
-  const { userId } = await auth().catch(() => ({ userId: null }));
-  return NextResponse.json({ ok: true, userId: userId ?? "no-auth", ts: Date.now() });
+  return NextResponse.json({ ok: true, ts: Date.now() });
 }
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+    const actor = await resolveActor();
 
     const body = await req.json();
     const { messages: rawMessages, pageContext } = body;
@@ -52,7 +50,7 @@ export async function POST(req: Request) {
       maxOutputTokens: 300,
     });
 
-    await recordAiUsage({ kind: "chat", model: CHAT_MODEL, usage: result.usage, clerkUserId: userId });
+    await recordAiUsage({ kind: "chat", model: CHAT_MODEL, usage: result.usage, userDbId: actor.id });
     return NextResponse.json({ text: result.text.trim() });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

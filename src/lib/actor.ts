@@ -12,10 +12,12 @@ export type Actor = {
   expires_at: string | null;
   credits: number;
   free_generations_used: number;
+  full_name: string | null;
+  created_at: string;
   isAnon: boolean;
 };
 
-const COLS = "id, plan, expires_at, credits, free_generations_used";
+const COLS = "id, plan, expires_at, credits, free_generations_used, full_name, created_at";
 
 /**
  * Resuelve QUIÉN está haciendo la request para los endpoints del embudo público

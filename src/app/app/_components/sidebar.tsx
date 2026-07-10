@@ -12,18 +12,12 @@ const NAV = [
   { href: "/app/comunidad", tip: "Comunidad", img: "/comunidad_t.png", alt: "Comunidad" },
 ];
 
-// Para el invitado (registro diferido) mostramos sólo lo del embudo: Inicio y
-// Subir apunte. Las demás secciones requieren cuenta (el middleware igual las
-// bloquea), así que en vez del perfil ponemos un acceso a crear cuenta.
-const GUEST_NAV = NAV.slice(0, 2);
-
-export function Sidebar({ initial, isGuest = false }: { initial?: string; isGuest?: boolean }) {
+export function Sidebar({ initial }: { initial: string }) {
   const pathname = usePathname();
-  const items = isGuest ? GUEST_NAV : NAV;
 
   return (
     <nav className="sidebar">
-      {items.map((item) => {
+      {NAV.map((item) => {
         const checkPath = item.matchPath ?? item.href;
         const isActive = checkPath === "/app"
           ? pathname === "/app"
@@ -39,15 +33,9 @@ export function Sidebar({ initial, isGuest = false }: { initial?: string; isGues
           </Link>
         );
       })}
-      {isGuest ? (
-        <Link href="/login" className="sbtn me" data-tip="Creá tu cuenta" style={{ fontSize: 20 }}>
-          ✨
-        </Link>
-      ) : (
-        <Link href="/app/perfil" className="sbtn me" data-tip="Tu perfil">
-          {initial}
-        </Link>
-      )}
+      <Link href="/app/perfil" className="sbtn me" data-tip="Tu perfil">
+        {initial}
+      </Link>
     </nav>
   );
 }

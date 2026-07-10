@@ -12,48 +12,18 @@ const PDF_PAGE_LIMIT = 30;
 
 type Tab = "file" | "text" | "yt" | "drive";
 
-export function UploadModal({
-  open,
-  onClose,
-  isGuest = false,
-}: {
-  open: boolean;
-  onClose: () => void;
-  isGuest?: boolean;
-}) {
+export function UploadModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("file");
   const [dragging, setDragging] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [ytUrl, setYtUrl] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [generatingMsg, setGeneratingMsg] = useState<string | null>(null);
   const [splitterFile, setSplitterFile] = useState<File | null>(null);
   const [splitterPages, setSplitterPages] = useState(0);
   const [demoLoading, setDemoLoading] = useState<DemoTopic | null>(null);
   const [demoPct, setDemoPct] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-
-  // Invitado (registro diferido): no hay /app/ia (requiere cuenta) — generamos
-  // acá mismo y vamos directo al resultado.
-  async function generateAndGoToResult(noteId: string) {
-    setGeneratingMsg("Generando tu resumen…");
-    try {
-      const res = await fetch("/api/ai/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note_id: noteId, format: "puntos_clave" }),
-      });
-      if (res.ok) {
-        onClose();
-        router.push(`/app/ia/resumen?note_id=${noteId}`);
-        return;
-      }
-    } catch {
-      /* cae al finally */
-    }
-    setGeneratingMsg(null);
-  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -94,11 +64,6 @@ export function UploadModal({
       const res = await fetch("/api/notes/upload", { method: "POST", body: form });
       const data = await res.json();
       if (res.ok && data.note?.id) {
-        if (isGuest) {
-          setUploading(false);
-          await generateAndGoToResult(data.note.id);
-          return;
-        }
         onClose();
         router.push(`/app/ia?note_id=${data.note.id}&gen=1`);
       }
@@ -122,11 +87,7 @@ export function UploadModal({
     await new Promise((r) => setTimeout(r, 400));
     setDemoLoading(null);
     onClose();
-    // Invitado: /app/ia (el "espacio" completo) requiere cuenta — el demo va
-    // directo al resumen, que ya es compatible con invitados.
-    router.push(
-      isGuest ? `/app/ia/resumen?note_id=demo-${topic}` : `/app/ia?note_id=demo-${topic}`,
-    );
+    router.push(`/app/ia?note_id=demo-${topic}`);
   }
 
   async function uploadText() {
@@ -141,11 +102,6 @@ export function UploadModal({
       const res = await fetch("/api/notes/upload", { method: "POST", body: form });
       const data = await res.json();
       if (res.ok && data.note?.id) {
-        if (isGuest) {
-          setUploading(false);
-          await generateAndGoToResult(data.note.id);
-          return;
-        }
         onClose();
         router.push(`/app/ia?note_id=${data.note.id}&gen=1`);
       }
@@ -248,11 +204,11 @@ export function UploadModal({
               <h4>Arrastrá y soltá tus archivos acá</h4>
               <div className="types">Formatos: PDF · Word · PPT · TXT · JPG · PNG · HEIC · WebP · MP3 · WAV · M4A</div>
               <input ref={fileRef} type="file" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp3,.wav,.m4a" />
-              <button data-tour="um-pick" className="um-pick" onClick={() => fileRef.current?.click()} disabled={uploading || !!generatingMsg}>
+              <button data-tour="um-pick" className="um-pick" onClick={() => fileRef.current?.click()} disabled={uploading}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                 </svg>
-                {generatingMsg ? generatingMsg : uploading ? "Subiendo…" : "Seleccionar archivo"}
+                {uploading ? "Subiendo…" : "Seleccionar archivo"}
               </button>
               {/* Demo pills */}
               {demoLoading ? (
@@ -299,7 +255,7 @@ export function UploadModal({
           <div className="um-pane on">
             <textarea className="um-ta" placeholder="Pegá acá tu texto, apuntes o lo que quieras estudiar…" value={textInput} onChange={(e) => setTextInput(e.target.value)} />
             <div className="um-row" style={{ justifyContent: "flex-end" }}>
-              <button className="um-pick" onClick={uploadText} disabled={uploading || !!generatingMsg || !textInput.trim()}>{generatingMsg ?? (uploading ? "Subiendo…" : "Crear estudio")}</button>
+              <button className="um-pick" onClick={uploadText} disabled={uploading || !textInput.trim()}>{uploading ? "Subiendo…" : "Crear estudio"}</button>
             </div>
           </div>
         )}

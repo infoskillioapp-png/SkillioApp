@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { resolveActor } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { levelForXp } from "@/lib/level";
 
@@ -8,8 +8,7 @@ const VALID_MODES = ["focus", "short_break", "long_break"] as const;
 type Mode = (typeof VALID_MODES)[number];
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  const actor = await resolveActor();
 
   let body: { mode?: string; duration_minutes?: number };
   try {
@@ -27,11 +26,10 @@ export async function POST(req: Request) {
 
   const sb = supabaseAdmin();
 
-  // Resolver user_id
   const { data: u, error: ue } = await sb
     .from("users")
     .select("id, total_xp")
-    .eq("clerk_user_id", userId)
+    .eq("id", actor.id)
     .maybeSingle();
   if (ue || !u) {
     console.error("[api/pomodoro/complete] user lookup error", ue);

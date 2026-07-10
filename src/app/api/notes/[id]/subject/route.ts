@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { resolveActor } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  const user = await resolveActor();
 
   const { id } = await params;
   const { subject_id } = await req.json();
 
   const sb = supabaseAdmin();
-  const { data: user } = await sb.from("users").select("id").eq("clerk_user_id", userId).single();
-  if (!user) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const { error } = await sb
     .from("notes")

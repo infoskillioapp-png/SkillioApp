@@ -1,15 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getActorReadonly } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { MateriasClient } from "./_components/materias-client";
 
 export default async function MateriasPage() {
-  const { userId } = await auth();
-  if (!userId) redirect("/login");
+  // Clerk o sesión anónima (free). El invitado ve la sección (vacía hasta que
+  // suba apuntes).
+  const user = await getActorReadonly();
+  if (!user) redirect("/app");
 
   const sb = supabaseAdmin();
-  const { data: user } = await sb.from("users").select("id").eq("clerk_user_id", userId).single();
-  if (!user) redirect("/login");
 
   const [{ data: subjects }, { data: notes }] = await Promise.all([
     sb.from("subjects").select("id,name,color").eq("user_id", user.id).order("name"),

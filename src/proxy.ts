@@ -1,33 +1,19 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
+// Registro diferido: el invitado (sesión anónima) es un usuario FREE completo —
+// puede ver toda la app (/app/*) y usar las herramientas de estudio (subir,
+// generar resumen/tarjetas/simulacro, etc.), lo único que no puede es
+// desbloquear (pagar). Por eso NO protegemos /app ni las APIs del free: cada
+// página y endpoint resuelve la identidad por dentro (Clerk o cookie anónima) y
+// aplica el gate de free. Sólo el admin y los endpoints de cuenta (/api/me)
+// siguen siendo Clerk-only.
 const isProtectedRoute = createRouteMatcher([
-  "/app(.*)",
   "/admin(.*)",
   "/api/me(.*)",
-  "/api/agenda(.*)",
-  "/api/subjects(.*)",
-  "/api/pomodoro(.*)",
-  "/api/notes(.*)",
-  "/api/ai(.*)",
-]);
-
-// Embudo público (registro diferido): subir apunte + generar resumen + ver el
-// resultado, todo SIN cuenta. Estos endpoints y pantallas resuelven la identidad
-// por dentro (Clerk o sesión anónima), así que quedan fuera de auth.protect().
-//   - APIs: subir, pdf-info, generar resumen.
-//   - Pantallas dentro de /app: la home (donde el invitado sube) y la vista de
-//     resultado. El resto de /app/* sigue protegido (materias, logros, comunidad,
-//     perfil, etc.): al invitado lo rebota a /login.
-const isPublicFunnelRoute = createRouteMatcher([
-  "/api/notes/upload",
-  "/api/notes/pdf-info",
-  "/api/ai/summarize",
-  "/app",
-  "/app/ia/resumen",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req) && !isPublicFunnelRoute(req)) {
+  if (isProtectedRoute(req)) {
     await auth.protect();
   }
 });

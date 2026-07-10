@@ -112,16 +112,15 @@ type Props = {
   notes: { id: string; subject_id: string | null; title: string; has_ai_content: boolean }[];
   autoUpload?: boolean;
   autoUpgrade?: "semanal" | "mensual" | "trimestral" | null;
-  isGuest?: boolean;
 };
 
 const HOME_TOUR_KEY = "skillio_home_tour_v1";
 
-export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false, autoUpgrade = null, isGuest = false }: Props) {
+export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false, autoUpgrade = null }: Props) {
   const [modalOpen, setModalOpen] = useState(autoUpload);
   const [showPaywall, setShowPaywall] = useState(!!autoUpgrade);
   const bgRef = useParallaxBg();
-  const showTour = useTourRequired(HOME_TOUR_KEY) && !isGuest;
+  const showTour = useTourRequired(HOME_TOUR_KEY);
 
   // Reaccionar si el prop cambia (e.g., sidebar navega a /app?upload=1 estando ya en /app)
   useEffect(() => {
@@ -169,62 +168,56 @@ export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false
               </div>
             </section>
 
-            {!isGuest && (
-              <Link href={lastNote ? `/app/ia?note_id=${lastNote.id}` : "/app/ia"} className="continue in" style={{ animationDelay: ".12s" }}>
-                <div className="eyebrow">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-                  Continuá donde quedaste
+            <Link href={lastNote ? `/app/ia?note_id=${lastNote.id}` : "/app/ia"} className="continue in" style={{ animationDelay: ".12s" }}>
+              <div className="eyebrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                Continuá donde quedaste
+              </div>
+              <div className="body">
+                <ContinuarRing pct={localDominio ?? lastNote?.dominio ?? 0} />
+                <div className="info">
+                  <div className="mat">{lastNote?.subjectName ?? "Sin materias aún"}</div>
+                  <div className="tema">{lastNote ? `${lastNote.title} · En progreso` : "Subí tu primer apunte"}</div>
+                  {lastNote && (
+                    <div className="chips">
+                      <span className="chx dom">Continuar</span>
+                    </div>
+                  )}
                 </div>
-                <div className="body">
-                  <ContinuarRing pct={localDominio ?? lastNote?.dominio ?? 0} />
-                  <div className="info">
-                    <div className="mat">{lastNote?.subjectName ?? "Sin materias aún"}</div>
-                    <div className="tema">{lastNote ? `${lastNote.title} · En progreso` : "Subí tu primer apunte"}</div>
-                    {lastNote && (
-                      <div className="chips">
-                        <span className="chx dom">Continuar</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="retomar">
-                  Retomar estudio
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
-                </div>
-              </Link>
-            )}
+              </div>
+              <div className="retomar">
+                Retomar estudio
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </div>
+            </Link>
           </div>
 
-          {!isGuest && (
-            <>
-              <div className="sec-h in" style={{ animationDelay: ".18s" }}>
-                <div>
-                  <h2>Mis materias</h2>
-                  <p>Tus apuntes ordenados por materia. Tocá una y seguí sumando dominio.</p>
-                </div>
-                <Link href="/app/materias" className="all">Ver todas →</Link>
-              </div>
+          <div className="sec-h in" style={{ animationDelay: ".18s" }}>
+            <div>
+              <h2>Mis materias</h2>
+              <p>Tus apuntes ordenados por materia. Tocá una y seguí sumando dominio.</p>
+            </div>
+            <Link href="/app/materias" className="all">Ver todas →</Link>
+          </div>
 
-              <div className="in" style={{ animationDelay: ".22s" }}>
-                <MateriasAccordion subjects={subjects} notes={notes} onUpload={() => setModalOpen(true)} />
-              </div>
+          <div className="in" style={{ animationDelay: ".22s" }}>
+            <MateriasAccordion subjects={subjects} notes={notes} onUpload={() => setModalOpen(true)} />
+          </div>
 
-              <Link href="/app/materias" className="add-materia">
-                <span className="plus">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </span>
-                Crear nueva materia
-              </Link>
-            </>
-          )}
+          <Link href="/app/materias" className="add-materia">
+            <span className="plus">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+            Crear nueva materia
+          </Link>
         </main>
       </div>
 
-      <UploadModal open={modalOpen} onClose={() => setModalOpen(false)} isGuest={isGuest} />
+      <UploadModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
       {showPaywall && (
         <SalePopup

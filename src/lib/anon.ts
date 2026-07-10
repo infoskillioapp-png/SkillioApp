@@ -12,9 +12,11 @@ export type AnonUserRow = {
   expires_at: string | null;
   credits: number;
   free_generations_used: number;
+  full_name: string | null;
+  created_at: string;
 };
 
-const COLS = "id, plan, expires_at, credits, free_generations_used";
+const COLS = "id, plan, expires_at, credits, free_generations_used, full_name, created_at";
 
 /**
  * Devuelve la fila `users` de la sesión anónima actual, creándola si no existe.

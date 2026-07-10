@@ -1,14 +1,11 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ComunidadClient } from "./_components/comunidad-client";
 
 type SearchParams = Promise<{ kind?: string; subject?: string }>;
 
+// El feed de comunidad es contenido público (apuntes compartidos): lo puede ver
+// cualquiera, incluido el invitado (free).
 export default async function ComunidadPage({ searchParams }: { searchParams: SearchParams }) {
-  const { userId } = await auth();
-  if (!userId) redirect("/login");
-
   const { kind, subject } = await searchParams;
   const sb = supabaseAdmin();
 

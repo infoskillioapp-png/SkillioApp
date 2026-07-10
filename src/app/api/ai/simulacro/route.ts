@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { recordAiUsage } from "@/lib/ai/usage";
+import { resolveActor } from "@/lib/actor";
 import {
   buildUserContent,
   chargeCredits,
@@ -61,7 +62,8 @@ export async function POST(req: Request) {
     const note_id = body.note_id as string;
     if (!note_id) return NextResponse.json({ error: "note_id required" }, { status: 400 });
 
-    const { note, content, userRow } = await getNoteContent(note_id);
+    const actor = await resolveActor();
+    const { note, content, userRow } = await getNoteContent(note_id, actor);
     if (content.type === "unsupported")
       return NextResponse.json({ error: "tipo de archivo no soportado" }, { status: 415 });
 

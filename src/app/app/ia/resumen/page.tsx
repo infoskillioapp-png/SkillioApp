@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { isPaidPlan } from "@/lib/ai/claude";
 import { isDemoNoteId, getDemoResumen } from "@/lib/demo-content";
 import { getActorReadonly } from "@/lib/actor";
@@ -17,24 +16,24 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
   const { note_id, s } = await searchParams;
   if (!note_id) redirect("/app");
 
-  // Demo: contenido hardcodeado, cero tokens, carga instantánea. Disponible
-  // también para invitados (sin cuenta): pasa isGuest para ocultar lo que
-  // requiere cuenta (booki-tip, práctica rápida, tour).
-  if (isDemoNoteId(note_id)) {
-    const demoData = getDemoResumen(note_id);
-    if (!demoData) redirect("/app");
-    const { userId } = await auth();
-    return <ResumenClient data={demoData} isPro={true} isDemo isGuest={!userId} />;
-  }
-
   // Link de rescate cross-device (?s=…): adoptamos la sesión anónima y volvemos
   // limpios (sin el parámetro). No se puede setear la cookie desde acá (Server
   // Component en render), por eso pasa por el route handler.
   if (s) redirect(`/api/public/adopt?s=${encodeURIComponent(s)}&note_id=${encodeURIComponent(note_id)}`);
 
-  // Identidad: cuenta de Clerk o sesión anónima (registro diferido). Sin ninguna
-  // de las dos, no hay nada que mostrar.
+  // Identidad: Clerk o sesión anónima (free). El invitado ve el resumen con el
+  // mismo tope de free (3 visibles, resto bloqueado) — isPro real.
   const actor = await getActorReadonly();
+
+  // Demo: contenido hardcodeado, cero tokens. Disponible sin cuenta y bloqueado
+  // igual que un free (isPro según el plan real del actor).
+  if (isDemoNoteId(note_id)) {
+    const demoData = getDemoResumen(note_id);
+    if (!demoData) redirect("/app");
+    const isProDemo = actor ? isPaidPlan(actor.plan, actor.expires_at) : false;
+    return <ResumenClient data={demoData} isPro={isProDemo} isDemo isGuest={!actor || actor.isAnon} />;
+  }
+
   if (!actor) redirect("/app");
 
   const sb = supabaseAdmin();
@@ -83,9 +82,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     fileUrl: fileSignedUrl?.signedUrl ?? null,
   };
 
-  // Invitado: /app/ia no está disponible (requiere cuenta) — si por algún motivo
-  // todavía no hay puntos generados, lo mandamos a la home a reintentar.
-  if (rawPoints.length === 0) redirect(actor.isAnon ? "/app" : `/app/ia?note_id=${note_id}`);
+  if (rawPoints.length === 0) redirect(`/app/ia?note_id=${note_id}`);
 
   const isPro = isPaidPlan(actor.plan, actor.expires_at);
 

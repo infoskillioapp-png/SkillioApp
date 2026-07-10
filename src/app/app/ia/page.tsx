@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { getActorReadonly } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { EspacioClient, SEC_COLORS } from "./_components/espacio-client";
 import { EspacioEmpty } from "./_components/espacio-empty";
@@ -8,12 +8,10 @@ import { isDemoNoteId, getDemoResumen, getDemoTarjetas, getDemoSimulacro } from 
 type SearchParams = Promise<{ note_id?: string; gen?: string }>;
 
 export default async function IAPage({ searchParams }: { searchParams: SearchParams }) {
-  const { userId } = await auth();
-  if (!userId) redirect("/login");
+  const { note_id } = await searchParams;
 
-  const { note_id, gen } = await searchParams;
-
-  // Demo: mostrar el espacio completo (suite) cargando datos hardcodeados
+  // Demo: mostrar el espacio completo (suite) cargando datos hardcodeados.
+  // Disponible sin cuenta.
   if (note_id && isDemoNoteId(note_id)) {
     const demoResumen = getDemoResumen(note_id);
     if (!demoResumen) redirect("/app/ia");
@@ -47,17 +45,19 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     return <EspacioClient note={demoNoteData} generating={false} fileName={demoResumen.noteTitle} />;
   }
 
-  const sb = supabaseAdmin();
+  // Identidad: Clerk o sesión anónima (free). Sin actor (invitado sin sesión
+  // todavía) → a la home.
+  const actor = await getActorReadonly();
+  if (!actor) redirect("/app");
 
-  const { data: userRow } = await sb.from("users").select("id").eq("clerk_user_id", userId).single();
-  if (!userRow) redirect("/login");
+  const sb = supabaseAdmin();
 
   // Sin note_id: redirigir a la nota más reciente, o mostrar vacío
   if (!note_id) {
     const { data: latest } = await sb
       .from("notes")
       .select("id")
-      .eq("user_id", userRow.id)
+      .eq("user_id", actor.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
@@ -69,7 +69,7 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     .from("notes")
     .select("*")
     .eq("id", note_id)
-    .eq("user_id", userRow.id)
+    .eq("user_id", actor.id)
     .single();
   if (!note) redirect("/app/ia");
 
@@ -81,7 +81,7 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     .from("ai_outputs")
     .select("kind, content")
     .eq("note_id", note_id)
-    .eq("user_id", userRow.id);
+    .eq("user_id", actor.id);
 
   const summaryOutput = outputs?.find((o) => o.kind === "summary");
   const flashcardsOutput = outputs?.find((o) => o.kind === "flashcards");

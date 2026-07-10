@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { auth } from "@clerk/nextjs/server";
+import { resolveActor } from "@/lib/actor";
 import { recordAiUsage } from "@/lib/ai/usage";
 
 const TIP_MODEL = "claude-haiku-4-5-20251001";
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+    const actor = await resolveActor();
 
     const { title, description, category } = await req.json();
     if (!title) return NextResponse.json({ error: "title required" }, { status: 400 });
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
       maxOutputTokens: 80,
     });
 
-    await recordAiUsage({ kind: "tip", model: TIP_MODEL, usage: result.usage, clerkUserId: userId });
+    await recordAiUsage({ kind: "tip", model: TIP_MODEL, usage: result.usage, userDbId: actor.id });
     return NextResponse.json({ tip: result.text.trim() });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";
