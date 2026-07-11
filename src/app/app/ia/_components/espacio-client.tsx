@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { SalePopup } from "@/components/sale-popup";
+import { QuickPaywall } from "@/components/quick-paywall";
 import { OnboardingTour, useTourRequired, TourIconBook, TourIconSparkles } from "../../_components/onboarding-tour";
 
 // ---- tipos ----
@@ -408,7 +408,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
         <GeneratingOverlay noteId={note.id} fileName={fileName} onDone={handleDone} onPaywall={handlePaywall} />
       )}
 
-      {showPaywall && <SalePopup ctx="generic" onClose={() => setShowPaywall(false)} dismissLabel="Seguir viendo gratis" />}
+      {showPaywall && <QuickPaywall ctx="generic" onClose={() => setShowPaywall(false)} />}
 
       {showEspacioTour && !isGenerating && (
         <OnboardingTour
