@@ -6,6 +6,7 @@ import {
   mpGetSubscription,
   mpGetPayment,
   mpGetAuthorizedPayment,
+  type MpSubscription,
 } from "@/lib/mercadopago";
 import { sendMetaPurchase } from "@/lib/meta-capi";
 import { recordFunnelEventForUser } from "@/lib/api/funnel";
@@ -289,24 +290,35 @@ async function handleAuthorizedPayment(authPaymentId: string) {
     return;
   }
   const sb = supabaseAdmin();
-  const { user, matchedBy } = await findUser(sb, { preapprovalId: ap.preapproval_id });
+
+  // Traemos la suscripción ANTES de buscar el usuario: además de servir para
+  // detectar el tipo de plan, da external_reference/payer_email como fallback
+  // de matching. El primer ciclo de una suscripción a veces llega sin que
+  // mp_subscription_id haya quedado guardado en la fila del usuario (el
+  // webhook "payment" inicial suele traer preapproval_id null) — sin este
+  // fallback la renovación se pierde en silencio aunque MP sí cobró.
+  let subscription: MpSubscription | null = null;
+  if (ap.preapproval_id) {
+    try {
+      subscription = await mpGetSubscription(ap.preapproval_id);
+    } catch (e) {
+      console.error(`[webhook/authpay] mpGetSubscription falló para ${ap.preapproval_id}:`, e);
+    }
+  }
+
+  const { user, matchedBy } = await findUser(sb, {
+    preapprovalId: ap.preapproval_id,
+    externalRef: subscription?.external_reference,
+    payerEmail: subscription?.payer_email,
+  });
   if (!user) {
     console.warn(`[webhook/authpay] SIN MATCH preapproval=${ap.preapproval_id}`);
     return;
   }
 
-  // Detectar el plan de la suscripción
-  let planType: "pro" | "semanal" | "trimestral" = "pro";
-  if (ap.preapproval_id) {
-    try {
-      const sub = await mpGetSubscription(ap.preapproval_id);
-      planType = detectPlanType(sub.preapproval_plan_id);
-    } catch {
-      planType = (user.plan === "semanal" || user.plan === "trimestral") ? user.plan : "pro";
-    }
-  } else {
-    planType = (user.plan === "semanal" || user.plan === "trimestral") ? user.plan : "pro";
-  }
+  const planType: "pro" | "semanal" | "trimestral" = subscription
+    ? detectPlanType(subscription.preapproval_plan_id)
+    : (user.plan === "semanal" || user.plan === "trimestral") ? user.plan : "pro";
 
   await activateOrRenewPlan(sb, user, { subscriptionId: ap.preapproval_id, planType });
   console.log(`[webhook/authpay] ${user.email} ${planType} renovado (matchedBy=${matchedBy})`);
