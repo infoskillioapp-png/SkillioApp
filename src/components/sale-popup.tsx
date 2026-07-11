@@ -84,18 +84,24 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
         background: "rgba(10,8,28,.80)",
         backdropFilter: "blur(10px)",
         zIndex: 100,
-        display: "grid", placeItems: "center",
-        padding: "16px 16px 80px",
+        // Scrolleable + centrado: si el contenido es más alto que la pantalla
+        // (mobile), el overlay scrollea y el margin:auto del card lo centra
+        // cuando hay lugar. Evita que el paywall se salga de la pantalla.
+        display: "flex",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        padding: "16px 14px",
       }}
     >
       <div style={{
         background: "#fff",
         borderRadius: 28,
         boxShadow: "0 32px 80px rgba(0,0,0,.35), 0 0 0 1px rgba(139,92,246,.12)",
-        width: "min(440px, 100%)",
+        width: "min(420px, 100%)",
         overflow: "hidden",
         animation: "fadeUp .28s cubic-bezier(.22,1,.36,1) both",
         position: "relative",
+        margin: "auto",
       }}>
         {/* X siempre visible */}
         <button
@@ -114,9 +120,9 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
           </svg>
         </button>
 
-        {/* imagen con altura máxima para mobile */}
-        <div style={{ maxHeight: "min(48vw, 280px)", overflow: "hidden" }}>
-          <img src={msg.image} alt="" style={{ width: "100%", display: "block" }} />
+        {/* imagen con altura acotada (más baja en mobile para que el modal entre) */}
+        <div style={{ maxHeight: "min(34vw, 190px)", overflow: "hidden" }}>
+          <img src={msg.image} alt="" style={{ width: "100%", display: "block", objectFit: "cover" }} />
         </div>
 
         {/* contenido */}

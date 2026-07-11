@@ -106,7 +106,7 @@ function LockedScreen({
         {lockedCount} tarjeta{lockedCount !== 1 ? "s" : ""} más esperan
       </h2>
       <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6, maxWidth: "30ch", margin: "0 auto" }}>
-        Terminaste las 3 tarjetas del plan gratuito. Actualizá para ver el mazo completo.
+        Terminaste {FREE_LIMIT === 1 ? "tu tarjeta gratis" : `las ${FREE_LIMIT} tarjetas del plan gratuito`}. Actualizá para ver el mazo completo.
       </p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
         <button
@@ -121,6 +121,19 @@ function LockedScreen({
         >
           ⚡ Desbloquear tarjetas
         </button>
+        <Link
+          href={`/app/ia/simulacro?note_id=${noteId}`}
+          style={{
+            padding: "12px 22px", borderRadius: 14,
+            background: "linear-gradient(135deg,#ff5d79,#e4264f)",
+            color: "#fff", textDecoration: "none",
+            fontFamily: "var(--po)", fontWeight: 700, fontSize: 14,
+            display: "flex", alignItems: "center", gap: 8,
+            boxShadow: "0 10px 24px rgba(255,93,121,.28)",
+          }}
+        >
+          📝 Hacer Simulacro
+        </Link>
         <button
           onClick={onFinish}
           style={{
@@ -371,6 +384,19 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
                 </button>
               </div>
             </div>
+            <Link
+              href={`/app/ia/simulacro?note_id=${data.noteId}`}
+              style={{
+                padding: "11px 22px", borderRadius: 13,
+                background: "linear-gradient(135deg,#ff5d79,#e4264f)",
+                color: "#fff", textDecoration: "none",
+                fontFamily: "var(--po)", fontWeight: 700, fontSize: 14,
+                display: "flex", alignItems: "center", gap: 8,
+                boxShadow: "0 8px 20px rgba(255,93,121,.28)",
+              }}
+            >
+              📝 Hacer Simulacro
+            </Link>
             <button
               onClick={() => finish(stats)}
               style={{ fontSize: 13, color: "var(--muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
@@ -463,7 +489,16 @@ export function TarjetasClient({ data, isPro }: { data: TarjetasData; isPro: boo
                   </svg>
                   Repasar de nuevo
                 </button>
-                <Link href={`/app/ia?note_id=${data.noteId}`} className="nbtn">
+                <Link
+                  href={`/app/ia/simulacro?note_id=${data.noteId}`}
+                  className="nbtn"
+                  style={{ background: "linear-gradient(135deg,#ff5d79,#e4264f)" }}
+                >
+                  📝 Hacer Simulacro
+                </Link>
+              </div>
+              <div style={{ textAlign: "center", marginTop: 10 }}>
+                <Link href={`/app/ia?note_id=${data.noteId}`} style={{ fontSize: 13, color: "var(--muted)", textDecoration: "underline" }}>
                   Volver al espacio →
                 </Link>
               </div>
