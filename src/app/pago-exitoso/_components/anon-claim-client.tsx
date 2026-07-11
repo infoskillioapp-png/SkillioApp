@@ -21,7 +21,7 @@ function fireStartTrial(plan: string, preapproval: string | null) {
 // deslogueado:
 //   1. confirma su mail (prefill con el de MP) → se crea la cuenta + se reclama
 //      la sesión anónima → auto-login con sign-in token (ticket + finalize).
-//   2. deja su teléfono de contacto (opcional) → entra a /app.
+//   2. deja su teléfono de contacto (obligatorio) → entra a /app.
 export function AnonClaimClient({
   preapprovalId,
   defaultEmail,
@@ -98,13 +98,20 @@ export function AnonClaimClient({
     setBusy(true);
     setErrMsg("");
     try {
-      await fetch("/api/me/phone", {
+      const res = await fetch("/api/me/phone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone }),
       });
+      if (!res.ok) {
+        setErrMsg("No pudimos guardar el teléfono. Probá de nuevo.");
+        setBusy(false);
+        return;
+      }
     } catch {
-      /* no bloqueamos la entrada por el teléfono */
+      setErrMsg("Algo salió mal. Probá de nuevo.");
+      setBusy(false);
+      return;
     }
     goToApp();
   }
@@ -166,7 +173,7 @@ export function AnonClaimClient({
             <div style={{ fontSize: 46, marginBottom: 8 }}>📱</div>
             <h1 style={titleStyle}>¡Cuenta lista!</h1>
             <p style={subStyle}>
-              Última cosa: dejanos tu teléfono para poder contactarte si lo necesitás. Es opcional.
+              Última cosa: dejanos tu teléfono para poder contactarte si lo necesitás.
             </p>
 
             <label style={labelStyle}>Tu teléfono</label>
@@ -188,22 +195,6 @@ export function AnonClaimClient({
 
             <button onClick={savePhone} disabled={busy} style={btnStyle(busy)}>
               {busy ? "Guardando…" : "Guardar y entrar →"}
-            </button>
-            <button
-              onClick={goToApp}
-              disabled={busy}
-              style={{
-                width: "100%",
-                marginTop: 10,
-                background: "none",
-                border: "none",
-                fontSize: 13,
-                color: "var(--muted)",
-                cursor: "pointer",
-                opacity: 0.7,
-              }}
-            >
-              Omitir por ahora
             </button>
           </>
         )}

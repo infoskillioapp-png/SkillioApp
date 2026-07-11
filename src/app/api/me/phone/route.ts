@@ -3,9 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // Guarda el teléfono de contacto del usuario logueado. Se usa en el paso final
-// de /pago-exitoso (embudo anónimo, tras el auto-login) y es opcional. Va sobre
-// la cuenta activa vía la sesión de Clerk, así que sirve tanto para la cuenta
-// recién creada como para una existente reutilizada.
+// de /pago-exitoso (embudo anónimo, tras el auto-login) — obligatorio ahí. Va
+// sobre la cuenta activa vía la sesión de Clerk, así que sirve tanto para la
+// cuenta recién creada como para una existente reutilizada.
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
