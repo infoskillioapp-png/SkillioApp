@@ -6,7 +6,6 @@ import { recordAiUsage } from "@/lib/ai/usage";
 import { resolveActor } from "@/lib/actor";
 import {
   buildUserContent,
-  chargeCredits,
   getNoteContent,
   isFreeGenerationAllowed,
   isPaidPlan,
@@ -14,53 +13,12 @@ import {
   modelForGeneration,
   saveAiOutput,
 } from "@/lib/ai/claude";
-
-const COST = 28;
+import { genSummaryPuntos, SUMMARY_SYSTEM } from "@/lib/ai/suite";
 
 // ===========================================================================
-// SCHEMAS por formato
+// SCHEMAS de los formatos SECUNDARIOS (mapa, ficha). puntos_clave vive en
+// @/lib/ai/suite (fuente única, compartido con /api/ai/generate-suite).
 // ===========================================================================
-const KeyPointSchema = z.object({
-  emoji: z.string().describe("Un emoji que represente bien el concepto"),
-  title: z.string().describe("Concepto o idea principal en 3-8 palabras, conciso"),
-  description: z
-    .string()
-    .describe("Explicación clara en 1 o 2 oraciones, autocontenida"),
-  category: z
-    .string()
-    .optional()
-    .describe(
-      "Subtema dentro del apunte (ej: 'Definiciones', 'Aplicación', 'Ejemplo'). Mismo string para puntos del mismo subtema.",
-    ),
-});
-
-const PuntosClaveSchema = z.object({
-  title: z.string().describe("Título corto descriptivo basado en el apunte"),
-  intro: z
-    .string()
-    .optional()
-    .describe("Una oración de contexto al inicio (opcional)"),
-  points: z.array(KeyPointSchema).min(6).max(12),
-});
-
-// FREE: solo recibe las primeras 5 páginas del apunte, así que genera POCOS
-// puntos pero BIEN DESARROLLADOS (2). El resto del resumen se muestra bloqueado
-// (sin títulos) en la UI. Descripción larga para que cada punto desarrolle la idea.
-const KeyPointSchemaFree = z.object({
-  emoji: z.string().describe("Un emoji que represente bien el concepto"),
-  title: z.string().describe("Concepto o idea principal en 3-8 palabras, conciso"),
-  description: z
-    .string()
-    .describe("Explicación DESARROLLADA de 4 a 6 oraciones: definí la idea, explicá el porqué y sumá un ejemplo o consecuencia. Nunca una sola frase suelta."),
-  category: z.string().optional().describe("Subtema dentro del apunte"),
-});
-
-const PuntosClaveSchemaFree = z.object({
-  title: z.string().describe("Título corto descriptivo basado en el apunte"),
-  intro: z.string().optional().describe("Una oración de contexto al inicio (opcional)"),
-  points: z.array(KeyPointSchemaFree).min(2).max(2),
-});
-
 const MapaSchema = z.object({
   title: z.string().describe("Título del mapa conceptual"),
   outline: z
@@ -80,12 +38,8 @@ const FichaSectionSchema = z.object({
   items: z
     .array(
       z.object({
-        label: z
-          .string()
-          .describe("Término, fórmula, o nombre del ejemplo (corto)"),
-        detail: z
-          .string()
-          .describe("Definición, explicación o detalle (1-2 oraciones)"),
+        label: z.string().describe("Término, fórmula, o nombre del ejemplo (corto)"),
+        detail: z.string().describe("Definición, explicación o detalle (1-2 oraciones)"),
       }),
     )
     .min(2)
@@ -98,24 +52,14 @@ const FichaSchema = z.object({
   sections: z.array(FichaSectionSchema).min(3).max(5),
 });
 
-// ===========================================================================
-// PROMPTS por formato
-// ===========================================================================
-// FREE (puntos_clave): solo llegan las primeras 5 páginas, así que pedimos 2
-// puntos MUY bien desarrollados (mejor pocos y con sustancia que muchos flojos).
-const FREE_PUNTOS_INSTRUCTION =
-  "Extraé EXACTAMENTE 2 puntos clave: los 2 conceptos MÁS importantes de este material. Cada punto debe tener una descripción DESARROLLADA y con sustancia (4 a 6 oraciones: definí la idea, explicá por qué importa y sumá un ejemplo o una consecuencia concreta). Nada de frases sueltas de una línea. Asigná un emoji representativo y un título de 3-8 palabras. Devolvé SIEMPRE en español rioplatense.";
+const VALID_FORMATS = new Set(["puntos_clave", "mapa", "ficha", "resumen"]);
 
+// Prompts de los formatos secundarios (puntos_clave usa el de suite.ts).
 const FORMAT_PROMPTS: Record<string, string> = {
-  puntos_clave:
-    "Extraé entre 8 y 12 puntos clave del apunte. Cada punto debe ser una idea autocontenida que un estudiante pueda repasar individualmente. Asigná un emoji que represente el concepto, un título corto (3-8 palabras) y una descripción de 1-2 oraciones. Agrupá los puntos por subtema usando `category` cuando tenga sentido. Devolvé SIEMPRE en español rioplatense.",
   mapa: "Generá un mapa conceptual del apunte como markdown jerárquico listo para renderizar con markmap. Usá # para el tema central (una sola línea), ## para 3-5 ramas principales, ### para sub-conceptos, y guiones `-` para hojas. No te excedas de 4 niveles de profundidad. Devolvé SIEMPRE en español rioplatense.",
   ficha: "Armá una ficha de estudio con 3 a 5 secciones temáticas. Cada sección tiene un encabezado claro, un emoji representativo, y 2-6 items con label (término/concepto) y detail (definición). Las secciones sugeridas: Definiciones clave, Conceptos / Fórmulas, Ejemplos, A recordar / errores frecuentes. Devolvé SIEMPRE en español rioplatense.",
   resumen: "Transformá el apunte en un resumen de estudio premium en Markdown. Seguí la estructura requerida al pie de la letra.",
 };
-
-const SYSTEM_PROMPT =
-  "Sos un asistente de estudio en español rioplatense. Generás material claro, organizado y atractivo para que un estudiante universitario pueda repasar. Nunca inventes información que no esté en el apunte. Si el apunte no contiene material académico relevante, decílo en la descripción. Sé conciso pero completo.";
 
 const RESUMEN_SYSTEM_PROMPT = `Sos 'Booki', la IA experta en pedagogía universitaria y aprendizaje acelerado de Skilio. Tu objetivo es transformar apuntes complejos, PDFs densos y desgrabados en el mejor resumen de estudio del mundo.
 
@@ -146,7 +90,7 @@ export async function POST(req: Request) {
 
     if (!note_id)
       return NextResponse.json({ error: "note_id required" }, { status: 400 });
-    if (!FORMAT_PROMPTS[format])
+    if (!VALID_FORMATS.has(format))
       return NextResponse.json({ error: "invalid format" }, { status: 400 });
 
     // Identidad: Clerk (con cuenta) o sesión anónima (registro diferido).
@@ -159,70 +103,39 @@ export async function POST(req: Request) {
       );
 
     const isPaid = isPaidPlan(userRow.plan, userRow.expires_at);
-    const isProCredits = false; // sistema de créditos deprecado: todos los pagos son ilimitados
     const model = modelForGeneration(userRow.plan, userRow.expires_at, "summarize");
-    if (isProCredits && userRow.credits < COST)
-      return NextResponse.json(
-        { error: "insufficient_credits", cost: COST, available: userRow.credits },
-        { status: 402 },
-      );
+
     // FREE: 1 suite de por vida. Segundo intento → paywall.
     if (userRow.plan === "free") {
       const allowed = await isFreeGenerationAllowed(userRow.id);
       if (!allowed) return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
     }
 
-    // FREE + puntos_clave: instrucción y schema recortados (2 puntos desarrollados
-    // a partir de las primeras 5 páginas). El resto va bloqueado sin título en la UI.
-    const freePuntos = format === "puntos_clave" && !isPaid;
-    const instruction = freePuntos ? FREE_PUNTOS_INSTRUCTION : FORMAT_PROMPTS[format];
-
-    const userParts = await buildUserContent(content, instruction, isPaid);
-
     let payload: unknown;
     let usage: { inputTokens?: number; outputTokens?: number } | undefined;
+
     if (format === "puntos_clave") {
-      const r = await generateObject({
-        model: anthropic(model),
-        schema: freePuntos ? PuntosClaveSchemaFree : PuntosClaveSchema,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userParts }],
-      });
+      // Fuente única compartida con el endpoint combinado.
+      const r = await genSummaryPuntos(content, model, isPaid);
       payload = r.object;
-      usage = r.usage;
-    } else if (format === "mapa") {
-      const r = await generateObject({
-        model: anthropic(model),
-        schema: MapaSchema,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userParts }],
-      });
-      payload = r.object;
-      usage = r.usage;
-    } else if (format === "resumen") {
-      const r = await generateText({
-        model: anthropic(model),
-        system: RESUMEN_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userParts }],
-        maxOutputTokens: 8000,
-      });
-      payload = { text: r.text };
       usage = r.usage;
     } else {
-      const r = await generateObject({
-        model: anthropic(model),
-        schema: FichaSchema,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userParts }],
-      });
-      payload = r.object;
-      usage = r.usage;
+      const userParts = await buildUserContent(content, FORMAT_PROMPTS[format], isPaid);
+      if (format === "mapa") {
+        const r = await generateObject({ model: anthropic(model), schema: MapaSchema, system: SUMMARY_SYSTEM, messages: [{ role: "user", content: userParts }] });
+        payload = r.object;
+        usage = r.usage;
+      } else if (format === "resumen") {
+        const r = await generateText({ model: anthropic(model), system: RESUMEN_SYSTEM_PROMPT, messages: [{ role: "user", content: userParts }], maxOutputTokens: 8000 });
+        payload = { text: r.text };
+        usage = r.usage;
+      } else {
+        const r = await generateObject({ model: anthropic(model), schema: FichaSchema, system: SUMMARY_SYSTEM, messages: [{ role: "user", content: userParts }] });
+        payload = r.object;
+        usage = r.usage;
+      }
     }
 
-    let remaining = 0;
-    if (isProCredits) {
-      remaining = await chargeCredits(userRow.id, COST);
-    }
     const id = await saveAiOutput({
       user_id: userRow.id,
       note_id: note.id,
@@ -230,7 +143,7 @@ export async function POST(req: Request) {
       format,
       title: note.title,
       content: { format, data: payload },
-      credits_used: isProCredits ? COST : 0,
+      credits_used: 0,
       model,
       input_tokens: usage?.inputTokens ?? null,
       output_tokens: usage?.outputTokens ?? null,
@@ -245,7 +158,7 @@ export async function POST(req: Request) {
       output_id: id,
       format,
       data: payload,
-      credits_remaining: remaining,
+      credits_remaining: 0,
       is_paid: isPaid,
       activation_event_id: activationEventId,
     });

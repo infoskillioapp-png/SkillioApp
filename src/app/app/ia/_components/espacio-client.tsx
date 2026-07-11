@@ -146,25 +146,18 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: st
 
     async function callApis() {
       try {
-        const post = (url: string, body: object) =>
-          fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        // Una sola llamada combinada: prepara el apunte 1 vez y genera las 3 en
+        // paralelo del lado del server (más rápido que 3 requests separadas).
+        const res = await fetch("/api/ai/generate-suite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note_id: noteId }),
+        });
 
-        // Llamar las 3 en paralelo; reintentar summarize una vez si falla (status >= 500)
-        const [sumRes, fcRes, simRes] = await Promise.all([
-          post("/api/ai/summarize", { note_id: noteId, format: "puntos_clave" }),
-          post("/api/ai/flashcards", { note_id: noteId }),
-          post("/api/ai/simulacro", { note_id: noteId }),
-        ]);
-
-        if (sumRes.status === 402 || fcRes.status === 402 || simRes.status === 402) {
+        if (res.status === 402) {
           apiHas402 = true;
           apiDone = true;
           return;
-        }
-
-        // Reintentar summarize si devolvió 500
-        if (sumRes.status >= 500) {
-          await post("/api/ai/summarize", { note_id: noteId, format: "puntos_clave" });
         }
       } catch {
         // error de red — igual completamos
