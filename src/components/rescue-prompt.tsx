@@ -50,8 +50,8 @@ export function RescuePrompt({
         background: "rgba(10,8,28,.72)",
         backdropFilter: "blur(8px)",
         zIndex: 110,
-        display: "grid",
-        placeItems: "end center",
+        display: "flex",
+        overflowY: "auto",
         padding: "16px",
       }}
     >
@@ -59,11 +59,11 @@ export function RescuePrompt({
         style={{
           background: "#fff",
           borderRadius: 24,
-          width: "min(440px,100%)",
+          width: "min(420px,100%)",
+          margin: "auto",
           padding: "24px 22px 22px",
           boxShadow: "0 24px 60px rgba(0,0,0,.3)",
-          animation: "rescueUp .28s cubic-bezier(.22,1,.36,1) both",
-          marginBottom: "max(16px, env(safe-area-inset-bottom))",
+          animation: "fadeUp .26s cubic-bezier(.22,1,.36,1) both",
         }}
       >
         {state === "sent" ? (
@@ -141,13 +141,6 @@ export function RescuePrompt({
           </>
         )}
       </div>
-
-      <style>{`
-        @keyframes rescueUp {
-          from { opacity: 0; transform: translateY(24px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }
