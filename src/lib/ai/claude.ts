@@ -319,7 +319,8 @@ async function mapReduceText(text: string): Promise<string> {
 // usuario no divide nada a mano. Devuelve el texto condensado, o null si el PDF
 // es chico (→ se manda nativo) o no se pudo parsear.
 // ---------------------------------------------------------------------------
-const PDF_NATIVE_PAGE_LIMIT = 30;     // free: cap a estas páginas, sin map-reduce
+const PDF_NATIVE_PAGE_LIMIT = 30;     // umbral general "PDF chico" para map-reduce
+const FREE_INPUT_PAGE_CAP = 5;        // free: solo las primeras 5 págs del apunte (abarata el input)
 const PDF_PRO_NATIVE_LIMIT = 60;      // pro: nativo hasta aquí antes de map-reduce
 const PDF_CHUNK_PAGES = 25;           // tamaño de cada trozo en map-reduce
 const PDF_MAX_PAGES = 400;            // tope de seguridad
@@ -411,13 +412,16 @@ export async function buildUserContent(
     let pdfData = content.data;
 
     if (!isPaid) {
-      // FREE: cap a las primeras PDF_NATIVE_PAGE_LIMIT páginas, sin map-reduce.
-      // Esto garantiza que el costo por llamada sea siempre < $0.04.
+      // FREE: solo las primeras FREE_INPUT_PAGE_CAP (5) páginas del apunte, sin
+      // map-reduce. El apunte ya viene ≤30 págs (divisor de PDF), así que esto
+      // recorta el input de verdad y mantiene el costo por llamada muy bajo. Con
+      // 5 páginas la IA genera pocos puntos: el resumen free muestra 2 bien
+      // desarrollados y el resto queda bloqueado (ver prompt/schema free).
       try {
         const doc = await PDFDocument.load(pdfData, { ignoreEncryption: true });
-        if (doc.getPageCount() > PDF_NATIVE_PAGE_LIMIT) {
+        if (doc.getPageCount() > FREE_INPUT_PAGE_CAP) {
           const sub = await PDFDocument.create();
-          const indices = Array.from({ length: PDF_NATIVE_PAGE_LIMIT }, (_, k) => k);
+          const indices = Array.from({ length: FREE_INPUT_PAGE_CAP }, (_, k) => k);
           const pages = await sub.copyPages(doc, indices);
           pages.forEach((p) => sub.addPage(p));
           const saved = await sub.save();

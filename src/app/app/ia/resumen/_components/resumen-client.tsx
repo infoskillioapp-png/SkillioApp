@@ -16,7 +16,8 @@ const KX_COLORS = [
 ];
 
 const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
-const FREE_LIMIT = 2;
+const FREE_LIMIT = 2;               // puntos reales visibles para free
+const LOCKED_PLACEHOLDERS = 6;      // slots bloqueados (sin título) que se muestran debajo
 const ESPACIO_KEY = "skillio_tema_";
 
 function confettiBurst(x: number, y: number) {
@@ -330,6 +331,7 @@ function ResumenSidebar({
   doneSet,
   isPro,
   totalPoints,
+  lockedPlaceholders,
   fileUrl,
   onSelect,
   onLocked,
@@ -339,11 +341,13 @@ function ResumenSidebar({
   doneSet: Set<number>;
   isPro: boolean;
   totalPoints: number;
+  lockedPlaceholders: number;
   fileUrl: string | null;
   onSelect: (i: number) => void;
   onLocked: () => void;
 }) {
   let globalCounter = 0;
+  const visibleReal = isPro ? totalPoints : Math.min(totalPoints, FREE_LIMIT);
 
   return (
     <aside className="rside in">
@@ -391,9 +395,9 @@ function ResumenSidebar({
 
       <h2 className="po">
         Temas
-        {!isPro && totalPoints > FREE_LIMIT && (
+        {!isPro && lockedPlaceholders > 0 && (
           <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginLeft: 8 }}>
-            {FREE_LIMIT}/{totalPoints} 🔒
+            {visibleReal}/{visibleReal + lockedPlaceholders} 🔒
           </span>
         )}
       </h2>
@@ -415,27 +419,22 @@ function ResumenSidebar({
           )}
           {sec.points.map((pt, pi) => {
             const gIdx = globalCounter++;
-            const isLocked = !isPro && gIdx >= FREE_LIMIT;
+            // Free: los puntos más allá del límite NO se renderizan como reales
+            // (no tienen contenido generado); van como slots bloqueados abajo.
+            if (!isPro && gIdx >= FREE_LIMIT) return null;
             const isDone = doneSet.has(gIdx);
             const isActive = gIdx === activeIdx;
             return (
               <div
                 key={pi}
-                className={`t-item${isDone ? " done" : ""}${isActive ? " on" : ""}${isLocked ? " t-item-locked" : ""}`}
-                onClick={() => {
-                  if (isLocked) { onLocked(); return; }
-                  onSelect(gIdx);
-                }}
+                className={`t-item${isDone ? " done" : ""}${isActive ? " on" : ""}`}
+                onClick={() => onSelect(gIdx)}
               >
-                <span className="t-dot">
-                  {isLocked
-                    ? <span className="lock-icon">🔒</span>
-                    : (isDone ? "✓" : "")}
-                </span>
+                <span className="t-dot">{isDone ? "✓" : ""}</span>
                 <div>
                   <div className="t-name">{pt.emoji ? `${pt.emoji} ${pt.title}` : pt.title}</div>
-                  <div className="t-sub" style={isLocked ? { color: "#9655E5", fontWeight: 600, fontSize: 11 } : {}}>
-                    {isLocked ? "✨ Desbloqueá con PRO" : isDone ? "Dominado · 100%" : isActive ? "En progreso" : "Sin empezar"}
+                  <div className="t-sub">
+                    {isDone ? "Dominado · 100%" : isActive ? "En progreso" : "Sin empezar"}
                   </div>
                 </div>
               </div>
@@ -443,6 +442,36 @@ function ResumenSidebar({
           })}
         </div>
       ))}
+
+      {/* Free: slots bloqueados SIN título (contenido no generado, desbloqueá con PRO) */}
+      {!isPro && lockedPlaceholders > 0 && (
+        <div>
+          <div className="slabel">Más contenido</div>
+          {Array.from({ length: lockedPlaceholders }).map((_, i) => (
+            <div key={`lk-${i}`} className="t-item t-item-locked" onClick={onLocked}>
+              <span className="t-dot"><span className="lock-icon">🔒</span></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  aria-hidden
+                  style={{
+                    height: 9,
+                    width: `${72 - i * 6}%`,
+                    minWidth: 88,
+                    borderRadius: 6,
+                    marginBottom: 7,
+                    background: "linear-gradient(90deg, rgba(150,85,229,.22) 15%, rgba(192,132,252,.5) 50%, rgba(150,85,229,.22) 85%)",
+                    backgroundSize: "250% auto",
+                    animation: "lockShimmer 2.8s linear infinite",
+                  }}
+                />
+                <div className="t-sub" style={{ color: "#9655E5", fontWeight: 600, fontSize: 11 }}>
+                  ✨ Desbloqueá con PRO
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </aside>
   );
 }
@@ -472,7 +501,10 @@ export function ResumenClient({
 
   const totalPoints = allPoints.length;
   const visiblePoints = isPro ? allPoints : allPoints.slice(0, FREE_LIMIT);
-  const lockedCount = isPro ? 0 : Math.max(0, totalPoints - FREE_LIMIT);
+  // Free: el resumen se genera con solo 2 puntos reales (5 págs de input). El
+  // resto se muestra como slots bloqueados SIN título (no fueron generados por
+  // la IA). Cantidad decorativa fija para transmitir "hay mucho más con PRO".
+  const lockedCount: number = isPro ? 0 : LOCKED_PLACEHOLDERS;
 
   const DONE_KEY = `skillio_resumen_done_${data.noteId}`;
 
@@ -636,6 +668,7 @@ export function ResumenClient({
           doneSet={doneSet}
           isPro={isPro}
           totalPoints={totalPoints}
+          lockedPlaceholders={lockedCount}
           fileUrl={data.fileUrl}
           onSelect={handleSelect}
           onLocked={() => setShowPaywall(true)}
