@@ -1,10 +1,20 @@
 import { redirect } from "next/navigation";
 import { isPaidPlan } from "@/lib/ai/claude";
-import { isDemoNoteId, getDemoResumen } from "@/lib/demo-content";
+import { isDemoNoteId, getDemoResumen, getDemoSimulacro } from "@/lib/demo-content";
 import { getActorReadonly } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ResumenClient } from "./_components/resumen-client";
-import type { ResumenData } from "./_components/resumen-client";
+import type { ResumenData, QuizQuestion } from "./_components/resumen-client";
+
+// Demo: convierte las preguntas MC del simulacro hardcodeado en un pool para la
+// práctica rápida (mismo formato), sin IA.
+function demoPracticaPool(noteId: string): QuizQuestion[] {
+  const sim = getDemoSimulacro(noteId);
+  if (!sim) return [];
+  return sim.questions
+    .filter((q): q is Extract<typeof q, { kind: "multiple_choice" }> => q.kind === "multiple_choice")
+    .map((q) => ({ pregunta: q.question, opciones: q.options, correcta: q.correct, explicacion: q.explanation }));
+}
 
 type SearchParams = Promise<{ note_id?: string; s?: string }>;
 
@@ -31,7 +41,15 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     const demoData = getDemoResumen(note_id);
     if (!demoData) redirect("/app");
     const isProDemo = actor ? isPaidPlan(actor.plan, actor.expires_at) : false;
-    return <ResumenClient data={demoData} isPro={isProDemo} isDemo isGuest={!actor || actor.isAnon} />;
+    return (
+      <ResumenClient
+        data={demoData}
+        isPro={isProDemo}
+        isDemo
+        isGuest={!actor || actor.isAnon}
+        demoPractica={demoPracticaPool(note_id)}
+      />
+    );
   }
 
   if (!actor) redirect("/app");

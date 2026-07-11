@@ -289,11 +289,12 @@ type Props = {
   note: NoteData;
   generating: boolean;
   fileName: string;
+  isPro?: boolean;
 };
 
 const STORAGE_KEY_PREFIX = "skillio_tema_";
 
-export function EspacioClient({ note, generating, fileName }: Props) {
+export function EspacioClient({ note, generating, fileName, isPro = false }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isGenerating, setIsGenerating] = useState(generating);
@@ -342,7 +343,11 @@ export function EspacioClient({ note, generating, fileName }: Props) {
     setIsGenerating(false);
     router.replace(`/app/ia?note_id=${note.id}`);
     router.refresh();
-  }, [note.id, router]);
+    // Free + apunte propio (no demo): al terminar de generar mostramos el paywall
+    // una sola vez — es el momento de máxima atención (quieren ver el resultado).
+    // No bloquea: se cierra con "Seguir viendo gratis".
+    if (!isPro && !note.id.startsWith("demo-")) setShowPaywall(true);
+  }, [note.id, router, isPro]);
 
   const handlePaywall = useCallback(() => {
     setIsGenerating(false);
@@ -403,7 +408,7 @@ export function EspacioClient({ note, generating, fileName }: Props) {
         <GeneratingOverlay noteId={note.id} fileName={fileName} onDone={handleDone} onPaywall={handlePaywall} />
       )}
 
-      {showPaywall && <SalePopup ctx="generic" onClose={() => setShowPaywall(false)} />}
+      {showPaywall && <SalePopup ctx="generic" onClose={() => setShowPaywall(false)} dismissLabel="Seguir viendo gratis" />}
 
       {showEspacioTour && !isGenerating && (
         <OnboardingTour

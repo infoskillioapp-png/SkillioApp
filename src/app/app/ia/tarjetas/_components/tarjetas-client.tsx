@@ -7,7 +7,7 @@ import { SalePopup } from "@/components/sale-popup";
 import { OnboardingTour, useTourRequired, TourIconBolt } from "../../../_components/onboarding-tour";
 
 const PAL = ["#4f7dff","#8b5cf6","#ff6b81","#ffc93c","#34d399","#f472b6","#2dd4bf"];
-const FREE_LIMIT = 3; // tarjetas interactivas; la 4ta se muestra blureada
+const FREE_LIMIT = 1; // tarjeta interactiva gratis; la 2da se muestra blureada
 
 function confettiBurst(x: number, y: number) {
   const lay = document.getElementById("confetti-layer");

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { SalePopup } from "@/components/sale-popup";
 import { RescuePrompt } from "@/components/rescue-prompt";
-import { OnboardingTour, useTourRequired, TourIconSparkles, TourIconBook } from "../../../_components/onboarding-tour";
+import { OnboardingTour, useTourRequired, TourIconBook } from "../../../_components/onboarding-tour";
 
 const KX_COLORS = [
   "linear-gradient(135deg,#5b8cff,#3f63ff)",
@@ -42,7 +42,7 @@ type SummarySection = {
   points: SummaryPoint[];
 };
 
-type QuizQuestion = {
+export type QuizQuestion = {
   pregunta: string;
   opciones: string[];
   correcta: number;
@@ -63,10 +63,16 @@ function PracticaQuiz({
   point,
   topicName,
   onDone,
+  demoPool,
+  poolSeed = 0,
 }: {
   point: SummaryPoint;
   topicName: string;
   onDone: (correct: number, total: number, rect: DOMRect) => void;
+  // Demo: en vez de generar con IA, usamos un pool fijo (del simulacro del demo)
+  // y simulamos la carga para que "parezca que se genera".
+  demoPool?: QuizQuestion[];
+  poolSeed?: number;
 }) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loadingQ, setLoadingQ] = useState(true);
@@ -90,6 +96,19 @@ function PracticaQuiz({
     setCurrent(0);
     setAnswered({});
     setFinished(false);
+
+    // DEMO: pool fijo, sin IA, con un delay para simular la generación.
+    if (demoPool && demoPool.length > 0) {
+      const n = demoPool.length;
+      const picked = [demoPool[(poolSeed * 2) % n], demoPool[(poolSeed * 2 + 1) % n]];
+      const t = setTimeout(() => {
+        cacheRef.current.set(key, picked);
+        setQuestions(picked);
+        setLoadingQ(false);
+      }, 1300 + Math.random() * 600);
+      return () => clearTimeout(t);
+    }
+
     fetch("/api/ai/practica-rapida", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -104,6 +123,7 @@ function PracticaQuiz({
       })
       .catch(() => {})
       .finally(() => setLoadingQ(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [point.title, point.description, point.category]);
 
   if (loadingQ) return (
@@ -433,11 +453,14 @@ export function ResumenClient({
   isPro,
   isDemo = false,
   isGuest = false,
+  demoPractica,
 }: {
   data: ResumenData;
   isPro: boolean;
   isDemo?: boolean;
   isGuest?: boolean;
+  // Demo: pool fijo de preguntas para la práctica rápida (sin IA).
+  demoPractica?: QuizQuestion[];
 }) {
   // allPoints con indices de sección para sync con espacio mapa
   const allPoints: { point: SummaryPoint; secName: string; secIdx: number; pointIdx: number }[] = [];
@@ -550,14 +573,6 @@ export function ResumenClient({
           storageKey="skillio_resumen_tour_v1"
           steps={[
             {
-              icon: <TourIconSparkles />,
-              title: "¿Tenés dudas sobre algo?",
-              body: "Preguntale a Booki lo que quieras — te explica el concepto de otra forma, te da ejemplos, lo que necesites.",
-              target: ".bfab",
-              placement: "top",
-              nextLabel: "Entendido ›",
-            },
-            {
               icon: <TourIconBook />,
               title: "Navegá entre temas",
               body: "Tocá cualquier tema de la lista para saltar entre ellos. Los que domines quedan marcados en verde.",
@@ -650,6 +665,30 @@ export function ResumenClient({
             </div>
           </div>
 
+          {/* Modos (Tarjetas / Simulacro) — arriba, debajo del título */}
+          <div data-tour="mode-nav" style={{ display: "flex", gap: 10, margin: "0 0 20px", flexWrap: "wrap" }}>
+            <Link href={`/app/ia/tarjetas?note_id=${data.noteId}`} style={{
+              flex: 1, minWidth: 130,
+              padding: "12px 16px", borderRadius: 14,
+              background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+              color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+              display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+              textDecoration: "none", boxShadow: "0 6px 18px rgba(124,58,237,.28)",
+            }}>
+              🃏 Ir a Tarjetas
+            </Link>
+            <Link href={`/app/ia/simulacro?note_id=${data.noteId}`} style={{
+              flex: 1, minWidth: 130,
+              padding: "12px 16px", borderRadius: 14,
+              background: "linear-gradient(135deg,#ff5d79,#e4264f)",
+              color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+              display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+              textDecoration: "none", boxShadow: "0 6px 18px rgba(255,93,121,.28)",
+            }}>
+              📝 Hacer Simulacro
+            </Link>
+          </div>
+
           <div className="ractions in" data-noprint>
             <button className="ract" onClick={() => setLeadMode("eli5")} style={leadMode === "eli5" ? { outline: "2px solid var(--violet)", outlineOffset: "1px" } : {}}>
               <span>🧒</span> Explícalo como a un niño
@@ -717,12 +756,14 @@ export function ResumenClient({
             )}
           </div>
 
-          {/* práctica rápida — preguntas generadas dinámicamente por tema */}
+          {/* práctica rápida — preguntas generadas dinámicamente por tema (demo: pool fijo) */}
           <PracticaQuiz
             key={`${data.noteId}-${safeActiveIdx}`}
             point={point}
             topicName={point.title}
             onDone={handleQuizDone}
+            demoPool={demoPractica}
+            poolSeed={safeActiveIdx}
           />
 
           {/* nav entre temas */}
@@ -755,29 +796,6 @@ export function ResumenClient({
             ) : null}
           </div>
 
-          {/* Continuar con otros modos */}
-          <div data-tour="mode-nav" style={{ display: "flex", gap: 10, marginTop: 20, paddingBottom: 40, flexWrap: "wrap" }}>
-            <Link href={`/app/ia/tarjetas?note_id=${data.noteId}`} style={{
-              flex: 1, minWidth: 130,
-              padding: "12px 16px", borderRadius: 14,
-              background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
-              color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
-              display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
-              textDecoration: "none", boxShadow: "0 6px 18px rgba(124,58,237,.28)",
-            }}>
-              🃏 Ir a Tarjetas
-            </Link>
-            <Link href={`/app/ia/simulacro?note_id=${data.noteId}`} style={{
-              flex: 1, minWidth: 130,
-              padding: "12px 16px", borderRadius: 14,
-              background: "linear-gradient(135deg,#ff5d79,#e4264f)",
-              color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
-              display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
-              textDecoration: "none", boxShadow: "0 6px 18px rgba(255,93,121,.28)",
-            }}>
-              📝 Hacer Simulacro
-            </Link>
-          </div>
         </main>
       </div>
     </>

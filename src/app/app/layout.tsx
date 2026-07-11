@@ -4,6 +4,7 @@ import { syncUserToSupabase } from "@/lib/sync-user";
 import { AppProviders } from "@/components/app-providers";
 import { Sidebar } from "./_components/sidebar";
 import { BookiFab } from "./_components/booki-fab";
+import { SupportButton } from "./_components/support-button";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
@@ -27,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
       </div>
       <BookiFab firstName={firstName} />
+      <SupportButton />
     </AppProviders>
   );
 }

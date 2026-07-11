@@ -103,6 +103,14 @@ export function SimulacroClient({ data, isPro }: { data: SimulacroData; isPro: b
     return () => clearInterval(iv);
   }, [timerActive]);
 
+  // Free: al terminar el simulacro y ver la nota, mostramos el paywall solo
+  // (con un respiro para que primero vean su resultado).
+  useEffect(() => {
+    if (phase !== "result" || isPro) return;
+    const t = setTimeout(() => setShowPaywall(true), 1600);
+    return () => clearTimeout(t);
+  }, [phase, isPro]);
+
   const M = order.length;
   const normalized = visibleNormalized;
   const progress = M > 0 ? (cur / M) * 100 : 0;

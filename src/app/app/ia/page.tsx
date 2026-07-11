@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getActorReadonly } from "@/lib/actor";
+import { isPaidPlan } from "@/lib/ai/claude";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { EspacioClient, SEC_COLORS } from "./_components/espacio-client";
 import { EspacioEmpty } from "./_components/espacio-empty";
@@ -42,7 +43,7 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
       fileUrl: null,
     };
 
-    return <EspacioClient note={demoNoteData} generating={false} fileName={demoResumen.noteTitle} />;
+    return <EspacioClient note={demoNoteData} generating={false} fileName={demoResumen.noteTitle} isPro />;
   }
 
   // Identidad: Clerk o sesión anónima (free). Sin actor (invitado sin sesión
@@ -144,6 +145,7 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
       note={noteData}
       generating={needsGeneration}
       fileName={note.file_name ?? note.title}
+      isPro={isPaidPlan(actor.plan, actor.expires_at)}
     />
   );
 }

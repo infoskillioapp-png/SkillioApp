@@ -30,6 +30,7 @@ export function BookiFab({ firstName }: { firstName: string }) {
   const opener = `¡Hola ${firstName}! 👋 ${page.msg}`;
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const skipFocusRef = useRef(false);
 
   useEffect(() => {
     if (bodyRef.current)
@@ -37,8 +38,18 @@ export function BookiFab({ firstName }: { firstName: string }) {
   }, [messages, loading]);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 80);
+    if (open && !skipFocusRef.current) setTimeout(() => inputRef.current?.focus(), 80);
+    skipFocusRef.current = false;
   }, [open]);
+
+  // Al entrar al resumen, desplegamos a Booki solo (en todas las sesiones). No
+  // robamos el foco para no abrir el teclado en mobile.
+  useEffect(() => {
+    if (pathname.startsWith("/app/ia/resumen")) {
+      skipFocusRef.current = true;
+      setOpen(true);
+    }
+  }, [pathname]);
 
   async function send() {
     const text = input.trim();

@@ -38,9 +38,9 @@ const FEATURES = [
   "Acceso a todos tus apuntes sin cortes",
 ];
 
-type Props = { ctx: PaywallCtx; onClose: () => void; preferredPlan?: PlanPreference };
+type Props = { ctx: PaywallCtx; onClose: () => void; preferredPlan?: PlanPreference; dismissLabel?: string };
 
-export function SalePopup({ ctx, onClose, preferredPlan }: Props) {
+export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás después" }: Props) {
   const [loading, setLoading] = useState<"semanal" | "pro" | "trimestral" | null>(null);
   const msg = CTX[ctx];
 
@@ -278,7 +278,7 @@ export function SalePopup({ ctx, onClose, preferredPlan }: Props) {
           {/* close link */}
           <div style={{ textAlign: "center" }}>
             <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 12, color: "var(--muted)", cursor: "pointer", opacity: 0.55 }}>
-              Quizás después
+              {dismissLabel}
             </button>
           </div>
 

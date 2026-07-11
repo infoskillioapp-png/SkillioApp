@@ -725,7 +725,7 @@ body.railed{padding-left:122px}
 @media print{
   body.railed{padding-left:0 !important}
   .sidebar,.rtopbar,.rside,.ractions,.practica,.bfab,#bchat,#confetti-layer,
-  .nbtn,.upgrade-cta,[data-noprint]{display:none !important}
+  #support-fab,.nbtn,.upgrade-cta,[data-noprint]{display:none !important}
   .rwrap{display:block !important;padding:0}
   .reader-main{max-width:100%;padding:0 20px}
   .rcard{box-shadow:none;border:1px solid #e8eaf2}
