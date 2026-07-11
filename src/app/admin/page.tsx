@@ -26,14 +26,14 @@ export default async function AdminResumen({
 
       <div className="adm__eyebrow">En el período</div>
       <div className="kpis">
-        <Kpi label="Registros" value={fmtInt(k.registros)} accent="violet" sub={<>+<b>{k.reg7}</b> en los últimos 7 días</>} />
-        <Kpi label="Activados" value={fmtInt(k.activados)} accent="blue" sub={<><b>{fmtPct(k.activationRate)}</b> de los registros</>} />
+        <Kpi label="Usuarios anónimos" value={fmtInt(k.registros)} accent="violet" sub={<>+<b>{k.reg7}</b> en los últimos 7 días</>} />
+        <Kpi label="Activados" value={fmtInt(k.activados)} accent="blue" sub={<><b>{fmtPct(k.activationRate)}</b> de los usuarios anónimos</>} />
         <Kpi label="Generaciones IA" value={fmtInt(k.generaciones)} sub={<><b>{fmtInt(k.totalTokens)}</b> tokens</>} />
         <Kpi label="Ingresos" value={fmtArs(k.revenueArs)} accent="green" sub={<>Costo IA <b>US$ {k.costUsd.toFixed(2)}</b></>} />
       </div>
 
       <div className="grid2">
-        <Panel title="Registros por día">
+        <Panel title="Usuarios anónimos por día">
           <Bars data={d.series.map((s) => ({ day: s.day, value: s.registros }))} color="var(--violet)" />
         </Panel>
         <Panel title="Activaciones por día">

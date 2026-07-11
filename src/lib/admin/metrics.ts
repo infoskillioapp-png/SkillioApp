@@ -155,7 +155,7 @@ export async function getDashboard(range: RangeInput) {
   const pagaron = new Set(payments.map((p) => p.user_id).filter(Boolean) as string[]).size;
 
   const funnelSteps = [
-    { label: "Registros", value: registros },
+    { label: "Usuarios anónimos", value: registros },
     { label: "Subieron un apunte", value: subieron },
     { label: "Activaron (generaron con lo suyo)", value: activados },
     { label: "Vieron el paywall", value: vieronPaywall },

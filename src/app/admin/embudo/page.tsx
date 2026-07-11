@@ -26,7 +26,7 @@ export default async function AdminEmbudo({
 
       <Panel
         title="Actividad del período"
-        hint="Cuenta lo que OCURRIÓ en estas fechas (registros, subidas, activaciones, paywall, checkout, pagos), sin importar cuándo se registró cada usuario — por eso coincide con lo que ves en Meta Ads. El % es la caída respecto del paso anterior."
+        hint="Cuenta lo que OCURRIÓ en estas fechas (usuarios anónimos nuevos, subidas, activaciones, paywall, checkout, pagos), sin importar cuándo entró cada usuario — por eso coincide con lo que ves en Meta Ads. El % es la caída respecto del paso anterior."
       >
         <Funnel steps={d.funnelSteps} />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18 }}>
