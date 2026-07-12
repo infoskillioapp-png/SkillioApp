@@ -42,9 +42,26 @@ export async function POST(req: Request) {
         .maybeSingle();
       anonRowId = data?.id ?? null;
     }
-    if (!anonRowId) return NextResponse.json({ error: "anon_session_not_found" }, { status: 404 });
+    // Sin sesión encontrada (típico: navegador in-app de Instagram/Facebook
+    // pierde la cookie en el ida-y-vuelta a MercadoPago). Ya cobraron: mejor
+    // crear una fila nueva y activar el plan ahí que dejar a alguien que pagó
+    // sin cuenta. Se pierde el contenido que haya generado antes de pagar,
+    // pero eso es preferible a perder la venta.
+    if (!anonRowId) {
+      const { data, error } = await sb
+        .from("users")
+        .insert({ plan: "free" })
+        .select("id")
+        .single();
+      if (error || !data) {
+        console.error("[api/public/claim] no se pudo crear fila de respaldo:", error);
+        return NextResponse.json({ error: "anon_session_not_found" }, { status: 404 });
+      }
+      anonRowId = data.id;
+      console.warn(`[api/public/claim] sesión anónima no encontrada (preapproval=${preapprovalId}) — fila de respaldo creada: ${anonRowId}`);
+    }
 
-    const { clerkUserId, plan } = await ensureAccountForPaidAnon({ anonRowId, email, subscription });
+    const { clerkUserId, plan } = await ensureAccountForPaidAnon({ anonRowId: anonRowId!, email, subscription });
 
     // Sign-in token para el auto-login (strategy 'ticket' en el cliente).
     const client = await clerkClient();
