@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { PDFDocument } from "pdf-lib";
+import mammoth from "mammoth";
 import type { Note } from "@/lib/types";
 import { sendCreditsExhaustedEmail } from "@/lib/email/resend";
 import { sendMetaEvent } from "@/lib/meta-capi";
@@ -46,6 +47,7 @@ const CHUNK_SIZE = 14_000;
 export type NoteContent =
   | { type: "pdf"; data: Uint8Array; fileName: string }
   | { type: "text"; text: string; fileName: string }
+  | { type: "word"; text: string; fileName: string }
   | { type: "image"; data: Uint8Array; mime: string; fileName: string }
   | { type: "unsupported"; fileName: string };
 
@@ -137,6 +139,19 @@ export async function getNoteContent(
       text: new TextDecoder("utf-8").decode(arr),
       fileName: typedNote.file_name,
     };
+  } else if (
+    typedNote.file_type === "word" &&
+    (mime.includes("wordprocessingml") || typedNote.file_name.toLowerCase().endsWith(".docx"))
+  ) {
+    // Solo .docx (Word moderno, 2007+): mammoth lee el XML del paquete OOXML.
+    // El .doc viejo (binario, pre-2007) no lo soporta esta librería.
+    try {
+      const { value: text } = await mammoth.extractRawText({ buffer: Buffer.from(arr) });
+      content = { type: "word", text, fileName: typedNote.file_name };
+    } catch (e) {
+      console.warn("[getNoteContent] no se pudo extraer texto del Word:", e);
+      content = { type: "unsupported", fileName: typedNote.file_name };
+    }
   } else {
     content = { type: "unsupported", fileName: typedNote.file_name };
   }
@@ -321,6 +336,7 @@ async function mapReduceText(text: string): Promise<string> {
 // ---------------------------------------------------------------------------
 const PDF_NATIVE_PAGE_LIMIT = 30;     // umbral general "PDF chico" para map-reduce
 const FREE_INPUT_PAGE_CAP = 5;        // free: solo las primeras 5 págs del apunte (abarata el input)
+const FREE_INPUT_CHAR_CAP = 15_000;   // free (Word): equivalente aprox. a 5 páginas de texto
 const PDF_PRO_NATIVE_LIMIT = 60;      // pro: nativo hasta aquí antes de map-reduce
 const PDF_CHUNK_PAGES = 25;           // tamaño de cada trozo en map-reduce
 const PDF_MAX_PAGES = 400;            // tope de seguridad
@@ -513,6 +529,29 @@ export async function buildUserContent(
     }
 
     // Truncado de seguridad para el modelo final
+    const finalText =
+      processedText.length > 80_000
+        ? processedText.slice(0, 80_000) + "\n\n[...truncado]"
+        : processedText;
+
+    return `Apunte: "${content.fileName}"\n\n---\n${finalText}\n---\n\n${instruction}`;
+  }
+
+  if (content.type === "word") {
+    if (!isPaid) {
+      // FREE: mismo criterio que el PDF (primeras ~5 páginas), pero en
+      // caracteres porque un Word extraído a texto no tiene "páginas".
+      const sliced =
+        content.text.length > FREE_INPUT_CHAR_CAP
+          ? content.text.slice(0, FREE_INPUT_CHAR_CAP)
+          : content.text;
+      return `Apunte: "${content.fileName}"\n\n---\n${sliced}\n---\n\n${instruction}`;
+    }
+
+    let processedText = content.text;
+    if (content.text.length > MAP_REDUCE_THRESHOLD) {
+      processedText = await mapReduceText(content.text);
+    }
     const finalText =
       processedText.length > 80_000
         ? processedText.slice(0, 80_000) + "\n\n[...truncado]"

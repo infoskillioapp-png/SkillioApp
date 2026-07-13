@@ -20,6 +20,7 @@
     "ai": "^6.0.185",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "mammoth": "^1.12.0",
     "markmap-lib": "^0.18.12",
     "markmap-view": "^0.18.12",
     "motion": "^12.39.0",
