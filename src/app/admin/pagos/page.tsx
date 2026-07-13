@@ -1,5 +1,6 @@
 import { getRecentPayments } from "@/lib/admin/metrics";
 import { Strip, fmtArs, fmtDateTime } from "../_components/ui";
+import { ActivarPorMercadoPago } from "./activar-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,8 @@ export default async function AdminPayments() {
           <p className="adm__sub">Se llenan desde el webhook de MercadoPago al confirmarse un cobro.</p>
         </div>
       </header>
+
+      <ActivarPorMercadoPago />
 
       <Strip
         items={[
