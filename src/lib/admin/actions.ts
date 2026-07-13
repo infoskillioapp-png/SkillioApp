@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendMetaPurchase } from "@/lib/meta-capi";
+import { recordFunnelEventForUser } from "@/lib/api/funnel";
 import { getAdminEmail } from "./auth";
 
 async function assertAdmin() {
@@ -47,6 +48,11 @@ export async function adminSetPlan(userId: string, plan: AdminPlan) {
   }
 
   await sb.from("users").update(patch).eq("id", userId);
+  await recordFunnelEventForUser(
+    userId,
+    plan === "free" ? "plan_bajo_a_free_admin" : "plan_activado_admin",
+    plan,
+  );
   revalidatePath(`/admin/usuarios/${userId}`);
   revalidatePath("/admin/usuarios");
 }
@@ -248,6 +254,8 @@ export async function adminActivateFromMp(
   } catch {
     /* no rompe el flujo si Meta falla */
   }
+
+  await recordFunnelEventForUser(userId, "plan_activado_admin", planKey);
 
   revalidatePath(`/admin/usuarios/${userId}`);
   revalidatePath("/admin/usuarios");

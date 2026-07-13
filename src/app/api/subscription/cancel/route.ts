@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { mpCancelSubscription } from "@/lib/mercadopago";
+import { recordFunnelEventForUser } from "@/lib/api/funnel";
 
 export async function POST() {
   const { userId } = await auth();
@@ -36,6 +37,8 @@ export async function POST() {
     console.error("[subscription/cancel]", error);
     return NextResponse.json({ error: "update failed" }, { status: 500 });
   }
+
+  await recordFunnelEventForUser(u.id, "plan_cancelado", u.plan);
 
   return NextResponse.json({ ok: true });
 }

@@ -274,6 +274,7 @@ async function handlePreapproval(subscriptionId: string) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
+    await recordFunnelEventForUser(user.id, "plan_bajo_a_free", subscription.status);
     console.log(`[webhook/preapproval] ${user.email} → free (${subscription.status}, matchedBy=${matchedBy})`);
   }
 }
