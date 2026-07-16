@@ -18,7 +18,7 @@ const EVENT_LABELS: Record<string, string> = {
   tour_completado: "Completó el tour",
   tour_skip: "Skipeó el tour",
   plan_cancelado: "Canceló el plan (desde la app)",
-  plan_bajo_a_free: "Bajó a free (MercadoPago)",
+  plan_cancelado_mp: "MercadoPago avisó la baja (sigue con acceso hasta que venza)",
   plan_activado_admin: "Plan activado (admin)",
   plan_bajo_a_free_admin: "Bajó a free (admin)",
 };

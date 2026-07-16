@@ -17,9 +17,12 @@ export const MODEL_FREE = "claude-haiku-4-5-20251001"; // free + volumen (tarjet
 export const FREE_GENERATION_LIMIT = 3;                // conservado para emails de nudge
 const MAP_MODEL = MODEL_FREE;
 
-/** Devuelve true si el usuario tiene acceso pago activo (créditos o tiempo vigente). */
+/** Devuelve true si el usuario tiene acceso pago activo (créditos o tiempo vigente).
+ * Mensual sin expires_at (el caso normal, suscripción activa) = acceso siempre.
+ * Con expires_at seteado (cancelado, sigue con acceso hasta esa fecha) = solo
+ * hasta que venza, igual que semanal/trimestral. */
 export function isPaidPlan(plan: string, expiresAt: string | null): boolean {
-  if (plan === "pro") return true;
+  if (plan === "pro") return !expiresAt || new Date(expiresAt) > new Date();
   if (plan === "semanal" || plan === "trimestral")
     return !!expiresAt && new Date(expiresAt) > new Date();
   return false;

@@ -6,6 +6,7 @@ import {
   mpGetSubscription,
   mpGetPayment,
   mpGetAuthorizedPayment,
+  periodEndFromLastCharge,
   type MpSubscription,
 } from "@/lib/mercadopago";
 import { sendMetaPurchase } from "@/lib/meta-capi";
@@ -264,18 +265,16 @@ async function handlePreapproval(subscriptionId: string) {
       );
       return;
     }
-    await sb
-      .from("users")
-      .update({
-        plan: "free",
-        mp_subscription_id: null,
-        credits: 0,
-        expires_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id);
-    await recordFunnelEventForUser(user.id, "plan_bajo_a_free", subscription.status);
-    console.log(`[webhook/preapproval] ${user.email} → free (${subscription.status}, matchedBy=${matchedBy})`);
+    // No corta el acceso en el momento: MercadoPago dejó de cobrar, pero el
+    // usuario ya pagó ese período — sigue con el plan hasta que venza.
+    const patch: Record<string, unknown> = { mp_subscription_id: null, updated_at: new Date().toISOString() };
+    if (user.plan === "pro") {
+      patch.expires_at = periodEndFromLastCharge(subscription, planType) ?? user.expires_at;
+    }
+    // semanal/trimestral ya tienen expires_at correcto de su última renovación: no se toca.
+    await sb.from("users").update(patch).eq("id", user.id);
+    await recordFunnelEventForUser(user.id, "plan_cancelado_mp", subscription.status);
+    console.log(`[webhook/preapproval] ${user.email} plan=${user.plan} vence=${patch.expires_at ?? user.expires_at ?? "-"} (${subscription.status}, matchedBy=${matchedBy})`);
   }
 }
 

@@ -38,6 +38,21 @@ export interface MpSubscription {
   payer_email: string;
   preapproval_plan_id: string;
   init_point: string;
+  summarized?: { last_charged_date?: string | null; last_charged_amount?: number | null } | null;
+}
+
+// Al cancelar (desde la app o desde MercadoPago), el usuario ya pagó por un
+// período que todavía no terminó — debe seguir con acceso hasta esa fecha, no
+// perderlo en el momento. Estimamos el fin del período desde el último cobro
+// real (MP no siempre devuelve next_payment_date en una suscripción cancelada).
+export function periodEndFromLastCharge(
+  sub: MpSubscription,
+  planType: "pro" | "semanal" | "trimestral",
+): string | null {
+  const lastCharged = sub.summarized?.last_charged_date;
+  if (!lastCharged) return null;
+  const days = planType === "semanal" ? 7 : planType === "trimestral" ? 90 : 30;
+  return new Date(new Date(lastCharged).getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 // MP soporta frequency_type "months" | "days" (no "weeks").
