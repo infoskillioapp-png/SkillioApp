@@ -31,12 +31,60 @@ function confettiBurst(x: number, y: number) {
   }
 }
 
-export type SummaryPoint = {
-  emoji?: string;
-  title: string;
-  description: string;
-  category?: string;
+// Formato viejo (y el que sigue usando free): un párrafo + nada más. Sigue
+// existiendo para no romper resúmenes ya generados ni el free (alcance actual:
+// solo pro tiene los bloques dinámicos de abajo).
+type LegacyPoint = { emoji?: string; title: string; description: string; category?: string };
+
+// Bloques dinámicos de pro: la IA elige, por bloque, el formato que mejor
+// comunique ESE contenido puntual — no todo es "texto + lista".
+type TextoBlock = { type: "texto"; emoji?: string; title: string; category?: string; body: string };
+type ProcesoBlock = {
+  type: "proceso"; emoji?: string; title: string; category?: string; intro?: string;
+  pasos: { paso: string; detalle: string }[];
 };
+type TablaBlock = {
+  type: "tabla"; emoji?: string; title: string; category?: string; intro?: string;
+  columnas: string[]; filas: { etiqueta: string; valores: string[] }[];
+};
+type FrameworkBlock = {
+  type: "framework"; emoji?: string; title: string; category?: string; intro?: string;
+  elementos: { nombre: string; descripcion: string }[];
+};
+type AnalogiaBlock = { type: "analogia"; emoji?: string; title: string; category?: string; analogia: string; conexion: string };
+
+export type SummaryPoint = LegacyPoint | TextoBlock | ProcesoBlock | TablaBlock | FrameworkBlock | AnalogiaBlock;
+
+type BlockKind = "legacy" | "texto" | "proceso" | "tabla" | "framework" | "analogia";
+function blockKind(p: SummaryPoint): BlockKind {
+  return "type" in p ? p.type : "legacy";
+}
+
+// Versión en texto plano de cualquier bloque — para el tip de Booki, la
+// práctica rápida y el modo "explicalo como a un niño" (no necesitan la
+// estructura, solo el contenido).
+export function plainText(p: SummaryPoint): string {
+  switch (blockKind(p)) {
+    case "legacy": return (p as LegacyPoint).description;
+    case "texto": return (p as TextoBlock).body;
+    case "proceso": {
+      const b = p as ProcesoBlock;
+      return [b.intro, ...b.pasos.map((s, i) => `${i + 1}. ${s.paso}: ${s.detalle}`)].filter(Boolean).join(" ");
+    }
+    case "tabla": {
+      const b = p as TablaBlock;
+      return [b.intro, ...b.filas.map((f) => `${f.etiqueta}: ${f.valores.join(", ")}`)].filter(Boolean).join(" ");
+    }
+    case "framework": {
+      const b = p as FrameworkBlock;
+      return [b.intro, ...b.elementos.map((e) => `${e.nombre}: ${e.descripcion}`)].filter(Boolean).join(" ");
+    }
+    case "analogia": {
+      const b = p as AnalogiaBlock;
+      return `${b.analogia} ${b.conexion}`;
+    }
+  }
+}
 
 type SummarySection = {
   name: string;
@@ -113,7 +161,7 @@ function PracticaQuiz({
     fetch("/api/ai/practica-rapida", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: point.title, description: point.description, category: point.category }),
+      body: JSON.stringify({ title: point.title, description: plainText(point), category: point.category }),
     })
       .then((r) => r.json())
       .then((d) => {
@@ -125,7 +173,7 @@ function PracticaQuiz({
       .catch(() => {})
       .finally(() => setLoadingQ(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [point.title, point.description, point.category]);
+  }, [point.title, point.category]);
 
   if (loadingQ) return (
     <div className="practica in" style={{ minHeight: 80, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -288,7 +336,7 @@ function BookiTip({ point }: { point: SummaryPoint }) {
     fetch("/api/ai/booki-tip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: point.title, description: point.description, category: point.category }),
+      body: JSON.stringify({ title: point.title, description: plainText(point), category: point.category }),
     })
       .then((r) => r.json())
       .then((d) => {
@@ -299,7 +347,8 @@ function BookiTip({ point }: { point: SummaryPoint }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [key, point.description, point.category]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, point.category]);
 
   return (
     <div className="booki-tip">
@@ -320,6 +369,114 @@ function BookiTip({ point }: { point: SummaryPoint }) {
           `Para recordar mejor "${point.title}", relacionalo con algo que ya sabés. 💡`
         )}
       </div>
+    </div>
+  );
+}
+
+// ---- contenido del bloque activo, según su tipo ----
+function BlockContent({ point, leadMode }: { point: SummaryPoint; leadMode: "normal" | "eli5" | "more" }) {
+  const kind = blockKind(point);
+
+  if (kind === "legacy" || kind === "texto") {
+    const base = kind === "legacy" ? (point as LegacyPoint).description : (point as TextoBlock).body;
+    const text =
+      leadMode === "eli5"
+        ? `Pensalo así: ${base.split(".")[0].toLowerCase()}. ¡Más simple imposible! 🧒`
+        : leadMode === "more"
+          ? `${base} Profundizando un poco más: esto se relaciona directamente con ${point.category ?? "el tema"} y tiene implicaciones prácticas importantes.`
+          : base;
+    return <p className="lead" style={{ whiteSpace: "pre-wrap" }}>{text}</p>;
+  }
+
+  if (kind === "proceso") {
+    const b = point as ProcesoBlock;
+    return (
+      <div className="lead">
+        {b.intro && <p style={{ marginBottom: 14 }}>{b.intro}</p>}
+        <ol style={{ display: "flex", flexDirection: "column", gap: 12, paddingLeft: 0, listStyle: "none", margin: 0 }}>
+          {b.pasos.map((s, i) => (
+            <li key={i} style={{ display: "flex", gap: 12 }}>
+              <span style={{
+                flexShrink: 0, width: 28, height: 28, borderRadius: "50%",
+                background: KX_COLORS[i % KX_COLORS.length], color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13,
+              }}>{i + 1}</span>
+              <div><b>{s.paso}:</b> {s.detalle}</div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    );
+  }
+
+  if (kind === "tabla") {
+    const b = point as TablaBlock;
+    return (
+      <div className="lead">
+        {b.intro && <p style={{ marginBottom: 14 }}>{b.intro}</p>}
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "2px solid var(--rule)" }} />
+                {b.columnas.map((c, i) => (
+                  <th key={i} style={{ textAlign: "left", padding: "8px 12px", borderBottom: "2px solid var(--rule)", fontWeight: 700 }}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {b.filas.map((f, i) => (
+                <tr key={i}>
+                  <td style={{ padding: "8px 12px", fontWeight: 700, borderBottom: "1px solid var(--rule)" }}>{f.etiqueta}</td>
+                  {f.valores.map((v, j) => (
+                    <td key={j} style={{ padding: "8px 12px", borderBottom: "1px solid var(--rule)" }}>{v}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === "framework") {
+    const b = point as FrameworkBlock;
+    return (
+      <div className="lead">
+        {b.intro && <p style={{ marginBottom: 14 }}>{b.intro}</p>}
+        <div style={{ display: "grid", gap: 10 }}>
+          {b.elementos.map((el, i) => (
+            <div key={i} style={{
+              display: "flex", gap: 12, padding: "10px 14px", borderRadius: 12,
+              background: "rgba(139,92,246,.06)", border: "1px solid rgba(139,92,246,.15)",
+            }}>
+              <span style={{
+                flexShrink: 0, width: 28, height: 28, borderRadius: 8,
+                background: KX_COLORS[i % KX_COLORS.length], color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13,
+              }}>{i + 1}</span>
+              <div><b>{el.nombre}:</b> {el.descripcion}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // analogia
+  const b = point as AnalogiaBlock;
+  return (
+    <div className="lead">
+      <div style={{
+        padding: "16px 18px", borderRadius: 16, marginBottom: 14,
+        background: "linear-gradient(135deg,rgba(255,201,60,.1),rgba(255,176,32,.06))",
+        border: "1.5px solid rgba(255,176,32,.28)",
+      }}>
+        <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 13, color: "#b8860b" }}>💡 Para entenderlo mejor</div>
+        {b.analogia}
+      </div>
+      <p style={{ margin: 0 }}>{b.conexion}</p>
     </div>
   );
 }
@@ -578,11 +735,7 @@ export function ResumenClient({
   if (!active) return <div style={{ padding: 40, color: "var(--muted)" }}>Sin contenido generado aún.</div>;
 
   const { point, secName, pointIdx } = active;
-
-  const leadNormal = point.description;
-  const leadEli5 = `Pensalo así: ${point.description.split(".")[0].toLowerCase()}. ¡Más simple imposible! 🧒`;
-  const leadMore = `${point.description} Profundizando un poco más: esto se relaciona directamente con ${point.category ?? "el tema"} y tiene implicaciones prácticas importantes.`;
-  const currentLead = leadMode === "eli5" ? leadEli5 : leadMode === "more" ? leadMore : leadNormal;
+  const canSimplify = blockKind(point) === "legacy" || blockKind(point) === "texto";
 
   return (
     <>
@@ -723,14 +876,18 @@ export function ResumenClient({
           </div>
 
           <div className="ractions in" data-noprint>
-            <button className="ract" onClick={() => setLeadMode("eli5")} style={leadMode === "eli5" ? { outline: "2px solid var(--violet)", outlineOffset: "1px" } : {}}>
-              <span>🧒</span> Explícalo como a un niño
-            </button>
-            <button className="ract" onClick={() => setLeadMode("more")} style={leadMode === "more" ? { outline: "2px solid var(--violet)", outlineOffset: "1px" } : {}}>
-              <span>🔬</span> Más detalles
-            </button>
-            {leadMode !== "normal" && (
-              <button className="ract" onClick={() => setLeadMode("normal")}>Volver al original</button>
+            {canSimplify && (
+              <>
+                <button className="ract" onClick={() => setLeadMode("eli5")} style={leadMode === "eli5" ? { outline: "2px solid var(--violet)", outlineOffset: "1px" } : {}}>
+                  <span>🧒</span> Explícalo como a un niño
+                </button>
+                <button className="ract" onClick={() => setLeadMode("more")} style={leadMode === "more" ? { outline: "2px solid var(--violet)", outlineOffset: "1px" } : {}}>
+                  <span>🔬</span> Más detalles
+                </button>
+                {leadMode !== "normal" && (
+                  <button className="ract" onClick={() => setLeadMode("normal")}>Volver al original</button>
+                )}
+              </>
             )}
             <button className="ract" onClick={() => window.print()} style={{ marginLeft: "auto" }}>
               <span>⬇</span> Descargar PDF
@@ -738,24 +895,7 @@ export function ResumenClient({
           </div>
 
           <div className="rcard in">
-            <p className="lead" dangerouslySetInnerHTML={{ __html: currentLead }} />
-
-            <div className="card-sec-title">
-              <span className="em">📌</span> Puntos clave
-            </div>
-            <ul className="keylist">
-              {data.sections
-                .flatMap((s) => s.points)
-                .slice(Math.max(0, safeActiveIdx - 1), safeActiveIdx + 3)
-                .map((pt, i) => (
-                  <li key={i}>
-                    <span className="kx" style={{ background: KX_COLORS[i % KX_COLORS.length] }}>{i + 1}</span>
-                    <div>
-                      <b>{pt.title}:</b> {pt.description.split(".")[0]}.
-                    </div>
-                  </li>
-                ))}
-            </ul>
+            <BlockContent point={point} leadMode={leadMode} />
 
             <BookiTip point={point} />
 

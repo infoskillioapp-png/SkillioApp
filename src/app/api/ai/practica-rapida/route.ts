@@ -18,8 +18,12 @@ const QuestionSchema = z.object({
   ).length(2),
 });
 
+// Objetivo de esta práctica: reforzar lo que el estudiante ACABA de leer, no
+// evaluarlo con un caso nuevo. Las preguntas tienen que poder responderse
+// directamente con el texto de abajo — nada de escenarios inventados ni
+// aplicación a una situación distinta.
 const SYSTEM =
-  "Sos un docente universitario. Generás exactamente 2 preguntas de opción múltiple (4 opciones cada una) sobre el concepto específico que te dan. Las preguntas evalúan comprensión, no memorización. Las opciones incorrectas deben ser plausibles. Explicación corta de por qué la correcta es correcta. Respondé SIEMPRE en español rioplatense.";
+  "Sos un docente universitario armando una práctica de refuerzo INMEDIATO — el estudiante acaba de leer el texto que te paso, y la pregunta tiene que poder responderse directamente con ESE texto, literalmente. Generás exactamente 2 preguntas de opción múltiple (4 opciones cada una) que testeen si retuvo lo que acaba de leer (¿cuáles son los elementos?, ¿qué relación describe el texto?, ¿qué dice sobre X?). NO inventes escenarios nuevos ni casos aplicados — eso es para el simulacro, no para acá. Las opciones incorrectas deben ser plausibles pero claramente distinguibles si leyó el texto. Explicación corta de por qué la correcta es correcta. Respondé SIEMPRE en español rioplatense.";
 
 export async function POST(req: Request) {
   const actor = await resolveActor();
@@ -28,10 +32,13 @@ export async function POST(req: Request) {
   if (!title || !description)
     return NextResponse.json({ error: "title and description required" }, { status: 400 });
 
-  const prompt = `Concepto: "${title}"${category ? ` (subtema: ${category})` : ""}
-Descripción: ${description}
+  const prompt = `El estudiante acaba de leer este texto sobre "${title}"${category ? ` (subtema: ${category})` : ""}:
 
-Generá 2 preguntas de opción múltiple específicamente sobre este concepto.`;
+"""
+${description}
+"""
+
+Generá 2 preguntas que refuercen literalmente lo que dice ESE texto — deben poder responderse con la información de arriba, sin inventar ningún caso nuevo.`;
 
   try {
     const result = await generateObject({

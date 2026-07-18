@@ -30,12 +30,6 @@ const KeyPointSchemaFree = z.object({
   category: z.string().optional().describe("Subtema dentro del apunte"),
 });
 
-export const PuntosClaveSchema = z.object({
-  title: z.string().describe("Título corto descriptivo basado en el apunte"),
-  intro: z.string().optional().describe("Una oración de contexto al inicio (opcional)"),
-  points: z.array(KeyPointSchema).min(6).max(12),
-});
-
 export const PuntosClaveSchemaFree = z.object({
   title: z.string().describe("Título corto descriptivo basado en el apunte"),
   intro: z.string().optional().describe("Una oración de contexto al inicio (opcional)"),
@@ -45,19 +39,133 @@ export const PuntosClaveSchemaFree = z.object({
 export const SUMMARY_SYSTEM =
   "Sos un asistente de estudio en español rioplatense. Generás material claro, organizado y atractivo para que un estudiante universitario pueda repasar. Nunca inventes información que no esté en el apunte. Si el apunte no contiene material académico relevante, decílo en la descripción. Sé conciso pero completo.";
 
-export const PUNTOS_PROMPT =
-  "Extraé entre 8 y 12 puntos clave del apunte. Cada punto debe ser una idea autocontenida que un estudiante pueda repasar individualmente. Asigná un emoji que represente el concepto, un título corto (3-8 palabras) y una descripción de 1-2 oraciones. Agrupá los puntos por subtema usando `category` cuando tenga sentido. Devolvé SIEMPRE en español rioplatense.";
-
 // FREE: solo llegan las primeras 5 páginas → 2 puntos MUY bien desarrollados.
 export const PUNTOS_PROMPT_FREE =
   "Extraé EXACTAMENTE 2 puntos clave: los 2 conceptos MÁS importantes de este material. Cada punto debe tener una descripción DESARROLLADA y con sustancia (4 a 6 oraciones: definí la idea, explicá por qué importa y sumá un ejemplo o una consecuencia concreta). Nada de frases sueltas de una línea. Asigná un emoji representativo y un título de 3-8 palabras. Devolvé SIEMPRE en español rioplatense.";
 
+// ---------------------------------------------------------------------------
+// RESUMEN PRO · bloques pedagógicos dinámicos (reemplaza "texto + lista fija").
+// La IA elige, por bloque, el formato que mejor comunique ESE contenido —
+// no todo tiene que ser un párrafo con viñetas debajo.
+// ---------------------------------------------------------------------------
+const TextoBlockSchema = z.object({
+  type: z.literal("texto"),
+  emoji: z.string().describe("Un emoji que represente el concepto"),
+  title: z.string().describe("Título corto del tema, 3-8 palabras"),
+  category: z.string().optional().describe("Subtema al que pertenece (mismo string para bloques del mismo subtema)"),
+  body: z.string().describe(
+    "Explicación desarrollada en Markdown (podés usar **negrita**, listas con '-'). Mínimo 4-6 oraciones. Preservá ejemplos, historias y analogías potentes del original — no las recortes.",
+  ),
+});
+
+const ProcesoBlockSchema = z.object({
+  type: z.literal("proceso"),
+  emoji: z.string(),
+  title: z.string(),
+  category: z.string().optional(),
+  intro: z.string().optional().describe("1 oración de contexto antes de los pasos"),
+  pasos: z
+    .array(
+      z.object({
+        paso: z.string().describe("Nombre corto del paso"),
+        detalle: z.string().describe("Explicación del paso, 1-3 oraciones"),
+      }),
+    )
+    .min(2)
+    .max(8),
+});
+
+const TablaBlockSchema = z.object({
+  type: z.literal("tabla"),
+  emoji: z.string(),
+  title: z.string(),
+  category: z.string().optional(),
+  intro: z.string().optional(),
+  columnas: z.array(z.string()).min(2).max(5).describe("Encabezados de columna"),
+  filas: z
+    .array(
+      z.object({
+        etiqueta: z.string().describe("Nombre de la fila (primera columna)"),
+        valores: z.array(z.string()).describe("Un valor por cada columna restante, en el mismo orden que `columnas`"),
+      }),
+    )
+    .min(2)
+    .max(8),
+});
+
+const FrameworkBlockSchema = z.object({
+  type: z.literal("framework"),
+  emoji: z.string(),
+  title: z.string(),
+  category: z.string().optional(),
+  intro: z.string().optional().describe("Qué es el framework en 1 oración"),
+  elementos: z
+    .array(
+      z.object({
+        nombre: z.string(),
+        descripcion: z.string().describe("1-2 oraciones"),
+      }),
+    )
+    .min(2)
+    .max(6),
+});
+
+const AnalogiaBlockSchema = z.object({
+  type: z.literal("analogia"),
+  emoji: z.string(),
+  title: z.string(),
+  category: z.string().optional(),
+  analogia: z.string().describe(
+    "La historia, ejemplo real o analogía del original, desarrollada con detalle — no la resumas al mínimo, esto es lo que fija el concepto en la memoria del estudiante.",
+  ),
+  conexion: z.string().describe("1-2 oraciones conectando la analogía con el concepto académico que ilustra"),
+});
+
+const SummaryBlockSchema = z.discriminatedUnion("type", [
+  TextoBlockSchema,
+  ProcesoBlockSchema,
+  TablaBlockSchema,
+  FrameworkBlockSchema,
+  AnalogiaBlockSchema,
+]);
+
+export const PuntosClaveSchemaPro = z.object({
+  title: z.string().describe("Título corto descriptivo basado en el apunte"),
+  intro: z.string().optional().describe("Una oración de contexto al inicio (opcional)"),
+  points: z.array(SummaryBlockSchema).min(6).max(12),
+});
+
+export const SUMMARY_SYSTEM_PRO = `Sos un Diseñador Instruccional y Profesor Universitario experto en técnicas de estudio y neuromemoria. Tu trabajo NO es "resumir" de forma genérica — es transformar el material en una experiencia de estudio que realmente fije el conocimiento. Nunca inventes información que no esté en el apunte.
+
+Reglas estrictas:
+1. SEGMENTACIÓN: dividí el apunte en bloques temáticos mutuamente excluyentes, siguiendo el orden lógico del material original. Cada bloque tiene que aportar información 100% nueva — NUNCA repitas un concepto, ejemplo o dato ya cubierto en un bloque anterior. Si dos ideas están muy relacionadas, desarrollalas juntas en un solo bloque en vez de repartirlas en dos.
+2. FORMATO ADAPTATIVO: para cada bloque, elegí el "type" que mejor comunique ESE contenido puntual — no fuerces todo al mismo molde:
+   - "texto": explicaciones conceptuales o ideas que no encajan en los otros formatos.
+   - "proceso": cuando el original describe pasos ordenados, una metodología o una secuencia.
+   - "tabla": cuando hay una comparación entre varios elementos con las mismas categorías.
+   - "framework": cuando hay un modelo con varios componentes que funcionan juntos (ej: un triángulo de 3 pilares, un modelo de varios niveles).
+   - "analogia": cuando el original cuenta una historia, ejemplo real o analogía para explicar un concepto.
+3. DENSIDAD: nunca sacrifiques profundidad por brevedad. Los ejemplos, historias y analogías del original son lo que hace que el estudiante recuerde — conservalos con detalle, no los aplanes a una oración.
+4. Español rioplatense, tono cercano pero profesional.`;
+
+export const PUNTOS_PROMPT_PRO =
+  "Extraé entre 8 y 12 bloques temáticos del apunte, en el mismo orden en que aparecen en el material original. Cada bloque usa el formato (\"type\") que mejor le quede a su contenido. Agrupá los bloques por subtema usando `category` (mismo string para bloques del mismo subtema). Devolvé SIEMPRE en español rioplatense.";
+
 export async function genSummaryPuntos(content: NoteContent, model: string, isPaid: boolean) {
-  const instruction = isPaid ? PUNTOS_PROMPT : PUNTOS_PROMPT_FREE;
-  const parts = await buildUserContent(content, instruction, isPaid);
+  if (isPaid) {
+    const parts = await buildUserContent(content, PUNTOS_PROMPT_PRO, isPaid);
+    const r = await generateObject({
+      model: anthropic(model),
+      schema: PuntosClaveSchemaPro,
+      system: SUMMARY_SYSTEM_PRO,
+      messages: [{ role: "user", content: parts }],
+    });
+    return { object: r.object, usage: r.usage as Usage, title: r.object.title };
+  }
+  const parts = await buildUserContent(content, PUNTOS_PROMPT_FREE, isPaid);
   const r = await generateObject({
     model: anthropic(model),
-    schema: isPaid ? PuntosClaveSchema : PuntosClaveSchemaFree,
+    schema: PuntosClaveSchemaFree,
     system: SUMMARY_SYSTEM,
     messages: [{ role: "user", content: parts }],
   });

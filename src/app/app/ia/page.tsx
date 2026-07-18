@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { EspacioClient, SEC_COLORS } from "./_components/espacio-client";
 import { EspacioEmpty } from "./_components/espacio-empty";
 import { isDemoNoteId, getDemoResumen, getDemoTarjetas, getDemoSimulacro } from "@/lib/demo-content";
+import { plainText, type SummaryPoint } from "./resumen/_components/resumen-client";
 
 type SearchParams = Promise<{ note_id?: string; gen?: string }>;
 
@@ -24,12 +25,15 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
       id: `sec-${si}`,
       name: sec.name,
       color: SEC_COLORS[si % SEC_COLORS.length],
-      topics: sec.points.map((p, ti) => ({
-        id: `topic-${si}-${ti}`,
-        name: p.emoji ? `${p.emoji} ${p.title}` : p.title,
-        sub: p.description ? p.description.slice(0, 60) + (p.description.length > 60 ? "…" : "") : "",
-        pct: 0,
-      })),
+      topics: sec.points.map((p, ti) => {
+        const desc = plainText(p);
+        return {
+          id: `topic-${si}-${ti}`,
+          name: p.emoji ? `${p.emoji} ${p.title}` : p.title,
+          sub: desc ? desc.slice(0, 60) + (desc.length > 60 ? "…" : "") : "",
+          pct: 0,
+        };
+      }),
     }));
 
     const demoNoteData = {
@@ -88,13 +92,12 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
   const flashcardsOutput = outputs?.find((o) => o.kind === "flashcards");
   const simulacroOutput = outputs?.find((o) => o.kind === "simulacro");
 
-  type Point = { emoji?: string; title: string; description?: string; category?: string };
   // La API guarda content = { format, data: { title, intro, points } }
-  type SumContent = { points?: Point[]; data?: { points?: Point[] } };
+  type SumContent = { points?: SummaryPoint[]; data?: { points?: SummaryPoint[] } };
   const sumContent = summaryOutput?.content as SumContent | null;
-  const points: Point[] = sumContent?.data?.points ?? sumContent?.points ?? [];
+  const points: SummaryPoint[] = sumContent?.data?.points ?? sumContent?.points ?? [];
 
-  const secMap = new Map<string, Point[]>();
+  const secMap = new Map<string, SummaryPoint[]>();
   points.forEach((p) => {
     const cat = p.category ?? "General";
     if (!secMap.has(cat)) secMap.set(cat, []);
@@ -105,12 +108,15 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     id: `sec-${si}`,
     name,
     color: SEC_COLORS[si % SEC_COLORS.length],
-    topics: pts.map((p, ti) => ({
-      id: `topic-${si}-${ti}`,
-      name: p.emoji ? `${p.emoji} ${p.title}` : p.title,
-      sub: p.description ? p.description.slice(0, 60) + (p.description.length > 60 ? "…" : "") : "",
-      pct: 0,
-    })),
+    topics: pts.map((p, ti) => {
+      const desc = plainText(p);
+      return {
+        id: `topic-${si}-${ti}`,
+        name: p.emoji ? `${p.emoji} ${p.title}` : p.title,
+        sub: desc ? desc.slice(0, 60) + (desc.length > 60 ? "…" : "") : "",
+        pct: 0,
+      };
+    }),
   }));
 
   type Flashcard = { front?: string };

@@ -4,7 +4,7 @@ import { isDemoNoteId, getDemoResumen, getDemoSimulacro } from "@/lib/demo-conte
 import { getActorReadonly } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ResumenClient } from "./_components/resumen-client";
-import type { ResumenData, QuizQuestion } from "./_components/resumen-client";
+import type { ResumenData, QuizQuestion, SummaryPoint } from "./_components/resumen-client";
 
 // Demo: convierte las preguntas MC del simulacro hardcodeado en un pool para la
 // práctica rápida (mismo formato), sin IA.
@@ -18,7 +18,6 @@ function demoPracticaPool(noteId: string): QuizQuestion[] {
 
 type SearchParams = Promise<{ note_id?: string; s?: string }>;
 
-type SummaryPoint = { emoji?: string; title: string; description: string; category?: string };
 type SummaryContent = { title?: string; intro?: string; points?: SummaryPoint[] };
 
 
