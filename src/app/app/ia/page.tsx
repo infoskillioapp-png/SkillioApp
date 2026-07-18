@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { EspacioClient, SEC_COLORS } from "./_components/espacio-client";
 import { EspacioEmpty } from "./_components/espacio-empty";
 import { isDemoNoteId, getDemoResumen, getDemoTarjetas, getDemoSimulacro } from "@/lib/demo-content";
-import { plainText, type SummaryPoint } from "./resumen/_components/resumen-client";
+import { plainText, type SummaryPoint } from "./resumen/_components/summary-blocks";
 
 type SearchParams = Promise<{ note_id?: string; gen?: string }>;
 

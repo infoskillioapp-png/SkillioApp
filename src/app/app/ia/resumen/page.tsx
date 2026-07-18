@@ -4,7 +4,8 @@ import { isDemoNoteId, getDemoResumen, getDemoSimulacro } from "@/lib/demo-conte
 import { getActorReadonly } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ResumenClient } from "./_components/resumen-client";
-import type { ResumenData, QuizQuestion, SummaryPoint } from "./_components/resumen-client";
+import type { ResumenData, QuizQuestion } from "./_components/resumen-client";
+import type { SummaryPoint } from "./_components/summary-blocks";
 
 // Demo: convierte las preguntas MC del simulacro hardcodeado en un pool para la
 // práctica rápida (mismo formato), sin IA.
