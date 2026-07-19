@@ -19,7 +19,14 @@ function demoPracticaPool(noteId: string): QuizQuestion[] {
 
 type SearchParams = Promise<{ note_id?: string; s?: string }>;
 
-type SummaryContent = { title?: string; intro?: string; points?: SummaryPoint[] };
+type SummaryContent = {
+  title?: string;
+  intro?: string;
+  points?: SummaryPoint[];
+  // Práctica por título (no por bloque) — se adjunta al ÚLTIMO subtítulo de
+  // cada título, como cierre de esa sección.
+  practicaPorTitulo?: { categoria: string; practica: QuizQuestion[] }[];
+};
 
 
 export default async function ResumenPage({ searchParams }: { searchParams: SearchParams }) {
@@ -84,7 +91,17 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     secMap.get(cat)!.push(p);
   });
 
-  const sections = Array.from(secMap.entries()).map(([name, points]) => ({ name, points }));
+  // Práctica por título: va SOLO en el último subtítulo de cada título (cierre
+  // de esa sección), no repetida en cada bloque.
+  const practicaPorTitulo = summaryRaw?.practicaPorTitulo ?? [];
+  const sections = Array.from(secMap.entries()).map(([name, points]) => {
+    const entry = practicaPorTitulo.find((p) => p.categoria === name);
+    if (!entry || points.length === 0) return { name, points };
+    const lastIdx = points.length - 1;
+    const withPractica = [...points];
+    withPractica[lastIdx] = { ...withPractica[lastIdx], practica: entry.practica };
+    return { name, points: withPractica };
+  });
 
   // URL del archivo original (para "Resumen completo")
   const { data: fileSignedUrl } = await sb.storage

@@ -58,11 +58,10 @@ const TextoBlockSchema = z.object({
   type: z.literal("texto"),
   emoji: z.string().describe("Un emoji que represente el concepto"),
   title: z.string().describe("Título corto del tema, 3-8 palabras"),
-  category: z.string().optional().describe("Subtema al que pertenece (mismo string para bloques del mismo subtema)"),
+  category: z.string().optional().describe("Título/sección al que pertenece (mismo string EXACTO para bloques de la misma sección)"),
   body: z.string().describe(
     "Explicación desarrollada en Markdown (podés usar **negrita**, listas con '-'). Mínimo 4-6 oraciones. Preservá ejemplos, historias y analogías potentes del original — no las recortes.",
   ),
-  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const ProcesoBlockSchema = z.object({
@@ -70,17 +69,19 @@ const ProcesoBlockSchema = z.object({
   emoji: z.string(),
   title: z.string(),
   category: z.string().optional(),
-  intro: z.string().optional().describe("1 oración de contexto antes de los pasos"),
+  intro: z.string().optional().describe("1 oración de contexto antes de los ítems"),
+  ordenado: z.boolean().describe(
+    "true SOLO si estos ítems deben pasar en este orden exacto (una metodología, un proceso secuencial, pasos de un flujo). false si es una lista de ítems, características o beneficios SIN orden inherente (ahí no se numeran, van con viñetas).",
+  ),
   pasos: z
     .array(
       z.object({
-        paso: z.string().describe("Nombre corto del paso"),
-        detalle: z.string().describe("Explicación del paso, 1-3 oraciones"),
+        paso: z.string().describe("Nombre corto del ítem o paso"),
+        detalle: z.string().describe("Explicación del ítem, 1-3 oraciones"),
       }),
     )
     .min(2)
     .max(8),
-  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const TablaBlockSchema = z.object({
@@ -99,7 +100,6 @@ const TablaBlockSchema = z.object({
     )
     .min(2)
     .max(8),
-  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const FrameworkBlockSchema = z.object({
@@ -117,7 +117,6 @@ const FrameworkBlockSchema = z.object({
     )
     .min(2)
     .max(6),
-  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const AnalogiaBlockSchema = z.object({
@@ -129,7 +128,6 @@ const AnalogiaBlockSchema = z.object({
     "La historia, ejemplo real o analogía del original, desarrollada con detalle — no la resumas al mínimo, esto es lo que fija el concepto en la memoria del estudiante.",
   ),
   conexion: z.string().describe("1-2 oraciones conectando la analogía con el concepto académico que ilustra"),
-  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const SummaryBlockSchema = z.discriminatedUnion("type", [
@@ -140,28 +138,46 @@ const SummaryBlockSchema = z.discriminatedUnion("type", [
   AnalogiaBlockSchema,
 ]);
 
+// Práctica por TÍTULO (categoría), no por cada bloque/subtítulo — una sola
+// tanda de 2 preguntas que cubra ese título completo (puede tener varios
+// bloques adentro). El front la muestra recién en el último subtítulo del
+// título, como cierre de esa sección.
+const PracticaPorTituloSchema = z.object({
+  categoria: z.string().describe("Debe coincidir EXACTAMENTE con el `category` usado en los bloques de ese título"),
+  practica: z.array(PracticaQuestionSchema).length(2).describe(
+    "2 preguntas que refuercen literalmente el contenido de TODOS los bloques de este título combinados (no de uno solo).",
+  ),
+});
+
 export const PuntosClaveSchemaPro = z.object({
   title: z.string().describe("Título corto descriptivo basado en el apunte"),
   intro: z.string().optional().describe("Una oración de contexto al inicio (opcional)"),
-  points: z.array(SummaryBlockSchema).min(6).max(12),
+  // Sin rango fijo: la cantidad de bloques depende del contenido real del
+  // apunte (páginas, densidad), no de un número forzado. El tope de arriba es
+  // solo una red de seguridad técnica, no una meta a alcanzar.
+  points: z.array(SummaryBlockSchema).min(1).max(40),
+  practicaPorTitulo: z.array(PracticaPorTituloSchema).describe(
+    "Una entrada por cada título/categoría DISTINTO usado en `points` — no por cada bloque individual.",
+  ),
 });
 
 export const SUMMARY_SYSTEM_PRO = `Sos un Diseñador Instruccional y Profesor Universitario experto en técnicas de estudio y neuromemoria. Tu trabajo NO es "resumir" de forma genérica — es transformar el material en una experiencia de estudio que realmente fije el conocimiento. Nunca inventes información que no esté en el apunte.
 
 Reglas estrictas:
 1. SEGMENTACIÓN: dividí el apunte en bloques temáticos mutuamente excluyentes, siguiendo el orden lógico del material original. Cada bloque tiene que aportar información 100% nueva — NUNCA repitas un concepto, ejemplo o dato ya cubierto en un bloque anterior. Si dos ideas están muy relacionadas, desarrollalas juntas en un solo bloque en vez de repartirlas en dos.
-2. FORMATO ADAPTATIVO: para cada bloque, elegí el "type" que mejor comunique ESE contenido puntual — no fuerces todo al mismo molde:
+2. CANTIDAD LIBRE: no hay un número fijo de bloques a alcanzar. Generá tantos como el contenido real amerite — un apunte corto y denso puede necesitar solo 3-4 bloques; uno largo, 20 o más. La cantidad la decide el contenido, no una meta arbitraria.
+3. FORMATO ADAPTATIVO: para cada bloque, elegí el "type" que mejor comunique ESE contenido puntual — no fuerces todo al mismo molde:
    - "texto": explicaciones conceptuales o ideas que no encajan en los otros formatos.
-   - "proceso": cuando el original describe pasos ordenados, una metodología o una secuencia.
+   - "proceso": una lista de ítems — pasos de una metodología (marcá "ordenado: true") O una lista de características/beneficios sin secuencia (marcá "ordenado: false").
    - "tabla": cuando hay una comparación entre varios elementos con las mismas categorías.
    - "framework": cuando hay un modelo con varios componentes que funcionan juntos (ej: un triángulo de 3 pilares, un modelo de varios niveles).
    - "analogia": cuando el original cuenta una historia, ejemplo real o analogía para explicar un concepto.
-3. DENSIDAD: nunca sacrifiques profundidad por brevedad. Los ejemplos, historias y analogías del original son lo que hace que el estudiante recuerde — conservalos con detalle, no los aplanes a una oración.
-4. PRÁCTICA: cada bloque lleva sus propias 2 preguntas de refuerzo — deben poder responderse LITERALMENTE con el contenido de ESE bloque, sin inventar casos aplicados nuevos.
-5. Español rioplatense, tono cercano pero profesional.`;
+4. DENSIDAD: nunca sacrifiques profundidad por brevedad. Los ejemplos, historias y analogías del original son lo que hace que el estudiante recuerde — conservalos con detalle, no los aplanes a una oración.
+5. PRÁCTICA POR TÍTULO: la práctica de refuerzo va UNA VEZ por título/categoría (no por cada bloque) — 2 preguntas que cubran todos los bloques de ese título combinados, en "practicaPorTitulo".
+6. Español rioplatense, tono cercano pero profesional.`;
 
 export const PUNTOS_PROMPT_PRO =
-  "Extraé entre 8 y 12 bloques temáticos del apunte, en el mismo orden en que aparecen en el material original. Cada bloque usa el formato (\"type\") que mejor le quede a su contenido, y trae sus propias 2 preguntas de práctica rápida. Agrupá los bloques por subtema usando `category` (mismo string para bloques del mismo subtema). Devolvé SIEMPRE en español rioplatense.";
+  "Extraé los bloques temáticos que el apunte amerite (ni más ni menos — la cantidad depende del contenido real, no de un número fijo), en el mismo orden en que aparecen en el material original. Cada bloque usa el formato (\"type\") que mejor le quede a su contenido. Agrupá los bloques por título usando `category` (mismo string EXACTO para bloques del mismo título). Para cada título distinto, generá además su propia práctica rápida en `practicaPorTitulo` (2 preguntas que cubran todo ese título, no cada bloque). Devolvé SIEMPRE en español rioplatense.";
 
 export async function genSummaryPuntos(content: NoteContent, model: string, isPaid: boolean) {
   if (isPaid) {

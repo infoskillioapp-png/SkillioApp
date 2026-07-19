@@ -308,17 +308,25 @@ function BlockContent({ point }: { point: SummaryPoint }) {
 
   if (kind === "proceso") {
     const b = point as ProcesoBlock;
+    const numbered = b.ordenado !== false; // default true (compat con contenido viejo sin el campo)
     return (
       <div className="lead">
         {b.intro && <p style={{ marginBottom: 14 }}><MD text={b.intro} inline /></p>}
         <ol style={{ display: "flex", flexDirection: "column", gap: 12, paddingLeft: 0, listStyle: "none", margin: 0 }}>
           {b.pasos.map((s, i) => (
             <li key={i} style={{ display: "flex", gap: 12 }}>
-              <span style={{
-                flexShrink: 0, width: 28, height: 28, borderRadius: "50%",
-                background: KX_COLORS[i % KX_COLORS.length], color: "#fff",
-                display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13,
-              }}>{i + 1}</span>
+              {numbered ? (
+                <span style={{
+                  flexShrink: 0, width: 28, height: 28, borderRadius: "50%",
+                  background: KX_COLORS[i % KX_COLORS.length], color: "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13,
+                }}>{i + 1}</span>
+              ) : (
+                <span style={{
+                  flexShrink: 0, width: 10, height: 10, borderRadius: "50%", marginTop: 9,
+                  background: KX_COLORS[i % KX_COLORS.length],
+                }} />
+              )}
               <div><b>{s.paso}:</b> <MD text={s.detalle} inline /></div>
             </li>
           ))}
@@ -651,6 +659,14 @@ export function ResumenClient({
   if (!active) return <div style={{ padding: 40, color: "var(--muted)" }}>Sin contenido generado aún.</div>;
 
   const { point, secName, pointIdx } = active;
+  // Práctica por título: solo viene adjunta al último subtítulo de cada
+  // título (ver resumen/page.tsx). Contenido legacy (sin `type`) o demo
+  // siguen mostrando práctica siempre, como antes.
+  const embeddedPractica = getPractica(point);
+  const showPractica =
+    (embeddedPractica && embeddedPractica.length > 0) ||
+    blockKind(point) === "legacy" ||
+    (demoPractica && demoPractica.length > 0);
 
   return (
     <>
@@ -829,16 +845,18 @@ export function ResumenClient({
             )}
           </div>
 
-          {/* práctica rápida — preguntas generadas dinámicamente por tema (demo: pool fijo) */}
-          <PracticaQuiz
-            key={`${data.noteId}-${safeActiveIdx}`}
-            point={point}
-            topicName={point.title}
-            onDone={handleQuizDone}
-            demoPool={demoPractica}
-            poolSeed={safeActiveIdx}
-            practica={getPractica(point)}
-          />
+          {/* práctica rápida — 1 sola vez por título, en su último subtítulo (demo: pool fijo) */}
+          {showPractica && (
+            <PracticaQuiz
+              key={`${data.noteId}-${safeActiveIdx}`}
+              point={point}
+              topicName={point.title}
+              onDone={handleQuizDone}
+              demoPool={demoPractica}
+              poolSeed={safeActiveIdx}
+              practica={embeddedPractica}
+            />
+          )}
 
           {/* nav entre temas */}
           <div style={{ display: "flex", gap: 12, marginTop: 8 }}>

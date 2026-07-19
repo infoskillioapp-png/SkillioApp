@@ -22,6 +22,8 @@ export type LegacyPoint = { emoji?: string; title: string; description: string; 
 export type TextoBlock = { type: "texto"; emoji?: string; title: string; category?: string; body: string; practica?: QuizQuestion[] };
 export type ProcesoBlock = {
   type: "proceso"; emoji?: string; title: string; category?: string; intro?: string;
+  // true = pasos secuenciales (se numeran); false/ausente = lista sin orden (viñetas).
+  ordenado?: boolean;
   pasos: { paso: string; detalle: string }[]; practica?: QuizQuestion[];
 };
 export type TablaBlock = {
