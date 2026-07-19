@@ -16,18 +16,24 @@ type Usage = { inputTokens?: number; outputTokens?: number } | undefined;
 // ---------------------------------------------------------------------------
 // RESUMEN · puntos_clave
 // ---------------------------------------------------------------------------
-const KeyPointSchema = z.object({
-  emoji: z.string().describe("Un emoji que represente bien el concepto"),
-  title: z.string().describe("Concepto o idea principal en 3-8 palabras, conciso"),
-  description: z.string().describe("Explicación clara en 1 o 2 oraciones, autocontenida"),
-  category: z.string().optional().describe("Subtema dentro del apunte (mismo string para puntos del mismo subtema)."),
+
+// Práctica rápida: se genera JUNTO con el bloque (misma llamada), no en un
+// fetch aparte al cambiar de tema — eso multiplicaba el costo por cada click.
+const PracticaQuestionSchema = z.object({
+  pregunta: z.string(),
+  opciones: z.array(z.string()).length(4),
+  correcta: z.number().int().min(0).max(3).describe("Índice de la opción correcta (0-3)"),
+  explicacion: z.string().describe("Por qué la correcta es correcta, 1 oración"),
 });
+const PRACTICA_DESCRIPCION =
+  "Exactamente 2 preguntas de opción múltiple (4 opciones cada una) que refuercen LITERALMENTE lo que dice este bloque — deben poder responderse con esta misma información, sin inventar casos aplicados nuevos (eso es para el simulacro, no para acá).";
 
 const KeyPointSchemaFree = z.object({
   emoji: z.string().describe("Un emoji que represente bien el concepto"),
   title: z.string().describe("Concepto o idea principal en 3-8 palabras, conciso"),
   description: z.string().describe("Explicación DESARROLLADA de 4 a 6 oraciones: definí la idea, explicá el porqué y sumá un ejemplo o consecuencia. Nunca una sola frase suelta."),
   category: z.string().optional().describe("Subtema dentro del apunte"),
+  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 export const PuntosClaveSchemaFree = z.object({
@@ -41,7 +47,7 @@ export const SUMMARY_SYSTEM =
 
 // FREE: solo llegan las primeras 5 páginas → 2 puntos MUY bien desarrollados.
 export const PUNTOS_PROMPT_FREE =
-  "Extraé EXACTAMENTE 2 puntos clave: los 2 conceptos MÁS importantes de este material. Cada punto debe tener una descripción DESARROLLADA y con sustancia (4 a 6 oraciones: definí la idea, explicá por qué importa y sumá un ejemplo o una consecuencia concreta). Nada de frases sueltas de una línea. Asigná un emoji representativo y un título de 3-8 palabras. Devolvé SIEMPRE en español rioplatense.";
+  "Extraé EXACTAMENTE 2 puntos clave: los 2 conceptos MÁS importantes de este material. Cada punto debe tener una descripción DESARROLLADA y con sustancia (4 a 6 oraciones: definí la idea, explicá por qué importa y sumá un ejemplo o una consecuencia concreta). Nada de frases sueltas de una línea. Asigná un emoji representativo y un título de 3-8 palabras. Para cada punto, generá también su práctica rápida (2 preguntas de refuerzo literal). Devolvé SIEMPRE en español rioplatense.";
 
 // ---------------------------------------------------------------------------
 // RESUMEN PRO · bloques pedagógicos dinámicos (reemplaza "texto + lista fija").
@@ -56,6 +62,7 @@ const TextoBlockSchema = z.object({
   body: z.string().describe(
     "Explicación desarrollada en Markdown (podés usar **negrita**, listas con '-'). Mínimo 4-6 oraciones. Preservá ejemplos, historias y analogías potentes del original — no las recortes.",
   ),
+  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const ProcesoBlockSchema = z.object({
@@ -73,6 +80,7 @@ const ProcesoBlockSchema = z.object({
     )
     .min(2)
     .max(8),
+  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const TablaBlockSchema = z.object({
@@ -91,6 +99,7 @@ const TablaBlockSchema = z.object({
     )
     .min(2)
     .max(8),
+  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const FrameworkBlockSchema = z.object({
@@ -108,6 +117,7 @@ const FrameworkBlockSchema = z.object({
     )
     .min(2)
     .max(6),
+  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const AnalogiaBlockSchema = z.object({
@@ -119,6 +129,7 @@ const AnalogiaBlockSchema = z.object({
     "La historia, ejemplo real o analogía del original, desarrollada con detalle — no la resumas al mínimo, esto es lo que fija el concepto en la memoria del estudiante.",
   ),
   conexion: z.string().describe("1-2 oraciones conectando la analogía con el concepto académico que ilustra"),
+  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
 });
 
 const SummaryBlockSchema = z.discriminatedUnion("type", [
@@ -146,10 +157,11 @@ Reglas estrictas:
    - "framework": cuando hay un modelo con varios componentes que funcionan juntos (ej: un triángulo de 3 pilares, un modelo de varios niveles).
    - "analogia": cuando el original cuenta una historia, ejemplo real o analogía para explicar un concepto.
 3. DENSIDAD: nunca sacrifiques profundidad por brevedad. Los ejemplos, historias y analogías del original son lo que hace que el estudiante recuerde — conservalos con detalle, no los aplanes a una oración.
-4. Español rioplatense, tono cercano pero profesional.`;
+4. PRÁCTICA: cada bloque lleva sus propias 2 preguntas de refuerzo — deben poder responderse LITERALMENTE con el contenido de ESE bloque, sin inventar casos aplicados nuevos.
+5. Español rioplatense, tono cercano pero profesional.`;
 
 export const PUNTOS_PROMPT_PRO =
-  "Extraé entre 8 y 12 bloques temáticos del apunte, en el mismo orden en que aparecen en el material original. Cada bloque usa el formato (\"type\") que mejor le quede a su contenido. Agrupá los bloques por subtema usando `category` (mismo string para bloques del mismo subtema). Devolvé SIEMPRE en español rioplatense.";
+  "Extraé entre 8 y 12 bloques temáticos del apunte, en el mismo orden en que aparecen en el material original. Cada bloque usa el formato (\"type\") que mejor le quede a su contenido, y trae sus propias 2 preguntas de práctica rápida. Agrupá los bloques por subtema usando `category` (mismo string para bloques del mismo subtema). Devolvé SIEMPRE en español rioplatense.";
 
 export async function genSummaryPuntos(content: NoteContent, model: string, isPaid: boolean) {
   if (isPaid) {

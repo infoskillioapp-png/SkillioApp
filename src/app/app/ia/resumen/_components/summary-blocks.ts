@@ -3,27 +3,38 @@
 // resumen (resumen-client.tsx); si viven en un archivo "use client", Next.js
 // rompe al importarlos desde un Server Component (el bug real de este cambio).
 
-// Formato viejo (y el que sigue usando free): un párrafo + nada más. Sigue
-// existiendo para no romper resúmenes ya generados ni el free (alcance actual:
-// solo pro tiene los bloques dinámicos de abajo).
-export type LegacyPoint = { emoji?: string; title: string; description: string; category?: string };
+export type QuizQuestion = {
+  pregunta: string;
+  opciones: string[];
+  correcta: number;
+  explicacion?: string;
+};
+
+// Formato viejo (y los resúmenes ya generados antes de este cambio): un
+// párrafo + nada más, sin práctica embebida. Sigue existiendo para no romper
+// resúmenes ya generados (el front cae al fetch viejo si no hay `practica`).
+export type LegacyPoint = { emoji?: string; title: string; description: string; category?: string; practica?: QuizQuestion[] };
 
 // Bloques dinámicos de pro: la IA elige, por bloque, el formato que mejor
-// comunique ESE contenido puntual — no todo es "texto + lista".
-export type TextoBlock = { type: "texto"; emoji?: string; title: string; category?: string; body: string };
+// comunique ESE contenido puntual — no todo es "texto + lista". Cada bloque
+// trae su propia práctica rápida (generada junto con el contenido, no en un
+// fetch aparte al cambiar de tema).
+export type TextoBlock = { type: "texto"; emoji?: string; title: string; category?: string; body: string; practica?: QuizQuestion[] };
 export type ProcesoBlock = {
   type: "proceso"; emoji?: string; title: string; category?: string; intro?: string;
-  pasos: { paso: string; detalle: string }[];
+  pasos: { paso: string; detalle: string }[]; practica?: QuizQuestion[];
 };
 export type TablaBlock = {
   type: "tabla"; emoji?: string; title: string; category?: string; intro?: string;
-  columnas: string[]; filas: { etiqueta: string; valores: string[] }[];
+  columnas: string[]; filas: { etiqueta: string; valores: string[] }[]; practica?: QuizQuestion[];
 };
 export type FrameworkBlock = {
   type: "framework"; emoji?: string; title: string; category?: string; intro?: string;
-  elementos: { nombre: string; descripcion: string }[];
+  elementos: { nombre: string; descripcion: string }[]; practica?: QuizQuestion[];
 };
-export type AnalogiaBlock = { type: "analogia"; emoji?: string; title: string; category?: string; analogia: string; conexion: string };
+export type AnalogiaBlock = {
+  type: "analogia"; emoji?: string; title: string; category?: string; analogia: string; conexion: string; practica?: QuizQuestion[];
+};
 
 export type SummaryPoint = LegacyPoint | TextoBlock | ProcesoBlock | TablaBlock | FrameworkBlock | AnalogiaBlock;
 
@@ -56,6 +67,12 @@ export function plainText(p: SummaryPoint): string {
       return `${b.analogia} ${b.conexion}`;
     }
   }
+}
+
+// Práctica embebida (generada junto con el bloque) — undefined en resúmenes
+// generados antes de este cambio, ahí el front cae al fetch viejo.
+export function getPractica(p: SummaryPoint): QuizQuestion[] | undefined {
+  return "practica" in p ? p.practica : undefined;
 }
 
 export type SummarySection = {

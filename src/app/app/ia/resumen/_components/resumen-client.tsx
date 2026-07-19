@@ -2,14 +2,18 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { SalePopup } from "@/components/sale-popup";
 import { RescuePrompt } from "@/components/rescue-prompt";
 import { OnboardingTour, useTourRequired, TourIconBook } from "../../../_components/onboarding-tour";
 import {
   blockKind,
   plainText,
+  getPractica,
   type SummaryPoint,
   type SummarySection,
+  type QuizQuestion,
   type LegacyPoint,
   type TextoBlock,
   type ProcesoBlock,
@@ -18,7 +22,20 @@ import {
   type AnalogiaBlock,
 } from "./summary-blocks";
 
-export type { SummaryPoint } from "./summary-blocks";
+export type { SummaryPoint, QuizQuestion } from "./summary-blocks";
+
+// Markdown: bloque (párrafos reales) o inline (sin <p> envolvente, para texto
+// corto dentro de otro elemento). La IA usa **negrita** en varios campos.
+function MD({ text, inline = false }: { text: string; inline?: boolean }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={inline ? { p: ({ children }) => <>{children}</> } : undefined}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+}
 
 const KX_COLORS = [
   "linear-gradient(135deg,#5b8cff,#3f63ff)",
@@ -45,13 +62,6 @@ function confettiBurst(x: number, y: number) {
   }
 }
 
-export type QuizQuestion = {
-  pregunta: string;
-  opciones: string[];
-  correcta: number;
-  explicacion?: string;
-};
-
 export type ResumenData = {
   noteId: string;
   noteTitle: string;
@@ -68,6 +78,7 @@ function PracticaQuiz({
   onDone,
   demoPool,
   poolSeed = 0,
+  practica,
 }: {
   point: SummaryPoint;
   topicName: string;
@@ -76,6 +87,9 @@ function PracticaQuiz({
   // y simulamos la carga para que "parezca que se genera".
   demoPool?: QuizQuestion[];
   poolSeed?: number;
+  // Generada junto con el bloque (misma llamada) — evita el fetch aparte que
+  // se disparaba cada vez que se cambiaba de tema.
+  practica?: QuizQuestion[];
 }) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loadingQ, setLoadingQ] = useState(true);
@@ -94,11 +108,20 @@ function PracticaQuiz({
       setFinished(false);
       return;
     }
-    setLoadingQ(true);
-    setQuestions([]);
     setCurrent(0);
     setAnswered({});
     setFinished(false);
+
+    // Ya viene generada junto con el bloque — nada que pedir.
+    if (practica && practica.length > 0) {
+      cacheRef.current.set(key, practica);
+      setQuestions(practica);
+      setLoadingQ(false);
+      return;
+    }
+
+    setLoadingQ(true);
+    setQuestions([]);
 
     // DEMO: pool fijo, sin IA, con un delay para simular la generación.
     if (demoPool && demoPool.length > 0) {
@@ -112,6 +135,7 @@ function PracticaQuiz({
       return () => clearTimeout(t);
     }
 
+    // Legacy: resúmenes generados antes de tener práctica embebida.
     fetch("/api/ai/practica-rapida", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -127,7 +151,7 @@ function PracticaQuiz({
       .catch(() => {})
       .finally(() => setLoadingQ(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [point.title, point.category]);
+  }, [point.title, point.category, practica]);
 
   if (loadingQ) return (
     <div className="practica in" style={{ minHeight: 80, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -273,80 +297,20 @@ function PracticaQuiz({
   );
 }
 
-// ---- booki tip con llamada AI ----
-function BookiTip({ point }: { point: SummaryPoint }) {
-  const [tip, setTip] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const cacheRef = useRef<Map<string, string>>(new Map());
-  const key = point.title;
-
-  useEffect(() => {
-    if (cacheRef.current.has(key)) {
-      setTip(cacheRef.current.get(key)!);
-      return;
-    }
-    setTip(null);
-    setLoading(true);
-    fetch("/api/ai/booki-tip", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: point.title, description: plainText(point), category: point.category }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.tip) {
-          cacheRef.current.set(key, d.tip);
-          setTip(d.tip);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, point.category]);
-
-  return (
-    <div className="booki-tip">
-      <span className="bav">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
-          <circle cx="9" cy="11" r="1.6" />
-          <circle cx="15" cy="11" r="1.6" />
-          <path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-6l-3 3v-3H5a1 1 0 0 1-1-1Z" fill="none" stroke="#fff" strokeWidth="1.6" />
-        </svg>
-      </span>
-      <div className="btx">
-        <b>Tip de Booki:</b>{" "}
-        {loading ? (
-          <span style={{ color: "var(--muted)", fontStyle: "italic" }}>Generando tip mnemotécnico…</span>
-        ) : tip ? (
-          tip
-        ) : (
-          `Para recordar mejor "${point.title}", relacionalo con algo que ya sabés. 💡`
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ---- contenido del bloque activo, según su tipo ----
-function BlockContent({ point, leadMode }: { point: SummaryPoint; leadMode: "normal" | "eli5" | "more" }) {
+function BlockContent({ point }: { point: SummaryPoint }) {
   const kind = blockKind(point);
 
   if (kind === "legacy" || kind === "texto") {
     const base = kind === "legacy" ? (point as LegacyPoint).description : (point as TextoBlock).body;
-    const text =
-      leadMode === "eli5"
-        ? `Pensalo así: ${base.split(".")[0].toLowerCase()}. ¡Más simple imposible! 🧒`
-        : leadMode === "more"
-          ? `${base} Profundizando un poco más: esto se relaciona directamente con ${point.category ?? "el tema"} y tiene implicaciones prácticas importantes.`
-          : base;
-    return <p className="lead" style={{ whiteSpace: "pre-wrap" }}>{text}</p>;
+    return <div className="lead"><MD text={base} /></div>;
   }
 
   if (kind === "proceso") {
     const b = point as ProcesoBlock;
     return (
       <div className="lead">
-        {b.intro && <p style={{ marginBottom: 14 }}>{b.intro}</p>}
+        {b.intro && <p style={{ marginBottom: 14 }}><MD text={b.intro} inline /></p>}
         <ol style={{ display: "flex", flexDirection: "column", gap: 12, paddingLeft: 0, listStyle: "none", margin: 0 }}>
           {b.pasos.map((s, i) => (
             <li key={i} style={{ display: "flex", gap: 12 }}>
@@ -355,7 +319,7 @@ function BlockContent({ point, leadMode }: { point: SummaryPoint; leadMode: "nor
                 background: KX_COLORS[i % KX_COLORS.length], color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13,
               }}>{i + 1}</span>
-              <div><b>{s.paso}:</b> {s.detalle}</div>
+              <div><b>{s.paso}:</b> <MD text={s.detalle} inline /></div>
             </li>
           ))}
         </ol>
@@ -367,7 +331,7 @@ function BlockContent({ point, leadMode }: { point: SummaryPoint; leadMode: "nor
     const b = point as TablaBlock;
     return (
       <div className="lead">
-        {b.intro && <p style={{ marginBottom: 14 }}>{b.intro}</p>}
+        {b.intro && <p style={{ marginBottom: 14 }}><MD text={b.intro} inline /></p>}
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
@@ -383,7 +347,7 @@ function BlockContent({ point, leadMode }: { point: SummaryPoint; leadMode: "nor
                 <tr key={i}>
                   <td style={{ padding: "8px 12px", fontWeight: 700, borderBottom: "1px solid var(--rule)" }}>{f.etiqueta}</td>
                   {f.valores.map((v, j) => (
-                    <td key={j} style={{ padding: "8px 12px", borderBottom: "1px solid var(--rule)" }}>{v}</td>
+                    <td key={j} style={{ padding: "8px 12px", borderBottom: "1px solid var(--rule)" }}><MD text={v} inline /></td>
                   ))}
                 </tr>
               ))}
@@ -398,7 +362,7 @@ function BlockContent({ point, leadMode }: { point: SummaryPoint; leadMode: "nor
     const b = point as FrameworkBlock;
     return (
       <div className="lead">
-        {b.intro && <p style={{ marginBottom: 14 }}>{b.intro}</p>}
+        {b.intro && <p style={{ marginBottom: 14 }}><MD text={b.intro} inline /></p>}
         <div style={{ display: "grid", gap: 10 }}>
           {b.elementos.map((el, i) => (
             <div key={i} style={{
@@ -410,7 +374,7 @@ function BlockContent({ point, leadMode }: { point: SummaryPoint; leadMode: "nor
                 background: KX_COLORS[i % KX_COLORS.length], color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13,
               }}>{i + 1}</span>
-              <div><b>{el.nombre}:</b> {el.descripcion}</div>
+              <div><b>{el.nombre}:</b> <MD text={el.descripcion} inline /></div>
             </div>
           ))}
         </div>
@@ -428,9 +392,9 @@ function BlockContent({ point, leadMode }: { point: SummaryPoint; leadMode: "nor
         border: "1.5px solid rgba(255,176,32,.28)",
       }}>
         <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 13, color: "#b8860b" }}>💡 Para entenderlo mejor</div>
-        {b.analogia}
+        <MD text={b.analogia} />
       </div>
-      <p style={{ margin: 0 }}>{b.conexion}</p>
+      <p style={{ margin: 0 }}><MD text={b.conexion} inline /></p>
     </div>
   );
 }
@@ -627,7 +591,6 @@ export function ResumenClient({
       return saved ? new Set<number>(JSON.parse(saved) as number[]) : new Set<number>();
     } catch { return new Set<number>(); }
   });
-  const [leadMode, setLeadMode] = useState<"normal" | "eli5" | "more">("normal");
   const [showPaywall, setShowPaywall] = useState(false);
   const [rescueOpen, setRescueOpen] = useState(false);
   const [rescueDone, setRescueDone] = useState(false);
@@ -683,13 +646,11 @@ export function ResumenClient({
   function handleSelect(i: number) {
     if (!isPro && i >= FREE_LIMIT) { setShowPaywall(true); return; }
     setActiveIdx(i);
-    setLeadMode("normal");
   }
 
   if (!active) return <div style={{ padding: 40, color: "var(--muted)" }}>Sin contenido generado aún.</div>;
 
   const { point, secName, pointIdx } = active;
-  const canSimplify = blockKind(point) === "legacy" || blockKind(point) === "texto";
 
   return (
     <>
@@ -830,28 +791,13 @@ export function ResumenClient({
           </div>
 
           <div className="ractions in" data-noprint>
-            {canSimplify && (
-              <>
-                <button className="ract" onClick={() => setLeadMode("eli5")} style={leadMode === "eli5" ? { outline: "2px solid var(--violet)", outlineOffset: "1px" } : {}}>
-                  <span>🧒</span> Explícalo como a un niño
-                </button>
-                <button className="ract" onClick={() => setLeadMode("more")} style={leadMode === "more" ? { outline: "2px solid var(--violet)", outlineOffset: "1px" } : {}}>
-                  <span>🔬</span> Más detalles
-                </button>
-                {leadMode !== "normal" && (
-                  <button className="ract" onClick={() => setLeadMode("normal")}>Volver al original</button>
-                )}
-              </>
-            )}
             <button className="ract" onClick={() => window.print()} style={{ marginLeft: "auto" }}>
               <span>⬇</span> Descargar PDF
             </button>
           </div>
 
           <div className="rcard in">
-            <BlockContent point={point} leadMode={leadMode} />
-
-            <BookiTip point={point} />
+            <BlockContent point={point} />
 
             {/* upgrade CTA inline si hay temas bloqueados */}
             {!isPro && lockedCount > 0 && safeActiveIdx === visiblePoints.length - 1 && (
@@ -891,6 +837,7 @@ export function ResumenClient({
             onDone={handleQuizDone}
             demoPool={demoPractica}
             poolSeed={safeActiveIdx}
+            practica={getPractica(point)}
           />
 
           {/* nav entre temas */}
