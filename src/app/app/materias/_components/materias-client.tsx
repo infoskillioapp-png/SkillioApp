@@ -183,8 +183,24 @@ function MateriaCard({
   const [open, setOpen] = useState(true);
   const bodyRef = useRef<HTMLDivElement>(null);
   const col = materia.color || GRADIENTS[0][1];
+
+  // El % real de avance (temas marcados como hechos) se calcula y guarda en
+  // localStorage cuando el alumno estudia dentro de "Espacio" (ver
+  // espacio-client.tsx, skillio_dominio_<noteId>). Acá lo leemos para mostrar
+  // el progreso de verdad en vez de un 50% fijo apenas se generó el apunte.
+  const [localDominio, setLocalDominio] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const stored: Record<string, number> = {};
+    for (const a of materia.apuntes) {
+      const v = localStorage.getItem(`skillio_dominio_${a.id}`);
+      if (v !== null) stored[a.id] = parseInt(v, 10);
+    }
+    setLocalDominio(stored);
+  }, [materia.apuntes]);
+
+  const pctFor = (a: Apunte) => localDominio[a.id] ?? (a.has_ai_content ? 50 : 0);
   const avg = materia.apuntes.length
-    ? Math.round(materia.apuntes.reduce((a, n) => a + (n.has_ai_content ? 50 : 0), 0) / materia.apuntes.length)
+    ? Math.round(materia.apuntes.reduce((a, n) => a + pctFor(n), 0) / materia.apuntes.length)
     : 0;
 
   useEffect(() => {
@@ -218,10 +234,10 @@ function MateriaCard({
           materia.apuntes.map((a) => (
             <div key={a.id} className="mat-apunte-row">
               <Link href={`/app/ia?note_id=${a.id}`} className="mat-apunte">
-                <ApunteRing pct={a.has_ai_content ? 50 : 0} color={col} />
+                <ApunteRing pct={pctFor(a)} color={col} />
                 <div>
                   <div className="anm">{a.title}</div>
-                  <div className="asub">{a.has_ai_content ? "50% dominio" : "Sin generar aún"}</div>
+                  <div className="asub">{a.has_ai_content ? `${pctFor(a)}% dominio` : "Sin generar aún"}</div>
                 </div>
                 <span className="aarw">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">

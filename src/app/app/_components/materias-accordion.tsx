@@ -59,7 +59,7 @@ const GRADIENTS: [string, string][] = [
 type Apunte = { id: string; title: string; has_ai_content: boolean };
 type Materia = { id: string; name: string; color: string; apuntes: Apunte[] };
 
-function ApunteItem({ apunte, color }: { apunte: Apunte; color: string }) {
+function ApunteItem({ apunte, color, pct }: { apunte: Apunte; color: string; pct: number }) {
   const [title, setTitle] = useState(apunte.title);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(apunte.title);
@@ -80,7 +80,7 @@ function ApunteItem({ apunte, color }: { apunte: Apunte; color: string }) {
   if (editing) {
     return (
       <div className="mat-apunte" style={{ cursor: "default" }}>
-        <ApunteRing pct={apunte.has_ai_content ? 50 : 0} color={color} />
+        <ApunteRing pct={pct} color={color} />
         <div style={{ flex: 1 }}>
           <input
             ref={inputRef}
@@ -97,7 +97,7 @@ function ApunteItem({ apunte, color }: { apunte: Apunte; color: string }) {
               outline: "none",
             }}
           />
-          <div className="asub">{apunte.has_ai_content ? "50% dominio" : "Sin generar aún"}</div>
+          <div className="asub">{apunte.has_ai_content ? `${pct}% dominio` : "Sin generar aún"}</div>
         </div>
       </div>
     );
@@ -105,10 +105,10 @@ function ApunteItem({ apunte, color }: { apunte: Apunte; color: string }) {
 
   return (
     <Link href={`/app/ia?note_id=${apunte.id}`} className="mat-apunte">
-      <ApunteRing pct={apunte.has_ai_content ? 50 : 0} color={color} />
+      <ApunteRing pct={pct} color={color} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="anm">{title}</div>
-        <div className="asub">{apunte.has_ai_content ? "50% dominio" : "Sin generar aún"}</div>
+        <div className="asub">{apunte.has_ai_content ? `${pct}% dominio` : "Sin generar aún"}</div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
         <button
@@ -136,8 +136,22 @@ function MateriaRow({ materia, idx, defaultOpen }: { materia: Materia; idx: numb
   const bodyRef = useRef<HTMLDivElement>(null);
   const grad = GRADIENTS[idx % GRADIENTS.length];
   const col = materia.color || grad[1];
+
+  // % real de avance (temas marcados como hechos en "Espacio", ver
+  // skillio_dominio_<noteId> en espacio-client.tsx) en vez de un 50% fijo.
+  const [localDominio, setLocalDominio] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const stored: Record<string, number> = {};
+    for (const a of materia.apuntes) {
+      const v = localStorage.getItem(`skillio_dominio_${a.id}`);
+      if (v !== null) stored[a.id] = parseInt(v, 10);
+    }
+    setLocalDominio(stored);
+  }, [materia.apuntes]);
+  const pctFor = (a: Apunte) => localDominio[a.id] ?? (a.has_ai_content ? 50 : 0);
+
   const avg = materia.apuntes.length
-    ? Math.round(materia.apuntes.reduce((a, n) => a + (n.has_ai_content ? 50 : 0), 0) / materia.apuntes.length)
+    ? Math.round(materia.apuntes.reduce((a, n) => a + pctFor(n), 0) / materia.apuntes.length)
     : 0;
 
   useEffect(() => {
@@ -169,7 +183,7 @@ function MateriaRow({ materia, idx, defaultOpen }: { materia: Materia; idx: numb
           <div className="mat-empty">Todavía no hay apuntes en esta materia.</div>
         ) : (
           materia.apuntes.map((a) => (
-            <ApunteItem key={a.id} apunte={a} color={col} />
+            <ApunteItem key={a.id} apunte={a} color={col} pct={pctFor(a)} />
           ))
         )}
       </div>

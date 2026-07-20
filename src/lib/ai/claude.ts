@@ -291,6 +291,19 @@ export async function saveAiOutput(opts: {
     console.error("[ai.saveOutput]", error);
     throw new Error(error.message);
   }
+
+  // "notes.has_ai_content" es lo que leen /materias y el home para decidir si
+  // mostrar "Sin generar aún" o el % de dominio — hasta ahora nunca se
+  // seteaba en ningún lado, así que quedaba en false para siempre aunque el
+  // apunte ya tuviera resumen/tarjetas/simulacro guardados.
+  if (opts.note_id) {
+    const { error: noteErr } = await sb
+      .from("notes")
+      .update({ has_ai_content: true })
+      .eq("id", opts.note_id);
+    if (noteErr) console.error("[ai.saveOutput] no se pudo marcar has_ai_content:", noteErr);
+  }
+
   return data.id as string;
 }
 
