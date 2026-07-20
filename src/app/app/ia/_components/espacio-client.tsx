@@ -533,9 +533,17 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
               <div className="mt po">Resumen</div>
               <div className="md">El apunte explicado por puntos clave que refuerzan.</div>
               <div className="pwrap">
-                <div className="pbar"><i style={{ width: note.summaryCount ? "42%" : "0%" }} /></div>
+                <div className="pbar"><i style={{ width: note.summaryCount ? `${domPct}%` : "0%" }} /></div>
                 <div className="pfoot">
-                  <span className="stat">{note.summaryCount ? "En progreso · 42%" : "Tocá para generar ⚡"}</span>
+                  <span className="stat">
+                    {!note.summaryCount
+                      ? "Tocá para generar ⚡"
+                      : domPct >= 100
+                        ? "¡Completado! 🎉"
+                        : domPct > 0
+                          ? `En progreso · ${domPct}%`
+                          : "Empezá a leer →"}
+                  </span>
                   <span className="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
                 </div>
               </div>

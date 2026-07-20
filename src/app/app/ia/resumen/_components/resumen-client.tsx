@@ -626,7 +626,7 @@ export function ResumenClient({
   function markTopicDoneInEspacio(gIdx: number) {
     const ap = allPoints[gIdx];
     if (!ap) return;
-    localStorage.setItem(`${ESPACIO_KEY}topic-${ap.secIdx}-${ap.pointIdx}`, "100");
+    localStorage.setItem(`${ESPACIO_KEY}topic-${data.noteId}-${ap.secIdx}-${ap.pointIdx}`, "100");
   }
 
   const handleQuizDone = useCallback((correct: number, total: number, _rect: DOMRect) => {

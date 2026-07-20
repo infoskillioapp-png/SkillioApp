@@ -28,7 +28,7 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
       topics: sec.points.map((p, ti) => {
         const desc = plainText(p);
         return {
-          id: `topic-${si}-${ti}`,
+          id: `topic-${note_id}-${si}-${ti}`,
           name: p.emoji ? `${p.emoji} ${p.title}` : p.title,
           sub: desc ? desc.slice(0, 60) + (desc.length > 60 ? "…" : "") : "",
           pct: 0,
@@ -111,7 +111,7 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     topics: pts.map((p, ti) => {
       const desc = plainText(p);
       return {
-        id: `topic-${si}-${ti}`,
+        id: `topic-${note.id}-${si}-${ti}`,
         name: p.emoji ? `${p.emoji} ${p.title}` : p.title,
         sub: desc ? desc.slice(0, 60) + (desc.length > 60 ? "…" : "") : "",
         pct: 0,
