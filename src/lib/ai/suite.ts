@@ -1,4 +1,5 @@
 import "server-only";
+import * as Sentry from "@sentry/nextjs";
 import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
@@ -12,6 +13,28 @@ import { buildUserContent, type NoteContent } from "@/lib/ai/claude";
 // =============================================================================
 
 type Usage = { inputTokens?: number; outputTokens?: number } | undefined;
+
+// El simulacro es, de las 3 generaciones, la que tiene el schema más exigente
+// (discriminated union anidada, 4 opciones EXACTAS por pregunta, hasta 20
+// preguntas en un solo objeto) corriendo en Haiku — cualquier item que se
+// desvíe del formato tira todo el batch por Zod. Antes, si eso fallaba, no
+// había reintento: el usuario quedaba con "toca para generar" para siempre
+// hasta tocarlo de nuevo. Reintentamos una vez antes de rendirnos, y mandamos
+// el error real a Sentry (antes solo quedaba en un console.error que se
+// perdía en los logs de Vercel — por eso no se pudo diagnosticar la causa
+// exacta la vez anterior).
+async function withRetry<T>(label: string, fn: () => Promise<T>, attempts = 2): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      Sentry.captureException(e, { tags: { ai_gen: label, attempt: String(i + 1) } });
+    }
+  }
+  throw lastErr;
+}
 
 // ---------------------------------------------------------------------------
 // RESUMEN · puntos_clave
@@ -182,21 +205,25 @@ export const PUNTOS_PROMPT_PRO =
 export async function genSummaryPuntos(content: NoteContent, model: string, isPaid: boolean) {
   if (isPaid) {
     const parts = await buildUserContent(content, PUNTOS_PROMPT_PRO, isPaid);
-    const r = await generateObject({
-      model: anthropic(model),
-      schema: PuntosClaveSchemaPro,
-      system: SUMMARY_SYSTEM_PRO,
-      messages: [{ role: "user", content: parts }],
-    });
+    const r = await withRetry("summary_pro", () =>
+      generateObject({
+        model: anthropic(model),
+        schema: PuntosClaveSchemaPro,
+        system: SUMMARY_SYSTEM_PRO,
+        messages: [{ role: "user", content: parts }],
+      }),
+    );
     return { object: r.object, usage: r.usage as Usage, title: r.object.title };
   }
   const parts = await buildUserContent(content, PUNTOS_PROMPT_FREE, isPaid);
-  const r = await generateObject({
-    model: anthropic(model),
-    schema: PuntosClaveSchemaFree,
-    system: SUMMARY_SYSTEM,
-    messages: [{ role: "user", content: parts }],
-  });
+  const r = await withRetry("summary_free", () =>
+    generateObject({
+      model: anthropic(model),
+      schema: PuntosClaveSchemaFree,
+      system: SUMMARY_SYSTEM,
+      messages: [{ role: "user", content: parts }],
+    }),
+  );
   return { object: r.object, usage: r.usage as Usage, title: r.object.title };
 }
 
@@ -226,12 +253,14 @@ export const FLASH_PROMPT_PRO =
 export async function genFlashcards(content: NoteContent, model: string, isPaid: boolean) {
   const instruction = isPaid ? FLASH_PROMPT_PRO : FLASH_PROMPT_FREE;
   const parts = await buildUserContent(content, instruction, isPaid);
-  const r = await generateObject({
-    model: anthropic(model),
-    schema: FlashcardsSchema,
-    system: FLASH_SYSTEM,
-    messages: [{ role: "user", content: parts }],
-  });
+  const r = await withRetry("flashcards", () =>
+    generateObject({
+      model: anthropic(model),
+      schema: FlashcardsSchema,
+      system: FLASH_SYSTEM,
+      messages: [{ role: "user", content: parts }],
+    }),
+  );
   return { object: r.object, usage: r.usage as Usage, title: r.object.deck_title };
 }
 
@@ -275,11 +304,13 @@ export const SIM_PROMPT_PRO =
 export async function genSimulacro(content: NoteContent, model: string, isPaid: boolean) {
   const instruction = isPaid ? SIM_PROMPT_PRO : SIM_PROMPT_FREE;
   const parts = await buildUserContent(content, instruction, isPaid);
-  const r = await generateObject({
-    model: anthropic(model),
-    schema: SimulacroSchema,
-    system: SIM_SYSTEM,
-    messages: [{ role: "user", content: parts }],
-  });
+  const r = await withRetry("simulacro", () =>
+    generateObject({
+      model: anthropic(model),
+      schema: SimulacroSchema,
+      system: SIM_SYSTEM,
+      messages: [{ role: "user", content: parts }],
+    }),
+  );
   return { object: r.object, usage: r.usage as Usage, title: r.object.title };
 }
