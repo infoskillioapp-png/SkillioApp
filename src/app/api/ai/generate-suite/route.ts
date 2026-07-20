@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveActor } from "@/lib/actor";
 import { recordAiUsage } from "@/lib/ai/usage";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   getNoteContent,
   isFreeGenerationAllowed,
@@ -37,15 +38,29 @@ export async function POST(req: Request) {
     const flashModel = modelForGeneration(userRow.plan, userRow.expires_at, "flashcards");
     const simModel = modelForGeneration(userRow.plan, userRow.expires_at, "simulacro");
 
-    // Las 3 en paralelo, reusando el MISMO content ya descargado/parseado.
+    // Si el usuario reintenta (p.ej. tocó de nuevo un modo que quedó en 0 items
+    // porque esa generación falló), NO hay que regenerar lo que ya salió bien:
+    // cada llamada (sobre todo el resumen, que corre en Sonnet) tiene costo real.
+    // Traemos qué kinds ya están guardados para esta nota y saltamos esos.
+    const { data: existingOutputs } = await supabaseAdmin()
+      .from("ai_outputs")
+      .select("kind")
+      .eq("note_id", note.id)
+      .eq("user_id", userRow.id);
+    const already = new Set((existingOutputs ?? []).map((o) => o.kind as string));
+
+    // Las que falten, en paralelo, reusando el MISMO content ya descargado/parseado.
     const [sumRes, fcRes, simRes] = await Promise.allSettled([
-      genSummaryPuntos(content, summaryModel, isPaid),
-      genFlashcards(content, flashModel, isPaid),
-      genSimulacro(content, simModel, isPaid),
+      already.has("summary") ? Promise.reject(new Error("skip:already_saved")) : genSummaryPuntos(content, summaryModel, isPaid),
+      already.has("flashcards") ? Promise.reject(new Error("skip:already_saved")) : genFlashcards(content, flashModel, isPaid),
+      already.has("simulacro") ? Promise.reject(new Error("skip:already_saved")) : genSimulacro(content, simModel, isPaid),
     ]);
 
     // Guardado (cada uno independiente: si una falla, las otras igual se guardan).
-    const saved: Record<string, boolean> = { summary: false, flashcards: false, simulacro: false };
+    // saved arranca en true para lo que ya existía (no hubo nada que hacer ahí).
+    const saved: Record<string, boolean> = {
+      summary: already.has("summary"), flashcards: already.has("flashcards"), simulacro: already.has("simulacro"),
+    };
 
     if (sumRes.status === "fulfilled") {
       await saveAiOutput({
@@ -56,7 +71,7 @@ export async function POST(req: Request) {
       });
       await recordAiUsage({ kind: "summarize", model: summaryModel, usage: sumRes.value.usage, userDbId: userRow.id });
       saved.summary = true;
-    } else {
+    } else if (!already.has("summary")) {
       console.error("[generate-suite] summary falló:", sumRes.reason);
     }
 
@@ -69,7 +84,7 @@ export async function POST(req: Request) {
       });
       await recordAiUsage({ kind: "flashcards", model: flashModel, usage: fcRes.value.usage, userDbId: userRow.id });
       saved.flashcards = true;
-    } else {
+    } else if (!already.has("flashcards")) {
       console.error("[generate-suite] flashcards falló:", fcRes.reason);
     }
 
@@ -82,7 +97,7 @@ export async function POST(req: Request) {
       });
       await recordAiUsage({ kind: "simulacro", model: simModel, usage: simRes.value.usage, userDbId: userRow.id });
       saved.simulacro = true;
-    } else {
+    } else if (!already.has("simulacro")) {
       console.error("[generate-suite] simulacro falló:", simRes.reason);
     }
 

@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { syncUserToSupabase } from "@/lib/sync-user";
+import { isPaidPlan } from "@/lib/ai/claude";
 import { AppProviders } from "@/components/app-providers";
 import { Sidebar } from "./_components/sidebar";
 import { BookiFab } from "./_components/booki-fab";
@@ -17,6 +18,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const user = await syncUserToSupabase();
     if (!user) redirect("/login");
     if (user.onboarding_completed === false) redirect("/onboarding");
+    // Teléfono obligatorio para todo usuario pago. El paso de /pago-exitoso es
+    // "best effort" del lado del cliente (se puede saltear con el timeout, o
+    // cerrando la pestaña antes de guardarlo) — esto es el gate real que no
+    // se puede evitar mientras el plan siga activo.
+    if (isPaidPlan(user.plan, user.expires_at) && !user.phone) redirect("/completar-telefono");
     firstName = user.full_name?.split(" ")[0] ?? "Estudiante";
   }
   const initial = firstName[0]?.toUpperCase() ?? "E";
