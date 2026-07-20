@@ -468,9 +468,6 @@ export async function buildUserContent(
           mediaType: "application/pdf" as const,
           data: pdfData,
           filename: content.fileName,
-          experimental_providerMetadata: {
-            anthropic: { cacheControl: { type: "ephemeral" } },
-          },
         },
         { type: "text" as const, text: instruction },
       ];
@@ -487,9 +484,6 @@ export async function buildUserContent(
             mediaType: "application/pdf" as const,
             data: pdfData,
             filename: content.fileName,
-            experimental_providerMetadata: {
-              anthropic: { cacheControl: { type: "ephemeral" } },
-            },
           },
           { type: "text" as const, text: instruction },
         ];
@@ -505,17 +499,16 @@ export async function buildUserContent(
       return `Apunte: "${content.fileName}" (procesado por partes)\n\n---\n${finalText}\n---\n\n${instruction}`;
     }
 
-    // Cache control: si el mismo usuario genera resumen + flashcards del mismo
-    // apunte, la segunda llamada reutiliza el PDF del cache (~90% más barata).
+    // Sin cache control: generate-suite dispara resumen/tarjetas/simulacro en
+    // PARALELO (Promise.allSettled), así que ninguna llamada llega a
+    // aprovechar el caché que escribe otra — solo se paga el recargo de
+    // "cache write" de Anthropic sin ningún ahorro real a cambio.
     return [
       {
         type: "file" as const,
         mediaType: "application/pdf" as const,
         data: content.data,
         filename: content.fileName,
-        experimental_providerMetadata: {
-          anthropic: { cacheControl: { type: "ephemeral" } },
-        },
       },
       { type: "text" as const, text: instruction },
     ];
@@ -528,9 +521,6 @@ export async function buildUserContent(
         mediaType: content.mime as "image/png" | "image/jpeg" | "image/webp" | "image/gif",
         data: content.data,
         filename: content.fileName,
-        experimental_providerMetadata: {
-          anthropic: { cacheControl: { type: "ephemeral" } },
-        },
       },
       { type: "text" as const, text: instruction },
     ];
