@@ -6,6 +6,9 @@ import Image from "next/image";
 import { useState } from "react";
 import { SalePopup } from "@/components/sale-popup";
 
+type UsageBar = { usedUsd: number; capUsd: number; pct: number; resetAt: string };
+type UsageSnapshot = { daily: UsageBar; weekly: UsageBar };
+
 type Props = {
   name: string;
   email: string;
@@ -14,6 +17,7 @@ type Props = {
   expiresAt: string | null;
   memberSince: string;
   stats: { notes: number; subjects: number; aiGenerations: number };
+  usage: UsageSnapshot | null;
 };
 
 const PLAN_ICONS: Record<string, string> = {
@@ -27,7 +31,34 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
 }
 
-export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSince, stats }: Props) {
+function formatResetAt(iso: string) {
+  return new Date(iso).toLocaleString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function UsageBarRow({ label, bar }: { label: string; bar: UsageBar }) {
+  const color = bar.pct >= 90 ? "#ff5b71" : bar.pct >= 60 ? "#f59e0b" : "#8b5cf6";
+  return (
+    <div style={{ padding: "12px 0" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
+        <span style={{ fontWeight: 600, color: "var(--ink)" }}>{label}</span>
+        <span style={{ color: "var(--muted)" }}>{bar.pct}% usado</span>
+      </div>
+      <div style={{ height: 8, borderRadius: 999, background: "#eef0f8", overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${bar.pct}%`, borderRadius: 999, background: color, transition: "width .4s ease" }} />
+      </div>
+      <div style={{ marginTop: 6, fontSize: 12, color: "var(--faint, var(--muted))" }}>
+        Se restablece el {formatResetAt(bar.resetAt)}
+      </div>
+    </div>
+  );
+}
+
+export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSince, stats, usage }: Props) {
   const { signOut } = useClerk();
   const initial = name.trim().charAt(0).toUpperCase();
   const isPro = plan === "pro" || plan === "semanal" || plan === "free_trial";
@@ -111,7 +142,21 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
             <span className="prv">{formatDate(memberSince)}</span>
           </div>
         </div>
-      ) : (
+      ) : null}
+
+      {/* uso de IA — barras diaria/semanal, estilo Claude.ai */}
+      {usage && (
+        <div className="perfil-section in" style={{ marginBottom: 16 }}>
+          <h3>Tu uso</h3>
+          <div style={{ padding: "0 20px" }}>
+            <UsageBarRow label="Límite diario" bar={usage.daily} />
+            <div style={{ height: 1, background: "var(--rule, #eef0f8)" }} />
+            <UsageBarRow label="Límite semanal" bar={usage.weekly} />
+          </div>
+        </div>
+      )}
+
+      {isPro ? null : (
         <div className="plan-card in" style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ position: "relative", width: "100%", height: 180 }}>
             <Image

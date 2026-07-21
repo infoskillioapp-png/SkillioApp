@@ -68,6 +68,35 @@ export type UsageLimitCheck =
  * ai_usage (histórico real), es retroactivo: si un usuario ya gastó de más
  * hoy/esta semana, el próximo intento de generar lo corta de inmediato.
  */
+export type UsageSnapshot = {
+  daily: { usedUsd: number; capUsd: number; pct: number; resetAt: string };
+  weekly: { usedUsd: number; capUsd: number; pct: number; resetAt: string };
+};
+
+/** Para mostrar en /app/perfil (barras estilo Claude.ai) — mismo cálculo que checkUsageLimit. */
+export async function getUsageSnapshot(userId: string): Promise<UsageSnapshot> {
+  const dayStart = startOfTodayArt();
+  const weekStart = startOfWeekArt();
+  const [dayCost, weekCost] = await Promise.all([
+    costSinceUsd(userId, dayStart),
+    costSinceUsd(userId, weekStart),
+  ]);
+  return {
+    daily: {
+      usedUsd: dayCost,
+      capUsd: DAILY_CAP_USD,
+      pct: Math.min(100, Math.round((dayCost / DAILY_CAP_USD) * 100)),
+      resetAt: new Date(dayStart.getTime() + 86_400_000).toISOString(),
+    },
+    weekly: {
+      usedUsd: weekCost,
+      capUsd: WEEKLY_CAP_USD,
+      pct: Math.min(100, Math.round((weekCost / WEEKLY_CAP_USD) * 100)),
+      resetAt: new Date(weekStart.getTime() + 7 * 86_400_000).toISOString(),
+    },
+  };
+}
+
 export async function checkUsageLimit(userId: string): Promise<UsageLimitCheck> {
   const weekStart = startOfWeekArt();
   const weekCost = await costSinceUsd(userId, weekStart);

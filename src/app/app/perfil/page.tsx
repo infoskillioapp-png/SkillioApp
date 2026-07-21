@@ -2,6 +2,8 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getActorReadonly } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isPaidPlan } from "@/lib/ai/claude";
+import { getUsageSnapshot } from "@/lib/ai/usage";
 import { PerfilClient } from "./_components/perfil-client";
 
 export default async function PerfilPage() {
@@ -27,6 +29,9 @@ export default async function PerfilPage() {
     free_trial: "Trial 24hs",
   };
 
+  const isPaid = isPaidPlan(user.plan ?? "free", user.expires_at ?? null);
+  const usage = isPaid ? await getUsageSnapshot(user.id) : null;
+
   return (
     <PerfilClient
       name={user.full_name ?? clerkUser?.firstName ?? "Estudiante"}
@@ -40,6 +45,7 @@ export default async function PerfilPage() {
         subjects: subjectsCount ?? 0,
         aiGenerations: aiCount ?? 0,
       }}
+      usage={usage}
     />
   );
 }
