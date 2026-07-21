@@ -147,12 +147,6 @@ export async function getNoteContent(
     } catch (e) {
       console.warn("[getNoteContent] no se pudo extraer texto del PDF, se manda nativo:", e);
     }
-    // Condensar (si hace falta) ACÁ, una sola vez — no en buildUserContent,
-    // que se llama 3 veces (una por generación) y antes repetía este trabajo
-    // por triplicado en paralelo. isPaid: free nunca condensa, solo recorta.
-    if (extractedText) {
-      extractedText = await condenseIfNeeded(extractedText, isPaidPlan(u.plan, u.expires_at));
-    }
     content = { type: "pdf", data: arr, fileName: typedNote.file_name, extractedText };
   } else if (typedNote.file_type === "image" || mime.startsWith("image/")) {
     content = {
@@ -162,14 +156,9 @@ export async function getNoteContent(
       fileName: typedNote.file_name,
     };
   } else if (typedNote.file_type === "text" || mime.startsWith("text/")) {
-    // Ojo: a diferencia de PDF/Word, este camino nunca distinguió free/paid
-    // (siempre condensaba si era largo) — se mantiene ese mismo criterio,
-    // solo que ahora se hace acá (una vez) en vez de en buildUserContent
-    // (que se llamaba 3 veces).
-    const rawText = new TextDecoder("utf-8").decode(arr);
     content = {
       type: "text",
-      text: rawText.length > MAP_REDUCE_THRESHOLD ? await mapReduceText(rawText) : rawText,
+      text: new TextDecoder("utf-8").decode(arr),
       fileName: typedNote.file_name,
     };
   } else if (
@@ -179,8 +168,7 @@ export async function getNoteContent(
     // Solo .docx (Word moderno, 2007+): mammoth lee el XML del paquete OOXML.
     // El .doc viejo (binario, pre-2007) no lo soporta esta librería.
     try {
-      const { value: rawText } = await mammoth.extractRawText({ buffer: Buffer.from(arr) });
-      const text = await condenseIfNeeded(rawText, isPaidPlan(u.plan, u.expires_at));
+      const { value: text } = await mammoth.extractRawText({ buffer: Buffer.from(arr) });
       content = { type: "word", text, fileName: typedNote.file_name };
     } catch (e) {
       console.warn("[getNoteContent] no se pudo extraer texto del Word:", e);
@@ -346,16 +334,6 @@ export async function saveAiOutput(opts: {
 const MAP_SYSTEM =
   "Sos un asistente académico. Resumí los conceptos clave de este fragmento de apunte preservando definiciones técnicas, fórmulas, nombres y fechas exactas. Sé exhaustivo.";
 
-// Condensa UNA vez si el texto supera el umbral (solo pagos — free nunca
-// condensa, se recorta por caracteres en buildUserContent). Se llama desde
-// getNoteContent, que corre una sola vez por request aunque generate-suite
-// dispare resumen/tarjetas/simulacro en paralelo — antes cada una de esas 3
-// llamadas condensaba el mismo texto por su cuenta, triplicando el trabajo.
-async function condenseIfNeeded(text: string, isPaid: boolean): Promise<string> {
-  if (!isPaid || text.length <= MAP_REDUCE_THRESHOLD) return text;
-  return mapReduceText(text);
-}
-
 async function mapReduceText(text: string): Promise<string> {
   // Dividir en chunks
   const chunks: string[] = [];
@@ -496,12 +474,14 @@ export async function buildUserContent(
         return `Apunte: "${content.fileName}"\n\n---\n${sliced}\n---\n\n${instruction}`;
       }
 
-      // Ya viene condensado (si hacía falta) desde getNoteContent — acá solo
-      // el tope de seguridad final, sin volver a condensar.
+      let processedText = content.extractedText;
+      if (processedText.length > MAP_REDUCE_THRESHOLD) {
+        processedText = await mapReduceText(processedText);
+      }
       const finalText =
-        content.extractedText.length > 80_000
-          ? content.extractedText.slice(0, 80_000) + "\n\n[...truncado]"
-          : content.extractedText;
+        processedText.length > 80_000
+          ? processedText.slice(0, 80_000) + "\n\n[...truncado]"
+          : processedText;
 
       return `Apunte: "${content.fileName}"\n\n---\n${finalText}\n---\n\n${instruction}`;
     }
@@ -592,11 +572,18 @@ export async function buildUserContent(
   }
 
   if (content.type === "text") {
-    // Ya viene condensado (si hacía falta) desde getNoteContent.
+    let processedText = content.text;
+
+    if (content.text.length > MAP_REDUCE_THRESHOLD) {
+      // Texto largo → map-reduce con Haiku antes del modelo final
+      processedText = await mapReduceText(content.text);
+    }
+
+    // Truncado de seguridad para el modelo final
     const finalText =
-      content.text.length > 80_000
-        ? content.text.slice(0, 80_000) + "\n\n[...truncado]"
-        : content.text;
+      processedText.length > 80_000
+        ? processedText.slice(0, 80_000) + "\n\n[...truncado]"
+        : processedText;
 
     return `Apunte: "${content.fileName}"\n\n---\n${finalText}\n---\n\n${instruction}`;
   }
@@ -612,11 +599,14 @@ export async function buildUserContent(
       return `Apunte: "${content.fileName}"\n\n---\n${sliced}\n---\n\n${instruction}`;
     }
 
-    // Ya viene condensado (si hacía falta) desde getNoteContent.
+    let processedText = content.text;
+    if (content.text.length > MAP_REDUCE_THRESHOLD) {
+      processedText = await mapReduceText(content.text);
+    }
     const finalText =
-      content.text.length > 80_000
-        ? content.text.slice(0, 80_000) + "\n\n[...truncado]"
-        : content.text;
+      processedText.length > 80_000
+        ? processedText.slice(0, 80_000) + "\n\n[...truncado]"
+        : processedText;
 
     return `Apunte: "${content.fileName}"\n\n---\n${finalText}\n---\n\n${instruction}`;
   }
