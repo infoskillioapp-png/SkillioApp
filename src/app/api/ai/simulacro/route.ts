@@ -11,6 +11,8 @@ import {
 } from "@/lib/ai/claude";
 import { genSimulacro } from "@/lib/ai/suite";
 
+export const maxDuration = 300;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();

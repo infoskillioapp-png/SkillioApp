@@ -5,6 +5,8 @@ import { z } from "zod";
 import { resolveActor } from "@/lib/actor";
 import { recordAiUsage } from "@/lib/ai/usage";
 
+export const maxDuration = 300;
+
 const MODEL = "claude-haiku-4-5-20251001";
 
 const QuestionSchema = z.object({

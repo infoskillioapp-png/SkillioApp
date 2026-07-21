@@ -15,6 +15,8 @@ import {
 } from "@/lib/ai/claude";
 import { genSummaryPuntos, SUMMARY_SYSTEM } from "@/lib/ai/suite";
 
+export const maxDuration = 300;
+
 // ===========================================================================
 // SCHEMAS de los formatos SECUNDARIOS (mapa, ficha). puntos_clave vive en
 // @/lib/ai/suite (fuente única, compartido con /api/ai/generate-suite).

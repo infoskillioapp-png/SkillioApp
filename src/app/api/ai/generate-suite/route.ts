@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { resolveActor } from "@/lib/actor";
 import { recordAiUsage } from "@/lib/ai/usage";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+
+// Sin esto, la función corre con el timeout por defecto de Vercel (unos
+// pocos segundos) — muy poco para un PDF de 30 páginas + Sonnet razonando
+// sobre todo el contenido. Si se corta a mitad de camino, Vercel mata el
+// proceso de golpe: no hay excepción que capturar, no llega nada a Sentry,
+// no se guarda nada — exactamente lo que se vio (4+ min de espera, $0 de
+// resultado, 0 filas en ai_usage). 300s es el máximo del plan Pro sin Fluid
+// Compute.
+export const maxDuration = 300;
 import {
   getNoteContent,
   isFreeGenerationAllowed,
