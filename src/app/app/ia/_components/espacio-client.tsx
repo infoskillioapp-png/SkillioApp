@@ -134,7 +134,10 @@ const GEN_STEPS = [
   "Calculando tu ruta de estudio",
 ];
 
-function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: string; fileName: string; onDone: () => void; onPaywall: () => void }) {
+function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit }: {
+  noteId: string; fileName: string; onDone: () => void; onPaywall: () => void;
+  onUsageLimit: (reason: "daily" | "weekly", resetAt: string) => void;
+}) {
   const [pct, setPct] = useState(0);
   const [step, setStep] = useState(0);
 
@@ -143,6 +146,7 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: st
     const HALF_LIFE = 22000;
     let apiDone = false;
     let apiHas402 = false;
+    let usageLimit: { reason: "daily" | "weekly"; resetAt: string } | null = null;
 
     async function callApis() {
       try {
@@ -155,7 +159,14 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: st
         });
 
         if (res.status === 402) {
-          apiHas402 = true;
+          // Distinguir el paywall de venta (free) del tope de uso (pago) — no
+          // son lo mismo y no le pueden salir a un usuario que ya paga.
+          const body = await res.json().catch(() => ({}));
+          if (body?.error === "usage_limit_reached") {
+            usageLimit = { reason: body.reason, resetAt: body.resetAt };
+          } else {
+            apiHas402 = true;
+          }
           apiDone = true;
           return;
         }
@@ -174,6 +185,7 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: st
 
       if (apiDone) {
         clearInterval(iv);
+        if (usageLimit) { onUsageLimit(usageLimit.reason, usageLimit.resetAt); return; }
         if (apiHas402) { onPaywall(); return; }
         setPct(100);
         setStep(3);
@@ -186,7 +198,7 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: st
     }, 350);
 
     return () => clearInterval(iv);
-  }, [noteId, onDone, onPaywall]);
+  }, [noteId, onDone, onPaywall, onUsageLimit]);
 
   return (
     <div id="gen" className="show">
@@ -215,6 +227,42 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall }: { noteId: st
           <div className="shimrow shimmer" />
           <div className="shimrow shimmer" style={{ width: "70%" }} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- tope de uso (pagos) — distinto del paywall de venta, nunca le sale a
+// alguien que no paga y nunca le toca lo que ya generó ----
+function UsageLimitModal({ info, onClose }: { info: { reason: "daily" | "weekly"; resetAt: string }; onClose: () => void }) {
+  const resetLabel = new Date(info.resetAt).toLocaleString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const periodo = info.reason === "daily" ? "de hoy" : "de esta semana";
+
+  return (
+    <div className="fixed inset-0 bg-bg/95 flex flex-col items-center justify-center gap-5 px-6 text-center" style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(20,16,40,.55)", backdropFilter: "blur(4px)" }}>
+      <div style={{ width: "min(400px, 100%)", background: "#fff", borderRadius: 20, padding: "32px 28px", boxShadow: "0 20px 60px rgba(0,0,0,.25)" }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>⏳</div>
+        <h1 className="font-display font-extrabold text-xl" style={{ marginBottom: 8, color: "var(--ink)" }}>
+          Llegaste a tu límite {periodo}
+        </h1>
+        <p className="text-sm" style={{ color: "var(--muted)", lineHeight: 1.6, marginBottom: 20 }}>
+          Ya generaste bastante {info.reason === "daily" ? "hoy" : "esta semana"}. Se renueva el {resetLabel}. Mientras tanto seguís teniendo acceso completo a todo lo que ya generaste.
+        </p>
+        <button
+          onClick={onClose}
+          style={{
+            width: "100%", padding: "13px", border: "none", borderRadius: 14,
+            background: "linear-gradient(135deg,#8b5cf6,#4f7dff)", color: "#fff",
+            fontFamily: "var(--po)", fontWeight: 700, fontSize: 15, cursor: "pointer",
+          }}
+        >
+          Entendido
+        </button>
       </div>
     </div>
   );
@@ -294,6 +342,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
   const [domPct, setDomPct] = useState(0);
   const [donePcts, setDonePcts] = useState<Record<string, number>>({});
   const [showPaywall, setShowPaywall] = useState(false);
+  const [usageLimitInfo, setUsageLimitInfo] = useState<{ reason: "daily" | "weekly"; resetAt: string } | null>(null);
   const bigringRef = useRef<HTMLDivElement>(null);
   const plusRef = useRef<HTMLDivElement>(null);
   const [noteTitle, setNoteTitle] = useState(note.title);
@@ -347,6 +396,11 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
     setShowPaywall(true);
   }, []);
 
+  const handleUsageLimit = useCallback((reason: "daily" | "weekly", resetAt: string) => {
+    setIsGenerating(false);
+    setUsageLimitInfo({ reason, resetAt });
+  }, []);
+
   function celebrate(topicId: string, _secId: string, rect: DOMRect) {
     if ((donePcts[topicId] ?? 0) >= 100) return;
     const newPcts = { ...donePcts, [topicId]: 100 };
@@ -398,10 +452,14 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
   return (
     <>
       {isGenerating && (
-        <GeneratingOverlay noteId={note.id} fileName={fileName} onDone={handleDone} onPaywall={handlePaywall} />
+        <GeneratingOverlay noteId={note.id} fileName={fileName} onDone={handleDone} onPaywall={handlePaywall} onUsageLimit={handleUsageLimit} />
       )}
 
       {showPaywall && <QuickPaywall ctx="generic" onClose={() => setShowPaywall(false)} />}
+
+      {usageLimitInfo && (
+        <UsageLimitModal info={usageLimitInfo} onClose={() => setUsageLimitInfo(null)} />
+      )}
 
       {showEspacioTour && !isGenerating && (
         <OnboardingTour

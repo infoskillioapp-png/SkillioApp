@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveActor } from "@/lib/actor";
-import { recordAiUsage } from "@/lib/ai/usage";
+import { recordAiUsage, checkUsageLimit } from "@/lib/ai/usage";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // Sin esto, la función corre con el timeout por defecto de Vercel (unos
@@ -41,6 +41,19 @@ export async function POST(req: Request) {
     if (userRow.plan === "free") {
       const allowed = await isFreeGenerationAllowed(userRow.id);
       if (!allowed) return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
+    }
+
+    // Tope de uso anti-abuso para pagos (diario + semanal). Se calcula sobre
+    // el historial real de ai_usage, así que es retroactivo: si ya gastó de
+    // más hoy/esta semana, corta acá mismo. Nunca toca lo ya generado.
+    if (isPaid) {
+      const limitCheck = await checkUsageLimit(userRow.id);
+      if (!limitCheck.allowed) {
+        return NextResponse.json(
+          { error: "usage_limit_reached", reason: limitCheck.reason, resetAt: limitCheck.resetAt },
+          { status: 402 },
+        );
+      }
     }
 
     const summaryModel = modelForGeneration(userRow.plan, userRow.expires_at, "summarize");

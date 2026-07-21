@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { generateObject, generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
-import { recordAiUsage } from "@/lib/ai/usage";
+import { recordAiUsage, checkUsageLimit } from "@/lib/ai/usage";
 import { resolveActor } from "@/lib/actor";
 import {
   buildUserContent,
@@ -111,6 +111,16 @@ export async function POST(req: Request) {
     if (userRow.plan === "free") {
       const allowed = await isFreeGenerationAllowed(userRow.id);
       if (!allowed) return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
+    }
+
+    if (isPaid) {
+      const limitCheck = await checkUsageLimit(userRow.id);
+      if (!limitCheck.allowed) {
+        return NextResponse.json(
+          { error: "usage_limit_reached", reason: limitCheck.reason, resetAt: limitCheck.resetAt },
+          { status: 402 },
+        );
+      }
     }
 
     let payload: unknown;
