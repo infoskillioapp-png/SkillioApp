@@ -238,7 +238,9 @@ const Flashcard = z.object({
 
 export const FlashcardsSchema = z.object({
   deck_title: z.string().describe("Título corto descriptivo del mazo basado en el apunte"),
-  cards: z.array(Flashcard).min(3).max(15),
+  // Margen: el prompt pro pide 15, pero si el modelo genera 16-18 no queremos
+  // que Zod rechace el mazo entero — mismo criterio que el simulacro.
+  cards: z.array(Flashcard).min(3).max(20),
 });
 
 export const FLASH_SYSTEM =
@@ -289,7 +291,11 @@ const ShortAnswer = z.object({
 
 export const SimulacroSchema = z.object({
   title: z.string().describe("Título del simulacro basado en el contenido del apunte"),
-  questions: z.array(z.discriminatedUnion("kind", [MultipleChoice, TrueFalse, ShortAnswer])).min(3).max(20),
+  // Tope 25 (no 20) a propósito: el prompt pide 20, pero el modelo a veces
+  // genera 21-22 (se pasa por poco). Con el tope pegado al pedido, esas veces
+  // Zod rechazaba TODO el simulacro y fallaba la generación entera. El margen
+  // deja pasar el desborde en vez de tirar todo. Mismo criterio en flashcards.
+  questions: z.array(z.discriminatedUnion("kind", [MultipleChoice, TrueFalse, ShortAnswer])).min(3).max(25),
 });
 
 export const SIM_SYSTEM =
