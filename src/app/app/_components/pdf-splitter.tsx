@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const PAGE_LIMIT = 30;
+// Tope de seguridad para ediciones manuales: el corte automático ya viene
+// armado por peso real (300 KB por parte, calculado server-side) — este
+// límite de páginas es solo un techo por si el usuario agranda una parte a
+// mano, para no perder coherencia pedagógica aunque el archivo pese poco.
+const PAGE_LIMIT = 20;
 
 type Segment = { title: string; page_from: number; page_to: number };
 
@@ -23,14 +27,18 @@ function defaultSegments(total: number): Segment[] {
 export function PdfSplitter({
   file,
   totalPages,
+  initialSegments,
   onBack,
 }: {
   file: File;
   totalPages: number;
+  initialSegments?: Segment[];
   onBack: () => void;
 }) {
   const router = useRouter();
-  const [segments, setSegments] = useState<Segment[]>(() => defaultSegments(totalPages));
+  const [segments, setSegments] = useState<Segment[]>(
+    () => (initialSegments && initialSegments.length > 0 ? initialSegments : defaultSegments(totalPages)),
+  );
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
@@ -104,7 +112,7 @@ export function PdfSplitter({
           </span>
         </div>
         <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
-          Los apuntes muy largos dificultan la memorización. Te recomendamos dividirlo en partes de hasta {PAGE_LIMIT} páginas para que puedas estudiar cada tema por separado y aprovechar mejor las tarjetas y los simulacros.
+          Los apuntes muy largos dificultan la memorización. Ya lo dividimos en partes para que puedas estudiar cada tema por separado y aprovechar mejor las tarjetas y los simulacros — ajustá los rangos si preferís otra división (máximo {PAGE_LIMIT} páginas por parte).
         </p>
       </div>
 

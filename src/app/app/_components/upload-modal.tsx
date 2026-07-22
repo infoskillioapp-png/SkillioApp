@@ -8,9 +8,8 @@ import { DEMO_TOPICS } from "@/lib/demo-content";
 import type { DemoTopic } from "@/lib/demo-content";
 import { track } from "@/lib/track-client";
 
-const PDF_PAGE_LIMIT = 30;
-
 type Tab = "file" | "text" | "yt" | "drive";
+type SplitSegment = { title: string; page_from: number; page_to: number };
 
 export function UploadModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("file");
@@ -20,6 +19,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   const [uploading, setUploading] = useState(false);
   const [splitterFile, setSplitterFile] = useState<File | null>(null);
   const [splitterPages, setSplitterPages] = useState(0);
+  const [splitterSegments, setSplitterSegments] = useState<SplitSegment[]>([]);
   const [demoLoading, setDemoLoading] = useState<DemoTopic | null>(null);
   const [demoPct, setDemoPct] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -44,10 +44,11 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
         const buf = await file.arrayBuffer();
         const res = await fetch("/api/notes/pdf-info", { method: "POST", body: buf });
         if (res.ok) {
-          const { pages } = await res.json();
-          if (pages > PDF_PAGE_LIMIT) {
+          const { pages, segments, needsSplit } = await res.json();
+          if (needsSplit) {
             setSplitterFile(file);
             setSplitterPages(pages);
+            setSplitterSegments(segments ?? []);
             return;
           }
         }
@@ -167,6 +168,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
             <PdfSplitter
               file={splitterFile}
               totalPages={splitterPages}
+              initialSegments={splitterSegments}
               onBack={() => setSplitterFile(null)}
             />
           </div>
