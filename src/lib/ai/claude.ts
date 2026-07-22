@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { PDFDocument } from "pdf-lib";
+import { extractText } from "unpdf";
 import mammoth from "mammoth";
 import type { Note } from "@/lib/types";
 import { sendCreditsExhaustedEmail } from "@/lib/email/resend";
@@ -46,9 +47,16 @@ export function modelForGeneration(
 // Umbral: si el texto supera esto, activamos map-reduce
 const MAP_REDUCE_THRESHOLD = 15_000; // ~4k tokens
 const CHUNK_SIZE = 14_000;
+// Debajo de esto, la extracción de PDF se considera "sin texto real" (PDF
+// escaneado como imagen) y se cae al modo nativo (mandar el archivo).
+const MIN_USABLE_PDF_TEXT = 300;
 
 export type NoteContent =
-  | { type: "pdf"; data: Uint8Array; fileName: string }
+  // extractedText: texto plano sacado del PDF una sola vez en getNoteContent
+  // (sin IA de por medio). Si viene null, la extracción falló o el PDF es un
+  // escaneo sin texto real — buildUserContent cae al modo nativo (manda el
+  // archivo) como hacía siempre, sin romper nada.
+  | { type: "pdf"; data: Uint8Array; fileName: string; extractedText: string | null }
   | { type: "text"; text: string; fileName: string }
   | { type: "word"; text: string; fileName: string }
   | { type: "image"; data: Uint8Array; mime: string; fileName: string }
@@ -128,7 +136,18 @@ export async function getNoteContent(
 
   let content: NoteContent;
   if (typedNote.file_type === "pdf" || mime === "application/pdf") {
-    content = { type: "pdf", data: arr, fileName: typedNote.file_name };
+    // Extracción mecánica (sin IA, no cuesta nada) UNA sola vez, sobre el PDF
+    // ya recortado al rango de páginas de arriba. Si sale bien, las 3
+    // generaciones (resumen/tarjetas/simulacro) reusan este mismo texto en
+    // vez de mandar el PDF completo 3 veces cada una.
+    let extractedText: string | null = null;
+    try {
+      const { text } = await extractText(arr, { mergePages: true });
+      extractedText = text.trim().length >= MIN_USABLE_PDF_TEXT ? text : null;
+    } catch (e) {
+      console.warn("[getNoteContent] no se pudo extraer texto del PDF, se manda nativo:", e);
+    }
+    content = { type: "pdf", data: arr, fileName: typedNote.file_name, extractedText };
   } else if (typedNote.file_type === "image" || mime.startsWith("image/")) {
     content = {
       type: "image",
@@ -441,6 +460,32 @@ export async function buildUserContent(
   isPaid = true,
 ) {
   if (content.type === "pdf") {
+    // Texto ya extraído en getNoteContent (una sola vez, sin IA). Si está
+    // disponible lo mandamos como texto plano — mismo criterio que Word — en
+    // vez de subir el PDF completo de nuevo en cada una de las 3 llamadas.
+    // Si no (PDF escaneado, extracción falló), cae al modo nativo de abajo,
+    // igual que se hacía antes de este cambio.
+    if (content.extractedText) {
+      if (!isPaid) {
+        const sliced =
+          content.extractedText.length > FREE_INPUT_CHAR_CAP
+            ? content.extractedText.slice(0, FREE_INPUT_CHAR_CAP)
+            : content.extractedText;
+        return `Apunte: "${content.fileName}"\n\n---\n${sliced}\n---\n\n${instruction}`;
+      }
+
+      let processedText = content.extractedText;
+      if (processedText.length > MAP_REDUCE_THRESHOLD) {
+        processedText = await mapReduceText(processedText);
+      }
+      const finalText =
+        processedText.length > 80_000
+          ? processedText.slice(0, 80_000) + "\n\n[...truncado]"
+          : processedText;
+
+      return `Apunte: "${content.fileName}"\n\n---\n${finalText}\n---\n\n${instruction}`;
+    }
+
     let pdfData = content.data;
 
     if (!isPaid) {
