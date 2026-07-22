@@ -12,11 +12,16 @@ const MRR_MONTHLY = {
 };
 
 const PRICES: Record<string, { in: number; out: number }> = {
+  // Gemini (proveedor actual). USD por millón de tokens (in/out).
+  "gemini-3.6-flash": { in: 1.5, out: 9.0 },
+  "gemini-3.5-flash": { in: 1.5, out: 9.0 },
+  "gemini-3.5-flash-lite": { in: 0.25, out: 1.5 },
+  // Claude (proveedor anterior) — se mantiene para registros históricos.
   "claude-haiku-4-5-20251001": { in: 1.0, out: 5.0 },
   "claude-haiku-4-5": { in: 1.0, out: 5.0 },
   "claude-sonnet-4-6": { in: 3.0, out: 15.0 },
 };
-const DEFAULT_PRICE = { in: 3.0, out: 15.0 };
+const DEFAULT_PRICE = { in: 1.5, out: 9.0 };
 
 type Plan = "free" | "pro" | "semanal" | "trimestral";
 

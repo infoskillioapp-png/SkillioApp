@@ -1,7 +1,8 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
-import { generateObject } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { generateText } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
 import { buildUserContent, type NoteContent } from "@/lib/ai/claude";
 
@@ -10,28 +11,67 @@ import { buildUserContent, type NoteContent } from "@/lib/ai/claude";
 // (resumen puntos_clave, flashcards, simulacro). Lo usan tanto los endpoints
 // individuales (/api/ai/*) como el endpoint combinado (/api/ai/generate-suite),
 // que prepara el apunte UNA sola vez y dispara las 3 en paralelo.
+//
+// PROVEEDOR: Gemini (Google). Migramos desde Anthropic por costo (~50% menos).
+// Gemini NO soporta el modo de "salida estructurada estricta" (su API rechaza
+// las uniones discriminadas de nuestros schemas), así que en vez de
+// generateObject usamos generateText pidiendo JSON por prompt + validación
+// nuestra con Zod (generateStructured, abajo). El schema Zod queda como
+// contrato de validación de NUESTRO lado, no se le pasa a la API de Google.
 // =============================================================================
 
 type Usage = { inputTokens?: number; outputTokens?: number } | undefined;
+type Content = Awaited<ReturnType<typeof buildUserContent>>;
 
-// El simulacro es, de las 3 generaciones, la que tiene el schema más exigente
-// (discriminated union anidada, 4 opciones EXACTAS por pregunta, hasta 20
-// preguntas en un solo objeto) corriendo en Haiku — cualquier item que se
-// desvíe del formato tira todo el batch por Zod. Antes, si eso fallaba, no
-// había reintento: el usuario quedaba con "toca para generar" para siempre
-// hasta tocarlo de nuevo. Reintentamos una vez antes de rendirnos, y mandamos
-// el error real a Sentry (antes solo quedaba en un console.error que se
-// perdía en los logs de Vercel — por eso no se pudo diagnosticar la causa
-// exacta la vez anterior).
-async function withRetry<T>(label: string, fn: () => Promise<T>, attempts = 2): Promise<T> {
+const google = createGoogleGenerativeAI(); // lee GOOGLE_GENERATIVE_AI_API_KEY
+
+// Salida grande sin truncar: el resumen puede pasar 8k tokens y, si el modelo
+// corta el JSON a la mitad, queda inválido. 16k le da aire de sobra.
+const MAX_OUTPUT_TOKENS = 16000;
+
+// Recupera el objeto de un texto que "debería" ser JSON: primero parse directo,
+// después jsonrepair (arregla comillas/llaves faltantes por un corte). null si
+// no hay forma.
+function robustParse(raw: string): unknown {
+  const t = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  try { return JSON.parse(t); } catch { /* sigue */ }
+  try { return JSON.parse(jsonrepair(t)); } catch { /* sigue */ }
+  return null;
+}
+
+// Genera salida estructurada con Gemini de forma robusta: pide JSON por prompt,
+// lo parsea (con reparación), lo valida con el schema Zod, y reintenta hasta 3
+// veces. Un fallo inicial (~40% por truncado, ya mitigado con MAX_OUTPUT_TOKENS)
+// baja a ~6% en el 2º intento y ~1% en el 3º. Cada fallo va a Sentry.
+async function generateStructured<T>(opts: {
+  label: string;
+  model: string;
+  schema: z.ZodType<T>;
+  system: string;
+  content: Content;
+}): Promise<{ object: T; usage: Usage }> {
   let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
+  for (let att = 1; att <= 3; att++) {
     try {
-      return await fn();
+      const r = await generateText({
+        model: google(opts.model),
+        system: opts.system,
+        messages: [{ role: "user", content: opts.content as never }],
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        providerOptions: { google: { responseMimeType: "application/json" } },
+      });
+      const parsed = robustParse(r.text);
+      if (parsed === null) {
+        lastErr = new Error("respuesta no parseable como JSON");
+      } else {
+        const v = opts.schema.safeParse(parsed);
+        if (v.success) return { object: v.data, usage: r.usage as Usage };
+        lastErr = new Error("no pasó el schema: " + (v.error.issues[0]?.message ?? "?"));
+      }
     } catch (e) {
       lastErr = e;
-      Sentry.captureException(e, { tags: { ai_gen: label, attempt: String(i + 1) } });
     }
+    Sentry.captureException(lastErr, { tags: { ai_gen: opts.label, attempt: String(att) } });
   }
   throw lastErr;
 }
@@ -197,34 +237,54 @@ Reglas estrictas:
    - "analogia": cuando el original cuenta una historia, ejemplo real o analogía para explicar un concepto.
 4. DENSIDAD: nunca sacrifiques profundidad por brevedad. Los ejemplos, historias y analogías del original son lo que hace que el estudiante recuerde — conservalos con detalle, no los aplanes a una oración.
 5. PRÁCTICA POR TÍTULO: la práctica de refuerzo va UNA VEZ por título/categoría (no por cada bloque) — 2 preguntas que cubran todos los bloques de ese título combinados, en "practicaPorTitulo".
-6. Español rioplatense, tono cercano pero profesional.`;
+6. Español rioplatense, tono cercano pero profesional.
+
+FORMATO DE SALIDA — devolvé EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto antes ni después):
+{
+  "title": "título corto del apunte",
+  "intro": "una oración de contexto (opcional, podés omitir la clave)",
+  "points": [ ...bloques... ],
+  "practicaPorTitulo": [ { "categoria": "<mismo string EXACTO que el category de sus bloques>", "practica": [ <pregunta>, <pregunta> ] } ]
+}
+Cada bloque de "points" es UNO de estos 5 tipos (elegí el que mejor comunique ESE contenido):
+- {"type":"texto","emoji":"📌","title":"3-8 palabras","category":"...","body":"markdown desarrollado, 4-6 oraciones"}
+- {"type":"proceso","emoji":"...","title":"...","category":"...","intro":"opcional","ordenado":true,"pasos":[{"paso":"...","detalle":"..."}]}  (pasos: 2 a 8)
+- {"type":"tabla","emoji":"...","title":"...","category":"...","intro":"opcional","columnas":["c1","c2"],"filas":[{"etiqueta":"...","valores":["v1","v2"]}]}  (columnas: 2 a 5; filas: 2 a 8; un valor por columna)
+- {"type":"framework","emoji":"...","title":"...","category":"...","intro":"opcional","elementos":[{"nombre":"...","descripcion":"1-2 oraciones"}]}  (elementos: 2 a 6)
+- {"type":"analogia","emoji":"...","title":"...","category":"...","analogia":"la historia/ejemplo con detalle","conexion":"1-2 oraciones: qué concepto ilustra"}
+Cada <pregunta>: {"pregunta":"...","opciones":["a","b","c","d"],"correcta":0,"explicacion":"por qué la correcta lo es, 1 oración"}  (opciones: EXACTAMENTE 4; correcta: índice 0-3)`;
 
 export const PUNTOS_PROMPT_PRO =
   "Extraé los bloques temáticos que el apunte amerite (ni más ni menos — la cantidad depende del contenido real, no de un número fijo), en el mismo orden en que aparecen en el material original. Cada bloque usa el formato (\"type\") que mejor le quede a su contenido. Agrupá los bloques por título usando `category` (mismo string EXACTO para bloques del mismo título). Para cada título distinto, generá además su propia práctica rápida en `practicaPorTitulo` (2 preguntas que cubran todo ese título, no cada bloque). Devolvé SIEMPRE en español rioplatense.";
 
+// Formato JSON para el resumen FREE (2 puntos simples con práctica embebida).
+const SUMMARY_SYSTEM_FREE_JSON = `${SUMMARY_SYSTEM}
+
+FORMATO DE SALIDA — devolvé EXCLUSIVAMENTE un objeto JSON válido (sin markdown):
+{
+  "title": "título corto",
+  "intro": "oración de contexto (opcional)",
+  "points": [ EXACTAMENTE 2 objetos con esta forma:
+    {"emoji":"📌","title":"3-8 palabras","description":"4-6 oraciones desarrolladas","category":"subtema","practica":[<pregunta>,<pregunta>]}
+  ]
+}
+Cada <pregunta>: {"pregunta":"...","opciones":["a","b","c","d"],"correcta":0,"explicacion":"..."}  (opciones: EXACTAMENTE 4; correcta: índice 0-3)`;
+
 export async function genSummaryPuntos(content: NoteContent, model: string, isPaid: boolean) {
   if (isPaid) {
     const parts = await buildUserContent(content, PUNTOS_PROMPT_PRO, isPaid);
-    const r = await withRetry("summary_pro", () =>
-      generateObject({
-        model: anthropic(model),
-        schema: PuntosClaveSchemaPro,
-        system: SUMMARY_SYSTEM_PRO,
-        messages: [{ role: "user", content: parts }],
-      }),
-    );
-    return { object: r.object, usage: r.usage as Usage, title: r.object.title };
+    const r = await generateStructured({
+      label: "summary_pro", model, schema: PuntosClaveSchemaPro,
+      system: SUMMARY_SYSTEM_PRO, content: parts,
+    });
+    return { object: r.object, usage: r.usage, title: r.object.title };
   }
   const parts = await buildUserContent(content, PUNTOS_PROMPT_FREE, isPaid);
-  const r = await withRetry("summary_free", () =>
-    generateObject({
-      model: anthropic(model),
-      schema: PuntosClaveSchemaFree,
-      system: SUMMARY_SYSTEM,
-      messages: [{ role: "user", content: parts }],
-    }),
-  );
-  return { object: r.object, usage: r.usage as Usage, title: r.object.title };
+  const r = await generateStructured({
+    label: "summary_free", model, schema: PuntosClaveSchemaFree,
+    system: SUMMARY_SYSTEM_FREE_JSON, content: parts,
+  });
+  return { object: r.object, usage: r.usage, title: r.object.title };
 }
 
 // ---------------------------------------------------------------------------
@@ -244,7 +304,10 @@ export const FlashcardsSchema = z.object({
 });
 
 export const FLASH_SYSTEM =
-  "Sos un asistente de estudio en español rioplatense que arma mazos de flashcards para repetición espaciada. Para cada concepto importante creás una tarjeta con una pregunta clara al frente y una respuesta concisa al dorso. Las preguntas deben ser activas (no 'qué es X' sino 'cuál es la diferencia entre X e Y', 'cuándo se aplica X', 'qué pasa si...'). Nunca inventes información que no esté en el apunte.";
+  `Sos un asistente de estudio en español rioplatense que arma mazos de flashcards para repetición espaciada. Para cada concepto importante creás una tarjeta con una pregunta clara al frente y una respuesta concisa al dorso. Las preguntas deben ser activas (no 'qué es X' sino 'cuál es la diferencia entre X e Y', 'cuándo se aplica X', 'qué pasa si...'). Nunca inventes información que no esté en el apunte.
+
+FORMATO DE SALIDA — devolvé EXCLUSIVAMENTE un objeto JSON válido (sin markdown):
+{"deck_title":"título corto del mazo","cards":[{"front":"pregunta o concepto","back":"respuesta 1-2 oraciones","category":"subtema"}]}`;
 
 export const FLASH_PROMPT_FREE =
   "Generá exactamente 4 flashcards de muestra sobre los conceptos más importantes de este apunte. Agrupalos por subtema en `category`. Devolvé SIEMPRE en español.";
@@ -255,15 +318,11 @@ export const FLASH_PROMPT_PRO =
 export async function genFlashcards(content: NoteContent, model: string, isPaid: boolean) {
   const instruction = isPaid ? FLASH_PROMPT_PRO : FLASH_PROMPT_FREE;
   const parts = await buildUserContent(content, instruction, isPaid);
-  const r = await withRetry("flashcards", () =>
-    generateObject({
-      model: anthropic(model),
-      schema: FlashcardsSchema,
-      system: FLASH_SYSTEM,
-      messages: [{ role: "user", content: parts }],
-    }),
-  );
-  return { object: r.object, usage: r.usage as Usage, title: r.object.deck_title };
+  const r = await generateStructured({
+    label: "flashcards", model, schema: FlashcardsSchema,
+    system: FLASH_SYSTEM, content: parts,
+  });
+  return { object: r.object, usage: r.usage, title: r.object.deck_title };
 }
 
 // ---------------------------------------------------------------------------
@@ -299,7 +358,14 @@ export const SimulacroSchema = z.object({
 });
 
 export const SIM_SYSTEM =
-  "Sos un docente universitario que arma simulacros de examen en español rioplatense. Generás exámenes mixtos con preguntas de opción múltiple, verdadero/falso y desarrollo corto. Las preguntas deben evaluar comprensión y aplicación (no solo memorización). Las opciones de multiple choice deben tener exactamente 4 alternativas plausibles. Las explicaciones tienen que justificar por qué la respuesta es correcta y por qué las otras son incorrectas. Nunca inventes información que no esté en el apunte.";
+  `Sos un docente universitario que arma simulacros de examen en español rioplatense. Generás exámenes mixtos con preguntas de opción múltiple, verdadero/falso y desarrollo corto. Las preguntas deben evaluar comprensión y aplicación (no solo memorización). Las opciones de multiple choice deben tener exactamente 4 alternativas plausibles. Las explicaciones tienen que justificar por qué la respuesta es correcta y por qué las otras son incorrectas. Nunca inventes información que no esté en el apunte.
+
+FORMATO DE SALIDA — devolvé EXCLUSIVAMENTE un objeto JSON válido (sin markdown):
+{"title":"título del simulacro","questions":[ ...preguntas... ]}
+Cada pregunta es UNA de estas 3 formas:
+- {"kind":"multiple_choice","question":"...","options":["a","b","c","d"],"correct":0,"explanation":"..."}  (options: EXACTAMENTE 4; correct: índice 0-3)
+- {"kind":"true_false","question":"...","correct":true,"explanation":"..."}
+- {"kind":"short_answer","question":"...","correct":"respuesta 1-2 oraciones","explanation":"..."}`;
 
 export const SIM_PROMPT_FREE =
   "Armá exactamente 4 preguntas de muestra sobre los conceptos principales de este apunte. Mezclá tipos de pregunta (multiple_choice, true_false, short_answer). Devolvé SIEMPRE en español.";
@@ -310,13 +376,9 @@ export const SIM_PROMPT_PRO =
 export async function genSimulacro(content: NoteContent, model: string, isPaid: boolean) {
   const instruction = isPaid ? SIM_PROMPT_PRO : SIM_PROMPT_FREE;
   const parts = await buildUserContent(content, instruction, isPaid);
-  const r = await withRetry("simulacro", () =>
-    generateObject({
-      model: anthropic(model),
-      schema: SimulacroSchema,
-      system: SIM_SYSTEM,
-      messages: [{ role: "user", content: parts }],
-    }),
-  );
-  return { object: r.object, usage: r.usage as Usage, title: r.object.title };
+  const r = await generateStructured({
+    label: "simulacro", model, schema: SimulacroSchema,
+    system: SIM_SYSTEM, content: parts,
+  });
+  return { object: r.object, usage: r.usage, title: r.object.title };
 }

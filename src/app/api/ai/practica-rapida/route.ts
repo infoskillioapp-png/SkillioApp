@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { generateObject } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { resolveActor } from "@/lib/actor";
 import { recordAiUsage } from "@/lib/ai/usage";
 
 export const maxDuration = 300;
 
-const MODEL = "claude-haiku-4-5-20251001";
+const google = createGoogleGenerativeAI();
+// Esquema plano (sin uniones) — Gemini lo maneja bien con generateObject.
+const MODEL = "gemini-3.5-flash-lite";
 
 const QuestionSchema = z.object({
   questions: z.array(
@@ -44,7 +46,7 @@ Generá 2 preguntas que refuercen literalmente lo que dice ESE texto — deben p
 
   try {
     const result = await generateObject({
-      model: anthropic(MODEL),
+      model: google(MODEL),
       schema: QuestionSchema,
       system: SYSTEM,
       messages: [{ role: "user", content: prompt }],

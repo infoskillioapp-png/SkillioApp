@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateObject, generateText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { recordAiUsage, checkUsageLimit } from "@/lib/ai/usage";
 import { resolveActor } from "@/lib/actor";
@@ -16,6 +16,8 @@ import {
 import { genSummaryPuntos, SUMMARY_SYSTEM } from "@/lib/ai/suite";
 
 export const maxDuration = 300;
+
+const google = createGoogleGenerativeAI();
 
 // ===========================================================================
 // SCHEMAS de los formatos SECUNDARIOS (mapa, ficha). puntos_clave vive en
@@ -134,15 +136,15 @@ export async function POST(req: Request) {
     } else {
       const userParts = await buildUserContent(content, FORMAT_PROMPTS[format], isPaid);
       if (format === "mapa") {
-        const r = await generateObject({ model: anthropic(model), schema: MapaSchema, system: SUMMARY_SYSTEM, messages: [{ role: "user", content: userParts }] });
+        const r = await generateObject({ model: google(model), schema: MapaSchema, system: SUMMARY_SYSTEM, messages: [{ role: "user", content: userParts }] });
         payload = r.object;
         usage = r.usage;
       } else if (format === "resumen") {
-        const r = await generateText({ model: anthropic(model), system: RESUMEN_SYSTEM_PROMPT, messages: [{ role: "user", content: userParts }], maxOutputTokens: 8000 });
+        const r = await generateText({ model: google(model), system: RESUMEN_SYSTEM_PROMPT, messages: [{ role: "user", content: userParts }], maxOutputTokens: 8000 });
         payload = { text: r.text };
         usage = r.usage;
       } else {
-        const r = await generateObject({ model: anthropic(model), schema: FichaSchema, system: SUMMARY_SYSTEM, messages: [{ role: "user", content: userParts }] });
+        const r = await generateObject({ model: google(model), schema: FichaSchema, system: SUMMARY_SYSTEM, messages: [{ role: "user", content: userParts }] });
         payload = r.object;
         usage = r.usage;
       }

@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { PDFDocument } from "pdf-lib";
 import { extractText } from "unpdf";
 import mammoth from "mammoth";
@@ -13,10 +13,15 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 
 const BUCKET = "notes-uploads";
 
-export const MODEL = "claude-sonnet-4-6";              // planes pagos, razonamiento pesado
-export const MODEL_FREE = "claude-haiku-4-5-20251001"; // free + volumen (tarjetas/simulacro)
+// Modelos Gemini (migración desde Anthropic, jul-2026, ~50% más barato).
+// El resumen pago corre en 3.6-flash (el más capaz); todo lo demás y el free
+// en 3.5-flash-lite (rápido y barato). Ver skillio-unit-economics.
+export const MODEL = "gemini-3.6-flash";        // planes pagos, resumen
+export const MODEL_FREE = "gemini-3.5-flash-lite"; // free + volumen (tarjetas/simulacro)
 export const FREE_GENERATION_LIMIT = 3;                // conservado para emails de nudge
 const MAP_MODEL = MODEL_FREE;
+
+const google = createGoogleGenerativeAI(); // lee GOOGLE_GENERATIVE_AI_API_KEY
 
 /** Devuelve true si el usuario tiene acceso pago activo (créditos o tiempo vigente).
  * Mensual sin expires_at (el caso normal, suscripción activa) = acceso siempre.
@@ -373,7 +378,7 @@ async function mapReduceText(text: string): Promise<string> {
   const summaries = await Promise.all(
     chunks.map((chunk, idx) =>
       generateText({
-        model: anthropic(MAP_MODEL),
+        model: google(MAP_MODEL),
         system: MAP_SYSTEM,
         messages: [
           {
@@ -413,7 +418,7 @@ async function condensePdfChunk(
   total: number,
 ): Promise<string> {
   const r = await generateText({
-    model: anthropic(MAP_MODEL),
+    model: google(MAP_MODEL),
     system: PDF_MAP_SYSTEM,
     messages: [
       {

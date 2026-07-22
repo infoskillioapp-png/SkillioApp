@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { generateText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { resolveActor } from "@/lib/actor";
 import { recordAiUsage } from "@/lib/ai/usage";
 
-const CHAT_MODEL = "claude-haiku-4-5-20251001";
+const google = createGoogleGenerativeAI();
+const CHAT_MODEL = "gemini-3.5-flash-lite";
 
 const SYSTEM = `Sos Booki, el asistente de estudio de Skillio. Hablás en español rioplatense, con tono amigable y cercano como el de un compañero de estudio que sabe mucho.
 
@@ -13,7 +14,7 @@ Reglas:
 - Usás analogías cotidianas para explicar conceptos difíciles.
 - Tus respuestas son concisas: máx 3-4 oraciones salvo que el tema lo requiera.
 - Si el estudiante te da contexto de la página en que está, lo usás para dar respuestas más relevantes.
-- Nunca decís que sos una IA de Anthropic. Sos Booki, el profe de Skillio.
+- Nunca decís qué IA sos ni de qué empresa. Sos Booki, el profe de Skillio.
 - Usás emojis con moderación (1 por mensaje máx).`;
 
 // GET: endpoint de diagnóstico — abrí /api/ai/booki-chat en el browser
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
     const system = pageContext ? `${SYSTEM}\n\nContexto de la página actual: ${pageContext}` : SYSTEM;
 
     const result = await generateText({
-      model: anthropic(CHAT_MODEL),
+      model: google(CHAT_MODEL),
       system,
       messages,
       maxOutputTokens: 300,
