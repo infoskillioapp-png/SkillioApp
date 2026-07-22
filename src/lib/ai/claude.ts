@@ -142,7 +142,13 @@ export async function getNoteContent(
     // vez de mandar el PDF completo 3 veces cada una.
     let extractedText: string | null = null;
     try {
-      const { text } = await extractText(arr, { mergePages: true });
+      // OJO: unpdf (pdf.js) "transfiere" el ArrayBuffer al worker interno y lo
+      // DEJA VACÍO — si le pasamos `arr` directo, después de esto arr.length
+      // queda en 0. Cuando la extracción falla (PDF escaneado/sin texto) y hay
+      // que caer al modo nativo, ese arr vacío se le mandaba a Anthropic →
+      // "PDF cannot be empty". Le pasamos una COPIA: que vacíe la copia, no el
+      // original que necesitamos para el fallback nativo.
+      const { text } = await extractText(arr.slice(), { mergePages: true });
       extractedText = text.trim().length >= MIN_USABLE_PDF_TEXT ? text : null;
     } catch (e) {
       console.warn("[getNoteContent] no se pudo extraer texto del PDF, se manda nativo:", e);
