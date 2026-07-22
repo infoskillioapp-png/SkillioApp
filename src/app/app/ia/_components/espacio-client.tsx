@@ -134,9 +134,10 @@ const GEN_STEPS = [
   "Calculando tu ruta de estudio",
 ];
 
-function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit }: {
+function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit, onError }: {
   noteId: string; fileName: string; onDone: () => void; onPaywall: () => void;
   onUsageLimit: (reason: "daily" | "weekly", resetAt: string) => void;
+  onError: () => void;
 }) {
   const [pct, setPct] = useState(0);
   const [step, setStep] = useState(0);
@@ -146,6 +147,7 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit }
     const HALF_LIFE = 22000;
     let apiDone = false;
     let apiHas402 = false;
+    let hasHardError = false;
     let usageLimit: { reason: "daily" | "weekly"; resetAt: string } | null = null;
 
     async function callApis() {
@@ -170,8 +172,18 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit }
           apiDone = true;
           return;
         }
+
+        // Antes cualquier respuesta que no fuera 402 se trataba como éxito
+        // (la barra se completaba igual aunque el servidor devolviera un
+        // error real) — el usuario veía "listo" y aterrizaba en una página
+        // vacía sin ningún aviso de que algo falló.
+        if (!res.ok) {
+          hasHardError = true;
+          apiDone = true;
+          return;
+        }
       } catch {
-        // error de red — igual completamos
+        hasHardError = true;
       } finally {
         apiDone = true;
       }
@@ -187,6 +199,7 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit }
         clearInterval(iv);
         if (usageLimit) { onUsageLimit(usageLimit.reason, usageLimit.resetAt); return; }
         if (apiHas402) { onPaywall(); return; }
+        if (hasHardError) { onError(); return; }
         setPct(100);
         setStep(3);
         setTimeout(onDone, 1100);
@@ -198,7 +211,7 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit }
     }, 350);
 
     return () => clearInterval(iv);
-  }, [noteId, onDone, onPaywall, onUsageLimit]);
+  }, [noteId, onDone, onPaywall, onUsageLimit, onError]);
 
   return (
     <div id="gen" className="show">
@@ -263,6 +276,38 @@ function UsageLimitModal({ info, onClose }: { info: { reason: "daily" | "weekly"
         >
           Entendido
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ---- error real de generación (antes se mostraba como si hubiera salido
+// bien y aterrizaba en una página vacía, sin avisar nada) ----
+function GenerationErrorModal({ onRetry, onClose }: { onRetry: () => void; onClose: () => void }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(20,16,40,.55)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
+      <div style={{ width: "min(400px, 100%)", background: "#fff", borderRadius: 20, padding: "32px 28px", boxShadow: "0 20px 60px rgba(0,0,0,.25)", textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>⚠️</div>
+        <h1 className="font-display font-extrabold text-xl" style={{ marginBottom: 8, color: "var(--ink)" }}>
+          No se pudo generar
+        </h1>
+        <p className="text-sm" style={{ color: "var(--muted)", lineHeight: 1.6, marginBottom: 20 }}>
+          Algo falló al procesar el apunte. Podés reintentar sin costo extra por lo que ya falló.
+        </p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={onClose}
+            style={{ flex: 1, padding: "13px", borderRadius: 14, border: "1px solid var(--line)", background: "#fff", color: "var(--muted)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
+          >
+            Cerrar
+          </button>
+          <button
+            onClick={onRetry}
+            style={{ flex: 1, padding: "13px", border: "none", borderRadius: 14, background: "linear-gradient(135deg,#8b5cf6,#4f7dff)", color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+          >
+            Reintentar
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -343,6 +388,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
   const [donePcts, setDonePcts] = useState<Record<string, number>>({});
   const [showPaywall, setShowPaywall] = useState(false);
   const [usageLimitInfo, setUsageLimitInfo] = useState<{ reason: "daily" | "weekly"; resetAt: string } | null>(null);
+  const [showGenError, setShowGenError] = useState(false);
   const bigringRef = useRef<HTMLDivElement>(null);
   const plusRef = useRef<HTMLDivElement>(null);
   const [noteTitle, setNoteTitle] = useState(note.title);
@@ -401,6 +447,16 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
     setUsageLimitInfo({ reason, resetAt });
   }, []);
 
+  const handleGenError = useCallback(() => {
+    setIsGenerating(false);
+    setShowGenError(true);
+  }, []);
+
+  const retryGeneration = useCallback(() => {
+    setShowGenError(false);
+    setIsGenerating(true);
+  }, []);
+
   function celebrate(topicId: string, _secId: string, rect: DOMRect) {
     if ((donePcts[topicId] ?? 0) >= 100) return;
     const newPcts = { ...donePcts, [topicId]: 100 };
@@ -452,13 +508,17 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
   return (
     <>
       {isGenerating && (
-        <GeneratingOverlay noteId={note.id} fileName={fileName} onDone={handleDone} onPaywall={handlePaywall} onUsageLimit={handleUsageLimit} />
+        <GeneratingOverlay noteId={note.id} fileName={fileName} onDone={handleDone} onPaywall={handlePaywall} onUsageLimit={handleUsageLimit} onError={handleGenError} />
       )}
 
       {showPaywall && <QuickPaywall ctx="generic" onClose={() => setShowPaywall(false)} />}
 
       {usageLimitInfo && (
         <UsageLimitModal info={usageLimitInfo} onClose={() => setUsageLimitInfo(null)} />
+      )}
+
+      {showGenError && (
+        <GenerationErrorModal onRetry={retryGeneration} onClose={() => setShowGenError(false)} />
       )}
 
       {showEspacioTour && !isGenerating && (

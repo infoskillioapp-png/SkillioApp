@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { resolveActor } from "@/lib/actor";
 import { recordAiUsage, checkUsageLimit } from "@/lib/ai/usage";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -95,6 +96,7 @@ export async function POST(req: Request) {
       saved.summary = true;
     } else if (!already.has("summary")) {
       console.error("[generate-suite] summary falló:", sumRes.reason);
+      Sentry.captureException(sumRes.reason, { tags: { step: "generate-suite:summary" }, extra: { note_id: note.id } });
     }
 
     if (fcRes.status === "fulfilled") {
@@ -108,6 +110,7 @@ export async function POST(req: Request) {
       saved.flashcards = true;
     } else if (!already.has("flashcards")) {
       console.error("[generate-suite] flashcards falló:", fcRes.reason);
+      Sentry.captureException(fcRes.reason, { tags: { step: "generate-suite:flashcards" }, extra: { note_id: note.id } });
     }
 
     if (simRes.status === "fulfilled") {
@@ -121,6 +124,7 @@ export async function POST(req: Request) {
       saved.simulacro = true;
     } else if (!already.has("simulacro")) {
       console.error("[generate-suite] simulacro falló:", simRes.reason);
+      Sentry.captureException(simRes.reason, { tags: { step: "generate-suite:simulacro" }, extra: { note_id: note.id } });
     }
 
     // Si NINGUNA salió, error duro (el cliente reintenta / muestra fallo).
@@ -134,6 +138,7 @@ export async function POST(req: Request) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";
     console.error("[api/ai/generate-suite]", e);
+    Sentry.captureException(e, { tags: { step: "generate-suite:outer" } });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
