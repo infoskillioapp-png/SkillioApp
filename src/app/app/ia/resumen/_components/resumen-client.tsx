@@ -39,11 +39,6 @@ function MD({ text }: { text: string }) {
   );
 }
 
-function readingMinutes(md: string): number {
-  const words = md.trim().split(/\s+/).length;
-  return Math.max(1, Math.round(words / 200));
-}
-
 // ---- sidebar de temas ----
 function ResumenSidebar({
   sections,
@@ -86,14 +81,28 @@ function ResumenSidebar({
           -webkit-text-fill-color: transparent; animation: lockShimmer 2.8s linear infinite; font-weight: 700 !important;
         }
         .t-item-locked .lock-icon { animation: lockIconBounce 2.2s ease-in-out infinite; display: inline-block; font-size: 13px; }
-        .md-body h3 { font-family: var(--po); font-weight: 700; font-size: 16px; margin: 18px 0 8px; }
-        .md-body p { margin: 0 0 12px; line-height: 1.7; }
-        .md-body ul, .md-body ol { margin: 0 0 14px; padding-left: 22px; line-height: 1.7; }
-        .md-body li { margin-bottom: 6px; }
-        .md-body strong { font-weight: 700; color: var(--ink, #1f2347); }
-        .md-body table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 13.5px; }
-        .md-body th, .md-body td { border: 1px solid rgba(120,90,200,.22); padding: 8px 10px; text-align: left; vertical-align: top; }
-        .md-body th { background: rgba(139,92,246,.08); font-weight: 700; }
+        .md-body h3 {
+          font-family: var(--po); font-weight: 800; font-size: 16.5px; color: #6d28d9;
+          margin: 22px 0 10px; padding-left: 11px; border-left: 4px solid #8b5cf6;
+        }
+        .md-body p { margin: 0 0 12px; line-height: 1.75; }
+        .md-body ul, .md-body ol { margin: 0 0 14px; padding-left: 22px; line-height: 1.75; }
+        .md-body li { margin-bottom: 7px; }
+        .md-body li::marker { color: #8b5cf6; }
+        .md-body strong { font-weight: 700; color: #4c2f9e; }
+        .md-body em { color: #5b6178; }
+        .md-body table {
+          border-collapse: separate; border-spacing: 0; width: 100%; margin: 16px 0;
+          font-size: 13.5px; border: 1px solid #e6e0f5; border-radius: 12px; overflow: hidden;
+          box-shadow: 0 4px 14px rgba(124,58,237,.08);
+        }
+        .md-body th {
+          background: linear-gradient(135deg,#8b5cf6,#7c3aed); color: #fff;
+          font-weight: 700; padding: 10px 12px; text-align: left; font-size: 12.5px;
+        }
+        .md-body td { padding: 9px 12px; text-align: left; vertical-align: top; border-top: 1px solid #eee6fb; }
+        .md-body tbody tr:nth-child(even) { background: rgba(139,92,246,.045); }
+        .md-body .katex-display { margin: 14px 0; overflow-x: auto; }
       `}</style>
 
       <h2 className="po">
@@ -268,13 +277,6 @@ export function ResumenClient({
           <div className="rhead in">
             <div className="sec-eyebrow">{data.title || data.noteTitle} · Tema {safeActiveIdx + 1} de {sections.length}</div>
             <h1 className="rtitle">{active.heading}</h1>
-            <div className="rmeta">
-              <span className="rpill prog">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-                {doneSet.has(safeActiveIdx) ? "Dominado · 100%" : "En progreso"}
-              </span>
-              <span className="rpill amber">⏱ {readingMinutes(active.markdown)} min de lectura</span>
-            </div>
           </div>
 
           {/* Modos (Tarjetas / Simulacro) */}

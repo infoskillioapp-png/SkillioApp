@@ -111,7 +111,7 @@ ESTRUCTURA Y FORMATO (Markdown estricto):
 - Dentro de cada parte, cada tema puntual va con '### '.
 - '**negrita**' en términos y conceptos clave.
 - Listas con '- '.
-- Comparaciones (varios elementos con las mismas dimensiones): TABLA de Markdown con | y encabezados. Usala siempre que ayude a clasificar.
+- TABLAS (importante, no lo omitas): siempre que el material tenga una clasificación, tipología o comparación de 3 o más elementos que compartan las mismas dimensiones (ej: tipos de X, niveles, categorías con su definición y ejemplo, ventajas/desventajas), presentalo OBLIGATORIAMENTE como una TABLA de Markdown (con | y una fila de encabezados), NO como lista. Las tablas hacen el resumen mucho más claro y estudiable — usá al menos una si el contenido lo permite.
 - Las fórmulas matemáticas van en LaTeX ($ o $$) como indica la regla 4.
 - PROHIBIDO: bloques de código / triple-backtick y diagramas ASCII.
 - No escribas nada antes del '# ' ni después del final. Solo el Markdown.
