@@ -42,6 +42,29 @@ export function parseSummaryMarkdown(md: string): ParsedSummary {
   return { title, intro, sections };
 }
 
+// El resumen se muestra en 2-4 macro-bloques (las PARTES '## ' que nombra la
+// IA). Red de seguridad: si el modelo devolvió más de `max` secciones (ignoró
+// la instrucción de agrupar), las fusionamos en `max` grupos contiguos y
+// balanceados — las secciones absorbidas conservan su título como '### '. Debe
+// aplicarse IGUAL en la página del resumen y en el espacio para que el índice
+// de cada bloque coincida (sincroniza el progreso "dominado").
+export const MAX_PARTS = 4;
+
+export function capParts(sections: SummarySection[], max = MAX_PARTS): SummarySection[] {
+  if (sections.length <= max) return sections;
+  const per = Math.ceil(sections.length / max);
+  const out: SummarySection[] = [];
+  for (let i = 0; i < sections.length; i += per) {
+    const group = sections.slice(i, i + per);
+    const [head, ...rest] = group;
+    const md = [head.markdown, ...rest.map((s) => `### ${s.heading}\n\n${s.markdown}`)]
+      .filter(Boolean)
+      .join("\n\n");
+    out.push({ heading: head.heading, markdown: md });
+  }
+  return out;
+}
+
 // Extrae el markdown del resumen guardado en ai_outputs, tolerando las dos
 // formas históricas de guardado ({markdown} directo, o anidado en {data}).
 export function readSummaryMarkdown(content: unknown): string | null {

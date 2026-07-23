@@ -45,8 +45,13 @@ export function modelForGeneration(
   expiresAt: string | null,
   kind: "summarize" | "flashcards" | "simulacro",
 ): string {
-  if (!isPaidPlan(plan, expiresAt)) return MODEL_FREE;
-  return kind === "summarize" ? MODEL : MODEL_FREE;
+  // Todo corre en Lite (incluido el resumen): con el prompt estricto Lite
+  // resume bien y el costo baja ~6x, clave para usuarios de alto volumen y
+  // PDFs escaneados. VÁLVULA DE SEGURIDAD futura: si con datos reales vemos
+  // que Lite falla en apuntes de matemática/física pesada, se puede rutear
+  // esos a MODEL (3.6-flash) acá, detectándolos por heurística del contenido.
+  void plan; void expiresAt; void kind;
+  return MODEL_FREE;
 }
 
 // Umbral: si el texto supera esto, activamos map-reduce

@@ -4,6 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { SalePopup } from "@/components/sale-popup";
 import { RescuePrompt } from "@/components/rescue-prompt";
 import { OnboardingTour, useTourRequired, TourIconBook } from "../../../_components/onboarding-tour";
@@ -31,7 +34,7 @@ const ESPACIO_KEY = "skillio_tema_";
 function MD({ text }: { text: string }) {
   return (
     <div className="md-body">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{text}</ReactMarkdown>
     </div>
   );
 }
@@ -285,17 +288,23 @@ export function ResumenClient({
           </div>
 
           {!isDemo && (
-            <div className="ractions in" data-noprint>
-              <a
-                className="ract"
-                href={`/api/ai/resumen-pdf?note_id=${data.noteId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ marginLeft: "auto", textDecoration: "none" }}
-              >
-                <span>⬇</span> Descargar PDF
-              </a>
-            </div>
+            <a
+              href={`/api/ai/resumen-pdf?note_id=${data.noteId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                width: "100%", margin: "0 0 16px", padding: "13px 16px", borderRadius: 14,
+                background: "linear-gradient(135deg,#10b981,#059669)",
+                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+                textDecoration: "none", boxShadow: "0 6px 18px rgba(16,185,129,.30)",
+              }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              Descargar PDF
+            </a>
           )}
 
           <div className="rcard in">

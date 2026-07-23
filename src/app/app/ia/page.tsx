@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { EspacioClient, SEC_COLORS } from "./_components/espacio-client";
 import { EspacioEmpty } from "./_components/espacio-empty";
 import { isDemoNoteId, getDemoResumen, getDemoTarjetas, getDemoSimulacro } from "@/lib/demo-content";
-import { parseSummaryMarkdown, readSummaryMarkdown, type SummarySection } from "@/lib/notes/summary-markdown";
+import { parseSummaryMarkdown, readSummaryMarkdown, capParts, type SummarySection } from "@/lib/notes/summary-markdown";
 
 type SearchParams = Promise<{ note_id?: string; gen?: string }>;
 
@@ -104,7 +104,7 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
 
   // El resumen ahora es Markdown: cada '## ' es un tema del mapa de estudio.
   const summaryMd = readSummaryMarkdown(summaryOutput?.content);
-  const summarySections = summaryMd ? parseSummaryMarkdown(summaryMd).sections : [];
+  const summarySections = summaryMd ? capParts(parseSummaryMarkdown(summaryMd).sections) : [];
   const sections = sectionsToEspacio(note.id, summarySections);
 
   type Flashcard = { front?: string };

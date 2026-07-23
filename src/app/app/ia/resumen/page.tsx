@@ -4,9 +4,9 @@ import { isDemoNoteId, getDemoResumen } from "@/lib/demo-content";
 import { getActorReadonly } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ResumenClient, type ResumenData } from "./_components/resumen-client";
-import { parseSummaryMarkdown, readSummaryMarkdown } from "@/lib/notes/summary-markdown";
+import { parseSummaryMarkdown, readSummaryMarkdown, capParts } from "@/lib/notes/summary-markdown";
 
-const FREE_SECTIONS = 2; // secciones reales visibles para free
+const FREE_SECTIONS = 1; // partes reales visibles para free (macro-bloques)
 const FREE_LOCKED_SLOTS = 6; // slots bloqueados decorativos ("hay más con PRO")
 
 type SearchParams = Promise<{ note_id?: string; s?: string }>;
@@ -71,7 +71,8 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
   if (!md) redirect(`/app/ia?note_id=${note_id}`);
 
   const parsed = parseSummaryMarkdown(md);
-  if (parsed.sections.length === 0) redirect(`/app/ia?note_id=${note_id}`);
+  const parts = capParts(parsed.sections);
+  if (parts.length === 0) redirect(`/app/ia?note_id=${note_id}`);
 
   const { data: fileSignedUrl } = await sb.storage
     .from("notes-uploads")
@@ -83,7 +84,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     subjectName,
     title: parsed.title,
     intro: parsed.intro,
-    sections: parsed.sections,
+    sections: parts,
     lockedCount: 0,
     fileUrl: fileSignedUrl?.signedUrl ?? null,
   };

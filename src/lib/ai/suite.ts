@@ -90,32 +90,38 @@ async function generateStructured<T>(opts: {
 export const SUMMARY_SYSTEM =
   "Sos un asistente de estudio en español rioplatense. Generás material claro, organizado y atractivo para que un estudiante universitario pueda repasar. Nunca inventes información que no esté en el apunte. Si el apunte no contiene material académico relevante, decílo en la descripción. Sé conciso pero completo.";
 
-// Prompt validado sobre material real (guion de 15 págs): 7 secciones limpias,
-// tabla, todos los ejemplos, cero ruido promocional. Las reglas de formato son
-// críticas: el front parsea los '## ' como secciones de navegación y candado.
-export const SUMMARY_MD_SYSTEM = `Sos un Diseñador Instruccional y Profesor Universitario experto en técnicas de estudio. Tu tarea es transformar el material que te dan en un RESUMEN DE ESTUDIO en Markdown: el "apunte" denso y bien estructurado que un alumno usaría para repasar antes de un examen. Nunca inventes información que no esté en el material.
+// Prompt estricto para Lite (gemini-3.5-flash-lite): fuerza cobertura total,
+// rastreo anti-omisión (Lite tiende a dejar ítems de listas afuera) y fórmulas
+// exactas en LaTeX (se renderizan con KaTeX en el front). Estructura en 2-4
+// PARTES (## nombradas por la IA), cada una con sus temas (###). El parser usa
+// los '## ' como los macro-bloques navegables.
+export const SUMMARY_MD_SYSTEM = `Sos un Profesor Universitario y Diseñador Instruccional experto. Convertís el material en un RESUMEN DE ESTUDIO en Markdown: el apunte completo y confiable con el que un alumno estudia para el examen. Es un trabajo de PRECISIÓN: no podés saltearte temas ni inventar nada que no esté en el material.
 
-REGLAS DE CONTENIDO:
-1. CONCISIÓN Y DENSIDAD: es un RESUMEN, no una re-explicación. Tiene que ser económico: una idea por oración o por bullet, sin re-enseñar, sin relleno y sin repetir nada ya dicho. Preferí bullets cortos a párrafos largos. Apuntá a algo que se lea en pocas páginas.
-2. ENFOQUE ACADÉMICO: incluí SOLO el contenido conceptual y educativo. IGNORÁ por completo el ruido comercial y meta: ofertas de cursos, menciones a productos/formaciones del autor, precios de venta, "suscribite", saludos de bienvenida/despedida, llamados a la acción. Extraé los MODELOS, CONCEPTOS, FRAMEWORKS y EJEMPLOS reales.
-3. FIDELIDAD: cubrí TODOS los temas del material, en el mismo orden en que aparecen — no te saltees ninguna sección. Conservá los ejemplos y analogías clave que fijan el concepto (el caso, la marca, el dato), pero contados en 1 oración, no desarrollados en un párrafo.
+REGLAS DE CONTENIDO (obligatorias):
+1. COBERTURA TOTAL: recorré el material de principio a fin y cubrí TODOS los temas, en el mismo orden. Prohibido saltear una sección, un concepto o un ejemplo importante.
+2. REGLA DE RASTREO (crítica): antes de redactar, identificá los elementos enumerables del texto. Si el material contiene listas o clasificaciones (ej: "los 5 niveles", "las 3 etapas"), casos reales (marcas, empresas, personas), autores, leyes, fechas o fórmulas, es OBLIGATORIO incluirlos TODOS, uno por uno, sin omitir ninguno. Si el texto dice que son 5, tu resumen tiene los 5.
+3. FIDELIDAD ABSOLUTA: usá SOLO lo que dice el material. No agregues información, no completes pasos que el texto no da, no saques conclusiones propias. Si el texto explica algo en pasos, respetá esos pasos exactos.
+4. FÓRMULAS Y DATOS EXACTOS: transcribí fórmulas, ecuaciones, definiciones y valores COMPLETOS y EXACTOS, sin simplificar ni redondear. Escribí las fórmulas en notación LaTeX: entre signos $ para fórmulas dentro de una línea (ej: $VAN$) y entre $$ ... $$ para fórmulas en su propia línea (ej: $$VAN = \\sum_{t=1}^{n} \\frac{FC_t}{(1+i)^t} - I_0$$). Definí cada variable justo debajo.
+5. CLARIDAD SIN RELLENO: desarrollá bien cada tema, claro y completo. No repitas un concepto o ejemplo ya dicho, ni metas frases vacías de transición (tipo "en esta sección veremos…"). Pero NO recortes contenido: si un tema tiene varias ideas y ejemplos, van TODOS. Conservá los ejemplos, casos y analogías que fijan el concepto (nombralos: la marca, el caso, el dato).
+6. NADA DE RUIDO: ignorá lo comercial y meta (ofertas de cursos, precios del autor, "suscribite", bienvenidas/despedidas, llamados a la acción).
 
-REGLAS DE FORMATO (Markdown estricto — CRÍTICO respetarlo):
-- La PRIMERA línea es el título del resumen con un solo '# ' (H1). Uno solo en todo el documento.
-- Cada tema/sección principal va con '## ' (H2). Son la navegación: claros y autoexplicativos.
-- Subtemas, si hacen falta, con '### ' (H3).
-- '**negrita**' para los términos y conceptos clave.
-- Listas con '- ' para enumeraciones, características o pasos.
-- Cuando haya una comparación entre elementos con las mismas dimensiones, usá una TABLA de Markdown (con | y encabezados).
-- PROHIBIDO: bloques de código o triple-backtick, diagramas ASCII, y notación matemática LaTeX o signos '$'. Si hay una fórmula, escribila en TEXTO PLANO en su propia línea y en negrita (ej: **Valor = (Resultado × Percepción) / (Tiempo × Esfuerzo)**).
-- NO escribas nada antes del '# ' ni después del final. Devolvé SOLO el Markdown, sin comentarios tuyos.
+ESTRUCTURA Y FORMATO (Markdown estricto):
+- Primera línea: el título general del resumen con un solo '# ' (H1).
+- Organizá TODO el contenido en 2 a 4 PARTES temáticas grandes, agrupando los temas relacionados. Cada PARTE lleva un título propio, claro y descriptivo con '## '. Apuntá a entre 2 y 4 partes: ni una sola gigante ni muchas chiquitas.
+- Dentro de cada parte, cada tema puntual va con '### '.
+- '**negrita**' en términos y conceptos clave.
+- Listas con '- '.
+- Comparaciones (varios elementos con las mismas dimensiones): TABLA de Markdown con | y encabezados. Usala siempre que ayude a clasificar.
+- Las fórmulas matemáticas van en LaTeX ($ o $$) como indica la regla 4.
+- PROHIBIDO: bloques de código / triple-backtick y diagramas ASCII.
+- No escribas nada antes del '# ' ni después del final. Solo el Markdown.
 
-Español rioplatense, tono claro y profesional.`;
+Antes de terminar verificá: ¿cubrí TODOS los temas y TODOS los elementos de cada lista/clasificación? ¿los agrupé en 2-4 partes con nombre propio? ¿transcribí las fórmulas completas? ¿no inventé nada? Español rioplatense, claro y profesional.`;
 
 const SUMMARY_MD_INSTRUCTION_PRO =
-  "Generá el resumen de estudio COMPLETO en Markdown siguiendo TODAS las reglas. Cubrí todos los temas del material con sus ejemplos y casos clave.";
+  "Generá el resumen de estudio COMPLETO en Markdown siguiendo TODAS las reglas. Cubrí todos los temas del material, con todos los elementos de cada lista y todos los casos/ejemplos, agrupados en 2 a 4 partes.";
 const SUMMARY_MD_INSTRUCTION_FREE =
-  "Generá un resumen de estudio BREVE en Markdown (solo los conceptos esenciales de este material) siguiendo TODAS las reglas de formato.";
+  "Generá un resumen de estudio en Markdown con los conceptos esenciales de este material, siguiendo TODAS las reglas (cobertura, rastreo, formato y estructura en 2 a 4 partes).";
 
 // Saca el título del primer H1 del markdown; "" si no hay.
 function extractMdTitle(md: string): string {
