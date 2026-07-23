@@ -12,8 +12,10 @@ const BRAND = "#6d28d9";
 const INK = "#1f2347";
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 44, paddingBottom: 52, paddingHorizontal: 48, fontSize: 10.5, fontFamily: "Helvetica", color: INK, lineHeight: 1.5 },
-  brandRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: BRAND },
+  page: { paddingTop: 62, paddingBottom: 54, paddingHorizontal: 48, fontSize: 10.5, fontFamily: "Helvetica", color: INK, lineHeight: 1.5 },
+  // Header fijo: absoluto para que NO ocupe lugar en el flujo (si no, empuja el
+  // contenido y descoloca el pie de pagina). El paddingTop del page lo despeja.
+  brandRow: { position: "absolute", top: 22, left: 48, right: 48, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: BRAND },
   brand: { fontSize: 15, fontFamily: "Helvetica-Bold", color: BRAND },
   brandTag: { fontSize: 9, color: "#6b7280" },
   h1: { fontSize: 19, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 12 },
@@ -69,27 +71,31 @@ function mdToBlocks(md: string): Block[] {
   return blocks;
 }
 
-// @react-pdf no renderiza LaTeX. Convertimos las fórmulas ($...$ y $$...$$) a
-// texto legible con símbolos unicode (Σ, ×, fracciones a/b, etc.). No queda
-// tipografiado como en pantalla (KaTeX), pero se lee — suficiente para el PDF.
+// @react-pdf usa Helvetica, que SOLO tiene glifos Latin-1 (WinAnsi). Los
+// símbolos matemáticos unicode (Σ, ≤, ≥, √, ∞, griegas, flechas) NO existen en
+// esa fuente y salen como glifos rotos. Por eso convertimos LaTeX a texto que
+// Helvetica sí puede dibujar: los pocos símbolos válidos (× · ± ÷) se mantienen,
+// el resto pasa a ASCII legible (<=, >=, sqrt, sum, pi, ...). Se lee, aunque no
+// queda tipografiado como en pantalla (donde KaTeX lo hace perfecto).
 function latexToText(m: string): string {
   return m
     .replace(/\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, "($1)/($2)")
-    .replace(/\\sqrt\s*\{([^{}]*)\}/g, "√($1)")
-    .replace(/\\sum(_\{[^{}]*\})?(\^\{[^{}]*\})?/g, "Σ")
-    .replace(/\\prod(_\{[^{}]*\})?(\^\{[^{}]*\})?/g, "∏")
-    .replace(/\\int(_\{[^{}]*\})?(\^\{[^{}]*\})?/g, "∫")
-    .replace(/\\times/g, "×").replace(/\\cdot/g, "·").replace(/\\div/g, "÷")
-    .replace(/\\leq?/g, "≤").replace(/\\geq?/g, "≥").replace(/\\neq/g, "≠")
-    .replace(/\\pm/g, "±").replace(/\\infty/g, "∞").replace(/\\approx/g, "≈")
-    .replace(/\\(rightarrow|to)/g, "→").replace(/\\Rightarrow/g, "⇒")
-    .replace(/\\alpha/g, "α").replace(/\\beta/g, "β").replace(/\\gamma/g, "γ")
-    .replace(/\\delta/g, "δ").replace(/\\theta/g, "θ").replace(/\\lambda/g, "λ")
-    .replace(/\\mu/g, "μ").replace(/\\pi/g, "π").replace(/\\sigma/g, "σ")
-    .replace(/\\phi/g, "φ").replace(/\\omega/g, "ω").replace(/\\Delta/g, "Δ")
+    .replace(/\\sqrt\s*\{([^{}]*)\}/g, "sqrt($1)")
+    .replace(/\\sum(_\{([^{}]*)\})?(\^\{([^{}]*)\})?/g, (_x, _a, lo, _b, hi) => (lo || hi ? `sum(${lo || ""}${hi ? "..." + hi : ""})` : "sum"))
+    .replace(/\\prod(_\{[^{}]*\})?(\^\{[^{}]*\})?/g, "prod")
+    .replace(/\\int(_\{[^{}]*\})?(\^\{[^{}]*\})?/g, "int")
+    .replace(/\\times/g, "×").replace(/\\cdot/g, "·").replace(/\\div/g, "÷").replace(/\\pm/g, "±")
+    .replace(/\\leq?/g, "<=").replace(/\\geq?/g, ">=").replace(/\\neq/g, "!=").replace(/\\approx/g, "~=")
+    .replace(/\\infty/g, "inf")
+    .replace(/\\(rightarrow|to)/g, " -> ").replace(/\\Rightarrow/g, " => ")
+    .replace(/\\alpha/g, "alpha").replace(/\\beta/g, "beta").replace(/\\gamma/g, "gamma")
+    .replace(/\\delta/g, "delta").replace(/\\Delta/g, "Delta").replace(/\\theta/g, "theta")
+    .replace(/\\lambda/g, "lambda").replace(/\\mu/g, "mu").replace(/\\pi/g, "pi")
+    .replace(/\\sigma/g, "sigma").replace(/\\phi/g, "phi").replace(/\\omega/g, "omega")
     .replace(/([_^])\{([^{}]*)\}/g, "$1$2")
     .replace(/\\[a-zA-Z]+/g, "")
     .replace(/[{}\\]/g, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 }
 function convertMath(s: string): string {
