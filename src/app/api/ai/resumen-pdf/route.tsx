@@ -69,10 +69,39 @@ function mdToBlocks(md: string): Block[] {
   return blocks;
 }
 
-// Limpia markdown inline que no renderizamos (italics/backticks), preservando
-// el texto. La negrita se maneja aparte en <Inline>.
+// @react-pdf no renderiza LaTeX. Convertimos las fórmulas ($...$ y $$...$$) a
+// texto legible con símbolos unicode (Σ, ×, fracciones a/b, etc.). No queda
+// tipografiado como en pantalla (KaTeX), pero se lee — suficiente para el PDF.
+function latexToText(m: string): string {
+  return m
+    .replace(/\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, "($1)/($2)")
+    .replace(/\\sqrt\s*\{([^{}]*)\}/g, "√($1)")
+    .replace(/\\sum(_\{[^{}]*\})?(\^\{[^{}]*\})?/g, "Σ")
+    .replace(/\\prod(_\{[^{}]*\})?(\^\{[^{}]*\})?/g, "∏")
+    .replace(/\\int(_\{[^{}]*\})?(\^\{[^{}]*\})?/g, "∫")
+    .replace(/\\times/g, "×").replace(/\\cdot/g, "·").replace(/\\div/g, "÷")
+    .replace(/\\leq?/g, "≤").replace(/\\geq?/g, "≥").replace(/\\neq/g, "≠")
+    .replace(/\\pm/g, "±").replace(/\\infty/g, "∞").replace(/\\approx/g, "≈")
+    .replace(/\\(rightarrow|to)/g, "→").replace(/\\Rightarrow/g, "⇒")
+    .replace(/\\alpha/g, "α").replace(/\\beta/g, "β").replace(/\\gamma/g, "γ")
+    .replace(/\\delta/g, "δ").replace(/\\theta/g, "θ").replace(/\\lambda/g, "λ")
+    .replace(/\\mu/g, "μ").replace(/\\pi/g, "π").replace(/\\sigma/g, "σ")
+    .replace(/\\phi/g, "φ").replace(/\\omega/g, "ω").replace(/\\Delta/g, "Δ")
+    .replace(/([_^])\{([^{}]*)\}/g, "$1$2")
+    .replace(/\\[a-zA-Z]+/g, "")
+    .replace(/[{}\\]/g, "")
+    .trim();
+}
+function convertMath(s: string): string {
+  return s
+    .replace(/\$\$([^$]+)\$\$/g, (_, m) => latexToText(m))
+    .replace(/\$([^$]+)\$/g, (_, m) => latexToText(m));
+}
+
+// Limpia markdown inline que no renderizamos (fórmulas LaTeX, italics, backticks).
+// La negrita se maneja aparte en <Inline>.
 function clean(s: string): string {
-  return s.replace(/`/g, "").replace(/(^|[^*])\*(?!\*)([^*]+)\*(?!\*)/g, "$1$2");
+  return convertMath(s).replace(/`/g, "").replace(/(^|[^*])\*(?!\*)([^*]+)\*(?!\*)/g, "$1$2");
 }
 
 function Inline({ text }: { text: string }) {
@@ -90,7 +119,7 @@ function Inline({ text }: { text: string }) {
 }
 
 function BlockView({ b }: { b: Block }) {
-  if (b.t === "h3") return <Text style={styles.h3}>{clean(b.text)}</Text>;
+  if (b.t === "h3") return <Text style={styles.h3} minPresenceAhead={40}>{clean(b.text)}</Text>;
   if (b.t === "p") return <Text style={styles.p}><Inline text={b.text} /></Text>;
   if (b.t === "li")
     return (
@@ -133,8 +162,8 @@ function ResumenPdf({ title, subject, sections, intro }: {
         {intro ? <Text style={styles.p}><Inline text={intro} /></Text> : null}
 
         {sections.map((sec, si) => (
-          <View key={si} wrap={false} minPresenceAhead={40}>
-            <Text style={styles.h2}>{clean(sec.heading)}</Text>
+          <View key={si}>
+            <Text style={styles.h2} minPresenceAhead={60}>{clean(sec.heading)}</Text>
             {mdToBlocks(sec.markdown).map((b, bi) => <BlockView key={bi} b={b} />)}
           </View>
         ))}
