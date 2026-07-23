@@ -1,60 +1,49 @@
 import { redirect } from "next/navigation";
 import { isPaidPlan } from "@/lib/ai/claude";
-import { isDemoNoteId, getDemoResumen, getDemoSimulacro } from "@/lib/demo-content";
+import { isDemoNoteId, getDemoResumen } from "@/lib/demo-content";
 import { getActorReadonly } from "@/lib/actor";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { ResumenClient } from "./_components/resumen-client";
-import type { ResumenData, QuizQuestion } from "./_components/resumen-client";
-import type { SummaryPoint } from "./_components/summary-blocks";
+import { ResumenClient, type ResumenData } from "./_components/resumen-client";
+import { parseSummaryMarkdown, readSummaryMarkdown } from "@/lib/notes/summary-markdown";
 
-// Demo: convierte las preguntas MC del simulacro hardcodeado en un pool para la
-// práctica rápida (mismo formato), sin IA.
-function demoPracticaPool(noteId: string): QuizQuestion[] {
-  const sim = getDemoSimulacro(noteId);
-  if (!sim) return [];
-  return sim.questions
-    .filter((q): q is Extract<typeof q, { kind: "multiple_choice" }> => q.kind === "multiple_choice")
-    .map((q) => ({ pregunta: q.question, opciones: q.options, correcta: q.correct, explicacion: q.explanation }));
-}
+const FREE_SECTIONS = 2; // secciones reales visibles para free
+const FREE_LOCKED_SLOTS = 6; // slots bloqueados decorativos ("hay más con PRO")
 
 type SearchParams = Promise<{ note_id?: string; s?: string }>;
 
-type SummaryContent = {
-  title?: string;
-  intro?: string;
-  points?: SummaryPoint[];
-  // Práctica por título (no por bloque) — se adjunta al ÚLTIMO subtítulo de
-  // cada título, como cierre de esa sección.
-  practicaPorTitulo?: { categoria: string; practica: QuizQuestion[] }[];
-};
-
+// Recorta el resumen para el plan free (no manda al cliente las secciones
+// bloqueadas — no se filtran) y agrega los slots decorativos. Pro ve todo.
+function applyFreeLock(full: ResumenData, isPro: boolean): ResumenData {
+  if (isPro) return { ...full, lockedCount: 0 };
+  return {
+    ...full,
+    sections: full.sections.slice(0, FREE_SECTIONS),
+    lockedCount: FREE_LOCKED_SLOTS,
+  };
+}
 
 export default async function ResumenPage({ searchParams }: { searchParams: SearchParams }) {
   const { note_id, s } = await searchParams;
   if (!note_id) redirect("/app");
 
   // Link de rescate cross-device (?s=…): adoptamos la sesión anónima y volvemos
-  // limpios (sin el parámetro). No se puede setear la cookie desde acá (Server
-  // Component en render), por eso pasa por el route handler.
+  // limpios. La cookie se setea en el route handler.
   if (s) redirect(`/api/public/adopt?s=${encodeURIComponent(s)}&note_id=${encodeURIComponent(note_id)}`);
 
-  // Identidad: Clerk o sesión anónima (free). El invitado ve el resumen con el
-  // mismo tope de free (3 visibles, resto bloqueado) — isPro real.
   const actor = await getActorReadonly();
 
-  // Demo: contenido hardcodeado, cero tokens. Disponible sin cuenta y bloqueado
-  // igual que un free (isPro según el plan real del actor).
+  // Demo: contenido hardcodeado, cero tokens. Se muestra con el mismo candado
+  // free que un apunte real (isPro según el plan real del actor).
   if (isDemoNoteId(note_id)) {
-    const demoData = getDemoResumen(note_id);
-    if (!demoData) redirect("/app");
+    const demoFull = getDemoResumen(note_id);
+    if (!demoFull) redirect("/app");
     const isProDemo = actor ? isPaidPlan(actor.plan, actor.expires_at) : false;
     return (
       <ResumenClient
-        data={demoData}
+        data={applyFreeLock(demoFull, isProDemo)}
         isPro={isProDemo}
         isDemo
         isGuest={!actor || actor.isAnon}
-        demoPractica={demoPracticaPool(note_id)}
       />
     );
   }
@@ -76,50 +65,29 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
     .eq("note_id", note_id)
     .eq("user_id", actor.id);
 
-  // La API guarda content = { format, data: SummaryContent }
-  type SummaryWrapper = { data?: SummaryContent } & SummaryContent;
-  const summaryWrapper = outputs?.find((o) => o.kind === "summary")?.content as SummaryWrapper | null;
-  const summaryRaw: SummaryContent | null = summaryWrapper?.data ?? summaryWrapper ?? null;
+  const summaryContent = outputs?.find((o) => o.kind === "summary")?.content;
+  const md = readSummaryMarkdown(summaryContent);
+  // Sin resumen generado aún → al espacio (donde puede generarlo).
+  if (!md) redirect(`/app/ia?note_id=${note_id}`);
 
-  const rawPoints: SummaryPoint[] = summaryRaw?.points ?? [];
+  const parsed = parseSummaryMarkdown(md);
+  if (parsed.sections.length === 0) redirect(`/app/ia?note_id=${note_id}`);
 
-  // Agrupar puntos por category → sections
-  const secMap = new Map<string, SummaryPoint[]>();
-  rawPoints.forEach((p) => {
-    const cat = p.category ?? "General";
-    if (!secMap.has(cat)) secMap.set(cat, []);
-    secMap.get(cat)!.push(p);
-  });
-
-  // Práctica por título: va SOLO en el último subtítulo de cada título (cierre
-  // de esa sección), no repetida en cada bloque.
-  const practicaPorTitulo = summaryRaw?.practicaPorTitulo ?? [];
-  const sections = Array.from(secMap.entries()).map(([name, points]) => {
-    const entry = practicaPorTitulo.find((p) => p.categoria === name);
-    if (!entry || points.length === 0) return { name, points };
-    const lastIdx = points.length - 1;
-    const withPractica = [...points];
-    withPractica[lastIdx] = { ...withPractica[lastIdx], practica: entry.practica };
-    return { name, points: withPractica };
-  });
-
-  // URL del archivo original (para "Resumen completo")
   const { data: fileSignedUrl } = await sb.storage
     .from("notes-uploads")
     .createSignedUrl(note.file_path, 3600);
 
-  const data: ResumenData = {
+  const full: ResumenData = {
     noteId: note.id,
     noteTitle: note.title,
     subjectName,
-    intro: summaryRaw?.intro ?? "",
-    sections: sections.length > 0 ? sections : [{ name: "Contenido", points: rawPoints }],
+    title: parsed.title,
+    intro: parsed.intro,
+    sections: parsed.sections,
+    lockedCount: 0,
     fileUrl: fileSignedUrl?.signedUrl ?? null,
   };
 
-  if (rawPoints.length === 0) redirect(`/app/ia?note_id=${note_id}`);
-
   const isPro = isPaidPlan(actor.plan, actor.expires_at);
-
-  return <ResumenClient data={data} isPro={isPro} isGuest={actor.isAnon} />;
+  return <ResumenClient data={applyFreeLock(full, isPro)} isPro={isPro} isGuest={actor.isAnon} />;
 }

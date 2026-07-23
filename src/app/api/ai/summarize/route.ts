@@ -13,7 +13,7 @@ import {
   modelForGeneration,
   saveAiOutput,
 } from "@/lib/ai/claude";
-import { genSummaryPuntos, SUMMARY_SYSTEM } from "@/lib/ai/suite";
+import { genSummaryMarkdown, SUMMARY_SYSTEM } from "@/lib/ai/suite";
 
 export const maxDuration = 300;
 
@@ -129,9 +129,10 @@ export async function POST(req: Request) {
     let usage: { inputTokens?: number; outputTokens?: number } | undefined;
 
     if (format === "puntos_clave") {
-      // Fuente única compartida con el endpoint combinado.
-      const r = await genSummaryPuntos(content, model, isPaid);
-      payload = r.object;
+      // Fuente única compartida con el endpoint combinado. Ahora el resumen es
+      // Markdown (no bloques JSON) — se guarda como { format:"markdown", markdown }.
+      const r = await genSummaryMarkdown(content, model, isPaid);
+      payload = { format: "markdown", markdown: r.markdown };
       usage = r.usage;
     } else {
       const userParts = await buildUserContent(content, FORMAT_PROMPTS[format], isPaid);

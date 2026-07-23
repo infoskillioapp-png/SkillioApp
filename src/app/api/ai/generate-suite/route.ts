@@ -20,7 +20,14 @@ import {
   modelForGeneration,
   saveAiOutput,
 } from "@/lib/ai/claude";
-import { genSummaryPuntos, genFlashcards, genSimulacro } from "@/lib/ai/suite";
+import { genSummaryMarkdown, genFlashcards, genSimulacro } from "@/lib/ai/suite";
+
+// Qué generar por defecto si el cliente no manda `kinds`. Se deja explícito
+// para que el default sea seguro (las 3) — la PAUSA de tarjetas/simulacro se
+// controla desde el cliente mandando kinds=["summary"] en la generación
+// automática al subir (ver AUTO_GEN_KINDS en espacio-client).
+const ALL_KINDS = ["summary", "flashcards", "simulacro"] as const;
+type Kind = (typeof ALL_KINDS)[number];
 
 // Endpoint COMBINADO de la suite: descarga y prepara el apunte UNA sola vez
 // (antes cada una de las 3 llamadas lo bajaba y parseaba por separado) y dispara
@@ -30,6 +37,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const note_id = body.note_id as string;
     if (!note_id) return NextResponse.json({ error: "note_id required" }, { status: 400 });
+
+    // Qué modos generar en esta llamada. La generación automática al subir manda
+    // solo ["summary"] (pausa de tarjetas/simulacro); al tocar "Generar" en el
+    // espacio se mandan las 3. Default seguro: las 3.
+    const kinds: Kind[] = Array.isArray(body.kinds) && body.kinds.length
+      ? ALL_KINDS.filter((k) => body.kinds.includes(k))
+      : [...ALL_KINDS];
 
     const actor = await resolveActor();
     const { note, content, userRow } = await getNoteContent(note_id, actor);
@@ -72,11 +86,15 @@ export async function POST(req: Request) {
       .eq("user_id", userRow.id);
     const already = new Set((existingOutputs ?? []).map((o) => o.kind as string));
 
-    // Las que falten, en paralelo, reusando el MISMO content ya descargado/parseado.
+    // Se genera un modo solo si el cliente lo pidió Y no está ya guardado.
+    const want = (k: Kind) => kinds.includes(k) && !already.has(k);
+
+    // Las pedidas y faltantes, en paralelo, reusando el MISMO content ya
+    // descargado/parseado. Las no pedidas se rechazan con "skip" (no es error).
     const [sumRes, fcRes, simRes] = await Promise.allSettled([
-      already.has("summary") ? Promise.reject(new Error("skip:already_saved")) : genSummaryPuntos(content, summaryModel, isPaid),
-      already.has("flashcards") ? Promise.reject(new Error("skip:already_saved")) : genFlashcards(content, flashModel, isPaid),
-      already.has("simulacro") ? Promise.reject(new Error("skip:already_saved")) : genSimulacro(content, simModel, isPaid),
+      want("summary") ? genSummaryMarkdown(content, summaryModel, isPaid) : Promise.reject(new Error("skip")),
+      want("flashcards") ? genFlashcards(content, flashModel, isPaid) : Promise.reject(new Error("skip")),
+      want("simulacro") ? genSimulacro(content, simModel, isPaid) : Promise.reject(new Error("skip")),
     ]);
 
     // Guardado (cada uno independiente: si una falla, las otras igual se guardan).
@@ -87,14 +105,14 @@ export async function POST(req: Request) {
 
     if (sumRes.status === "fulfilled") {
       await saveAiOutput({
-        user_id: userRow.id, note_id: note.id, kind: "summary", format: "puntos_clave",
-        title: sumRes.value.title || note.title, content: { format: "puntos_clave", data: sumRes.value.object },
+        user_id: userRow.id, note_id: note.id, kind: "summary", format: "markdown",
+        title: sumRes.value.title || note.title, content: { format: "markdown", markdown: sumRes.value.markdown },
         credits_used: 0, model: summaryModel,
         input_tokens: sumRes.value.usage?.inputTokens ?? null, output_tokens: sumRes.value.usage?.outputTokens ?? null,
       });
       await recordAiUsage({ kind: "summarize", model: summaryModel, usage: sumRes.value.usage, userDbId: userRow.id });
       saved.summary = true;
-    } else if (!already.has("summary")) {
+    } else if (want("summary")) {
       console.error("[generate-suite] summary falló:", sumRes.reason);
       Sentry.captureException(sumRes.reason, { tags: { step: "generate-suite:summary" }, extra: { note_id: note.id } });
     }
@@ -108,7 +126,7 @@ export async function POST(req: Request) {
       });
       await recordAiUsage({ kind: "flashcards", model: flashModel, usage: fcRes.value.usage, userDbId: userRow.id });
       saved.flashcards = true;
-    } else if (!already.has("flashcards")) {
+    } else if (want("flashcards")) {
       console.error("[generate-suite] flashcards falló:", fcRes.reason);
       Sentry.captureException(fcRes.reason, { tags: { step: "generate-suite:flashcards" }, extra: { note_id: note.id } });
     }
@@ -122,7 +140,7 @@ export async function POST(req: Request) {
       });
       await recordAiUsage({ kind: "simulacro", model: simModel, usage: simRes.value.usage, userDbId: userRow.id });
       saved.simulacro = true;
-    } else if (!already.has("simulacro")) {
+    } else if (want("simulacro")) {
       console.error("[generate-suite] simulacro falló:", simRes.reason);
       Sentry.captureException(simRes.reason, { tags: { step: "generate-suite:simulacro" }, extra: { note_id: note.id } });
     }

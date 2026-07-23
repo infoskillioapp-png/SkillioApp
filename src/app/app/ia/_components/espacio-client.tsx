@@ -130,12 +130,20 @@ function confettiBurst(x: number, y: number) {
 const GEN_STEPS = [
   "Analizando el archivo",
   "Detectando secciones y temas",
-  "Armando resumen, tarjetas y simulacro",
+  "Armando tu material de estudio",
   "Calculando tu ruta de estudio",
 ];
 
-function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit, onError }: {
-  noteId: string; fileName: string; onDone: () => void; onPaywall: () => void;
+// ⏸ PAUSA (testing): qué se genera AUTOMÁTICAMENTE al subir un apunte. Hoy solo
+// el resumen — tarjetas y simulacro quedan en "Tocá para generar" para no gastar
+// USD probando algo que ya funciona. Al tocar un modo se generan las 3 (ver
+// ModoWrapper). Para reactivar que se generen las 3 al subir, poné:
+//   const AUTO_GEN_KINDS = ["summary", "flashcards", "simulacro"];
+const AUTO_GEN_KINDS = ["summary"];
+const ALL_GEN_KINDS = ["summary", "flashcards", "simulacro"];
+
+function GeneratingOverlay({ noteId, fileName, kinds, onDone, onPaywall, onUsageLimit, onError }: {
+  noteId: string; fileName: string; kinds: string[]; onDone: () => void; onPaywall: () => void;
   onUsageLimit: (reason: "daily" | "weekly", resetAt: string) => void;
   onError: () => void;
 }) {
@@ -157,7 +165,7 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit, 
         const res = await fetch("/api/ai/generate-suite", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ note_id: noteId }),
+          body: JSON.stringify({ note_id: noteId, kinds }),
         });
 
         if (res.status === 402) {
@@ -211,7 +219,7 @@ function GeneratingOverlay({ noteId, fileName, onDone, onPaywall, onUsageLimit, 
     }, 350);
 
     return () => clearInterval(iv);
-  }, [noteId, onDone, onPaywall, onUsageLimit, onError]);
+  }, [noteId, kinds, onDone, onPaywall, onUsageLimit, onError]);
 
   return (
     <div id="gen" className="show">
@@ -384,6 +392,9 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isGenerating, setIsGenerating] = useState(generating);
+  // Qué generar en esta pasada: la auto (al subir) solo el resumen; al tocar un
+  // modo faltante, las 3. Ver AUTO_GEN_KINDS.
+  const [genKinds, setGenKinds] = useState<string[]>(AUTO_GEN_KINDS);
   const [domPct, setDomPct] = useState(0);
   const [donePcts, setDonePcts] = useState<Record<string, number>>({});
   const [showPaywall, setShowPaywall] = useState(false);
@@ -497,7 +508,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
     return (
       <div
         className={className} style={{ ...style, cursor: "pointer" }}
-        onClick={() => setIsGenerating(true)}
+        onClick={() => { setGenKinds(ALL_GEN_KINDS); setIsGenerating(true); }}
         {...extra}
       >
         {children}
@@ -508,7 +519,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
   return (
     <>
       {isGenerating && (
-        <GeneratingOverlay noteId={note.id} fileName={fileName} onDone={handleDone} onPaywall={handlePaywall} onUsageLimit={handleUsageLimit} onError={handleGenError} />
+        <GeneratingOverlay noteId={note.id} fileName={fileName} kinds={genKinds} onDone={handleDone} onPaywall={handlePaywall} onUsageLimit={handleUsageLimit} onError={handleGenError} />
       )}
 
       {showPaywall && <QuickPaywall ctx="generic" onClose={() => setShowPaywall(false)} />}

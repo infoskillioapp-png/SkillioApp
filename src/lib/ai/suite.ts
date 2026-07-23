@@ -7,17 +7,16 @@ import { z } from "zod";
 import { buildUserContent, type NoteContent } from "@/lib/ai/claude";
 
 // =============================================================================
-// Fuente ÚNICA de los schemas, prompts y generadores de la "suite" de estudio
-// (resumen puntos_clave, flashcards, simulacro). Lo usan tanto los endpoints
+// Fuente ÚNICA de los prompts y generadores de la "suite" de estudio
+// (resumen markdown, flashcards, simulacro). Lo usan tanto los endpoints
 // individuales (/api/ai/*) como el endpoint combinado (/api/ai/generate-suite),
-// que prepara el apunte UNA sola vez y dispara las 3 en paralelo.
+// que prepara el apunte UNA sola vez y dispara las generaciones en paralelo.
 //
 // PROVEEDOR: Gemini (Google). Migramos desde Anthropic por costo (~50% menos).
-// Gemini NO soporta el modo de "salida estructurada estricta" (su API rechaza
-// las uniones discriminadas de nuestros schemas), así que en vez de
-// generateObject usamos generateText pidiendo JSON por prompt + validación
-// nuestra con Zod (generateStructured, abajo). El schema Zod queda como
-// contrato de validación de NUESTRO lado, no se le pasa a la API de Google.
+// Flashcards y simulacro necesitan salida estructurada: Gemini NO soporta el
+// modo estricto (rechaza las uniones discriminadas de nuestros schemas), así
+// que usamos generateText pidiendo JSON por prompt + validación nuestra con Zod
+// (generateStructured, abajo). El resumen NO usa schema: es Markdown libre.
 // =============================================================================
 
 type Usage = { inputTokens?: number; outputTokens?: number } | undefined;
@@ -25,8 +24,8 @@ type Content = Awaited<ReturnType<typeof buildUserContent>>;
 
 const google = createGoogleGenerativeAI(); // lee GOOGLE_GENERATIVE_AI_API_KEY
 
-// Salida grande sin truncar: el resumen puede pasar 8k tokens y, si el modelo
-// corta el JSON a la mitad, queda inválido. 16k le da aire de sobra.
+// Salida grande sin truncar: el resumen/simulacro pueden pasar varios miles de
+// tokens y, si el modelo corta a la mitad, queda inválido. 16k da aire de sobra.
 const MAX_OUTPUT_TOKENS = 16000;
 
 // Recupera el objeto de un texto que "debería" ser JSON: primero parse directo,
@@ -77,214 +76,82 @@ async function generateStructured<T>(opts: {
 }
 
 // ---------------------------------------------------------------------------
-// RESUMEN · puntos_clave
+// RESUMEN · Markdown
 // ---------------------------------------------------------------------------
+// El resumen es un documento Markdown (un "apunte" para estudiar), NO un JSON
+// de bloques. Motivo del cambio: el JSON estructurado (a) inflaba el output ~8x
+// → costo, (b) le partía la atención al modelo entre "contenido" y "encajar en
+// el schema" → resúmenes más pobres y con ruido promocional. En texto libre el
+// modelo se concentra en el contenido: sale más denso, filtra mejor lo comercial
+// y es ~40% más barato. Lo renderiza react-markdown en el front y @react-pdf en
+// la descarga. Sin práctica embebida — el refuerzo lo cubre el Simulacro.
 
-// Práctica rápida: se genera JUNTO con el bloque (misma llamada), no en un
-// fetch aparte al cambiar de tema — eso multiplicaba el costo por cada click.
-const PracticaQuestionSchema = z.object({
-  pregunta: z.string(),
-  opciones: z.array(z.string()).length(4),
-  correcta: z.number().int().min(0).max(3).describe("Índice de la opción correcta (0-3)"),
-  explicacion: z.string().describe("Por qué la correcta es correcta, 1 oración"),
-});
-const PRACTICA_DESCRIPCION =
-  "Exactamente 2 preguntas de opción múltiple (4 opciones cada una) que refuercen LITERALMENTE lo que dice este bloque — deben poder responderse con esta misma información, sin inventar casos aplicados nuevos (eso es para el simulacro, no para acá).";
-
-const KeyPointSchemaFree = z.object({
-  emoji: z.string().describe("Un emoji que represente bien el concepto"),
-  title: z.string().describe("Concepto o idea principal en 3-8 palabras, conciso"),
-  description: z.string().describe("Explicación DESARROLLADA de 4 a 6 oraciones: definí la idea, explicá el porqué y sumá un ejemplo o consecuencia. Nunca una sola frase suelta."),
-  category: z.string().optional().describe("Subtema dentro del apunte"),
-  practica: z.array(PracticaQuestionSchema).length(2).describe(PRACTICA_DESCRIPCION),
-});
-
-export const PuntosClaveSchemaFree = z.object({
-  title: z.string().describe("Título corto descriptivo basado en el apunte"),
-  intro: z.string().optional().describe("Una oración de contexto al inicio (opcional)"),
-  points: z.array(KeyPointSchemaFree).min(2).max(2),
-});
-
+// Sistema de estudio genérico (lo comparten mapa/ficha en /api/ai/summarize).
 export const SUMMARY_SYSTEM =
   "Sos un asistente de estudio en español rioplatense. Generás material claro, organizado y atractivo para que un estudiante universitario pueda repasar. Nunca inventes información que no esté en el apunte. Si el apunte no contiene material académico relevante, decílo en la descripción. Sé conciso pero completo.";
 
-// FREE: solo llegan las primeras 5 páginas → 2 puntos MUY bien desarrollados.
-export const PUNTOS_PROMPT_FREE =
-  "Extraé EXACTAMENTE 2 puntos clave: los 2 conceptos MÁS importantes de este material. Cada punto debe tener una descripción DESARROLLADA y con sustancia (4 a 6 oraciones: definí la idea, explicá por qué importa y sumá un ejemplo o una consecuencia concreta). Nada de frases sueltas de una línea. Asigná un emoji representativo y un título de 3-8 palabras. Para cada punto, generá también su práctica rápida (2 preguntas de refuerzo literal). Devolvé SIEMPRE en español rioplatense.";
+// Prompt validado sobre material real (guion de 15 págs): 7 secciones limpias,
+// tabla, todos los ejemplos, cero ruido promocional. Las reglas de formato son
+// críticas: el front parsea los '## ' como secciones de navegación y candado.
+export const SUMMARY_MD_SYSTEM = `Sos un Diseñador Instruccional y Profesor Universitario experto en técnicas de estudio. Tu tarea es transformar el material que te dan en un RESUMEN DE ESTUDIO en Markdown: el "apunte" denso y bien estructurado que un alumno usaría para repasar antes de un examen. Nunca inventes información que no esté en el material.
 
-// ---------------------------------------------------------------------------
-// RESUMEN PRO · bloques pedagógicos dinámicos (reemplaza "texto + lista fija").
-// La IA elige, por bloque, el formato que mejor comunique ESE contenido —
-// no todo tiene que ser un párrafo con viñetas debajo.
-// ---------------------------------------------------------------------------
-const TextoBlockSchema = z.object({
-  type: z.literal("texto"),
-  emoji: z.string().describe("Un emoji que represente el concepto"),
-  title: z.string().describe("Título corto del tema, 3-8 palabras"),
-  category: z.string().optional().describe("Título/sección al que pertenece (mismo string EXACTO para bloques de la misma sección)"),
-  body: z.string().describe(
-    "Explicación desarrollada en Markdown (podés usar **negrita**, listas con '-'). Mínimo 4-6 oraciones. Preservá ejemplos, historias y analogías potentes del original — no las recortes.",
-  ),
-});
+REGLAS DE CONTENIDO:
+1. CONCISIÓN Y DENSIDAD: es un RESUMEN, no una re-explicación. Tiene que ser económico: una idea por oración o por bullet, sin re-enseñar, sin relleno y sin repetir nada ya dicho. Preferí bullets cortos a párrafos largos. Apuntá a algo que se lea en pocas páginas.
+2. ENFOQUE ACADÉMICO: incluí SOLO el contenido conceptual y educativo. IGNORÁ por completo el ruido comercial y meta: ofertas de cursos, menciones a productos/formaciones del autor, precios de venta, "suscribite", saludos de bienvenida/despedida, llamados a la acción. Extraé los MODELOS, CONCEPTOS, FRAMEWORKS y EJEMPLOS reales.
+3. FIDELIDAD: cubrí TODOS los temas del material, en el mismo orden en que aparecen — no te saltees ninguna sección. Conservá los ejemplos y analogías clave que fijan el concepto (el caso, la marca, el dato), pero contados en 1 oración, no desarrollados en un párrafo.
 
-const ProcesoBlockSchema = z.object({
-  type: z.literal("proceso"),
-  emoji: z.string(),
-  title: z.string(),
-  category: z.string().optional(),
-  intro: z.string().optional().describe("1 oración de contexto antes de los ítems"),
-  ordenado: z.boolean().describe(
-    "true SOLO si estos ítems deben pasar en este orden exacto (una metodología, un proceso secuencial, pasos de un flujo). false si es una lista de ítems, características o beneficios SIN orden inherente (ahí no se numeran, van con viñetas).",
-  ),
-  pasos: z
-    .array(
-      z.object({
-        paso: z.string().describe("Nombre corto del ítem o paso"),
-        detalle: z.string().describe("Explicación del ítem, 1-3 oraciones"),
-      }),
-    )
-    .min(2)
-    .max(8),
-});
+REGLAS DE FORMATO (Markdown estricto — CRÍTICO respetarlo):
+- La PRIMERA línea es el título del resumen con un solo '# ' (H1). Uno solo en todo el documento.
+- Cada tema/sección principal va con '## ' (H2). Son la navegación: claros y autoexplicativos.
+- Subtemas, si hacen falta, con '### ' (H3).
+- '**negrita**' para los términos y conceptos clave.
+- Listas con '- ' para enumeraciones, características o pasos.
+- Cuando haya una comparación entre elementos con las mismas dimensiones, usá una TABLA de Markdown (con | y encabezados).
+- PROHIBIDO: bloques de código o triple-backtick, diagramas ASCII, y notación matemática LaTeX o signos '$'. Si hay una fórmula, escribila en TEXTO PLANO en su propia línea y en negrita (ej: **Valor = (Resultado × Percepción) / (Tiempo × Esfuerzo)**).
+- NO escribas nada antes del '# ' ni después del final. Devolvé SOLO el Markdown, sin comentarios tuyos.
 
-const TablaBlockSchema = z.object({
-  type: z.literal("tabla"),
-  emoji: z.string(),
-  title: z.string(),
-  category: z.string().optional(),
-  intro: z.string().optional(),
-  columnas: z.array(z.string()).min(2).max(5).describe("Encabezados de columna"),
-  filas: z
-    .array(
-      z.object({
-        etiqueta: z.string().describe("Nombre de la fila (primera columna)"),
-        valores: z.array(z.string()).describe("Un valor por cada columna restante, en el mismo orden que `columnas`"),
-      }),
-    )
-    .min(2)
-    .max(8),
-});
+Español rioplatense, tono claro y profesional.`;
 
-const FrameworkBlockSchema = z.object({
-  type: z.literal("framework"),
-  emoji: z.string(),
-  title: z.string(),
-  category: z.string().optional(),
-  intro: z.string().optional().describe("Qué es el framework en 1 oración"),
-  elementos: z
-    .array(
-      z.object({
-        nombre: z.string(),
-        descripcion: z.string().describe("1-2 oraciones"),
-      }),
-    )
-    .min(2)
-    .max(6),
-});
+const SUMMARY_MD_INSTRUCTION_PRO =
+  "Generá el resumen de estudio COMPLETO en Markdown siguiendo TODAS las reglas. Cubrí todos los temas del material con sus ejemplos y casos clave.";
+const SUMMARY_MD_INSTRUCTION_FREE =
+  "Generá un resumen de estudio BREVE en Markdown (solo los conceptos esenciales de este material) siguiendo TODAS las reglas de formato.";
 
-const AnalogiaBlockSchema = z.object({
-  type: z.literal("analogia"),
-  emoji: z.string(),
-  title: z.string(),
-  category: z.string().optional(),
-  analogia: z.string().describe(
-    "La historia, ejemplo real o analogía del original, desarrollada con detalle — no la resumas al mínimo, esto es lo que fija el concepto en la memoria del estudiante.",
-  ),
-  conexion: z.string().describe("1-2 oraciones conectando la analogía con el concepto académico que ilustra"),
-});
-
-const SummaryBlockSchema = z.discriminatedUnion("type", [
-  TextoBlockSchema,
-  ProcesoBlockSchema,
-  TablaBlockSchema,
-  FrameworkBlockSchema,
-  AnalogiaBlockSchema,
-]);
-
-// Práctica por TÍTULO (categoría), no por cada bloque/subtítulo — una sola
-// tanda de 2 preguntas que cubra ese título completo (puede tener varios
-// bloques adentro). El front la muestra recién en el último subtítulo del
-// título, como cierre de esa sección.
-const PracticaPorTituloSchema = z.object({
-  categoria: z.string().describe("Debe coincidir EXACTAMENTE con el `category` usado en los bloques de ese título"),
-  practica: z.array(PracticaQuestionSchema).length(2).describe(
-    "2 preguntas que refuercen literalmente el contenido de TODOS los bloques de este título combinados (no de uno solo).",
-  ),
-});
-
-export const PuntosClaveSchemaPro = z.object({
-  title: z.string().describe("Título corto descriptivo basado en el apunte"),
-  intro: z.string().optional().describe("Una oración de contexto al inicio (opcional)"),
-  // Sin rango fijo: la cantidad de bloques depende del contenido real del
-  // apunte (páginas, densidad), no de un número forzado. El tope de arriba es
-  // solo una red de seguridad técnica, no una meta a alcanzar.
-  points: z.array(SummaryBlockSchema).min(1).max(40),
-  practicaPorTitulo: z.array(PracticaPorTituloSchema).describe(
-    "Una entrada por cada título/categoría DISTINTO usado en `points` — no por cada bloque individual.",
-  ),
-});
-
-export const SUMMARY_SYSTEM_PRO = `Sos un Diseñador Instruccional y Profesor Universitario experto en técnicas de estudio y neuromemoria. Tu trabajo NO es "resumir" de forma genérica — es transformar el material en una experiencia de estudio que realmente fije el conocimiento. Nunca inventes información que no esté en el apunte.
-
-Reglas estrictas:
-1. SEGMENTACIÓN: dividí el apunte en bloques temáticos mutuamente excluyentes, siguiendo el orden lógico del material original. Cada bloque tiene que aportar información 100% nueva — NUNCA repitas un concepto, ejemplo o dato ya cubierto en un bloque anterior. Si dos ideas están muy relacionadas, desarrollalas juntas en un solo bloque en vez de repartirlas en dos.
-2. CANTIDAD LIBRE: no hay un número fijo de bloques a alcanzar. Generá tantos como el contenido real amerite — un apunte corto y denso puede necesitar solo 3-4 bloques; uno largo, 20 o más. La cantidad la decide el contenido, no una meta arbitraria.
-3. FORMATO ADAPTATIVO: para cada bloque, elegí el "type" que mejor comunique ESE contenido puntual — no fuerces todo al mismo molde:
-   - "texto": explicaciones conceptuales o ideas que no encajan en los otros formatos.
-   - "proceso": una lista de ítems — pasos de una metodología (marcá "ordenado: true") O una lista de características/beneficios sin secuencia (marcá "ordenado: false").
-   - "tabla": cuando hay una comparación entre varios elementos con las mismas categorías.
-   - "framework": cuando hay un modelo con varios componentes que funcionan juntos (ej: un triángulo de 3 pilares, un modelo de varios niveles).
-   - "analogia": cuando el original cuenta una historia, ejemplo real o analogía para explicar un concepto.
-4. DENSIDAD: nunca sacrifiques profundidad por brevedad. Los ejemplos, historias y analogías del original son lo que hace que el estudiante recuerde — conservalos con detalle, no los aplanes a una oración.
-5. PRÁCTICA POR TÍTULO: la práctica de refuerzo va UNA VEZ por título/categoría (no por cada bloque) — 2 preguntas que cubran todos los bloques de ese título combinados, en "practicaPorTitulo".
-6. Español rioplatense, tono cercano pero profesional.
-
-FORMATO DE SALIDA — devolvé EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin texto antes ni después):
-{
-  "title": "título corto del apunte",
-  "intro": "una oración de contexto (opcional, podés omitir la clave)",
-  "points": [ ...bloques... ],
-  "practicaPorTitulo": [ { "categoria": "<mismo string EXACTO que el category de sus bloques>", "practica": [ <pregunta>, <pregunta> ] } ]
+// Saca el título del primer H1 del markdown; "" si no hay.
+function extractMdTitle(md: string): string {
+  const m = md.match(/^#\s+(.+)$/m);
+  return m ? m[1].trim() : "";
 }
-Cada bloque de "points" es UNO de estos 5 tipos (elegí el que mejor comunique ESE contenido):
-- {"type":"texto","emoji":"📌","title":"3-8 palabras","category":"...","body":"markdown desarrollado, 4-6 oraciones"}
-- {"type":"proceso","emoji":"...","title":"...","category":"...","intro":"opcional","ordenado":true,"pasos":[{"paso":"...","detalle":"..."}]}  (pasos: 2 a 8)
-- {"type":"tabla","emoji":"...","title":"...","category":"...","intro":"opcional","columnas":["c1","c2"],"filas":[{"etiqueta":"...","valores":["v1","v2"]}]}  (columnas: 2 a 5; filas: 2 a 8; un valor por columna)
-- {"type":"framework","emoji":"...","title":"...","category":"...","intro":"opcional","elementos":[{"nombre":"...","descripcion":"1-2 oraciones"}]}  (elementos: 2 a 6)
-- {"type":"analogia","emoji":"...","title":"...","category":"...","analogia":"la historia/ejemplo con detalle","conexion":"1-2 oraciones: qué concepto ilustra"}
-Cada <pregunta>: {"pregunta":"...","opciones":["a","b","c","d"],"correcta":0,"explicacion":"por qué la correcta lo es, 1 oración"}  (opciones: EXACTAMENTE 4; correcta: índice 0-3)`;
 
-export const PUNTOS_PROMPT_PRO =
-  "Extraé los bloques temáticos que el apunte amerite (ni más ni menos — la cantidad depende del contenido real, no de un número fijo), en el mismo orden en que aparecen en el material original. Cada bloque usa el formato (\"type\") que mejor le quede a su contenido. Agrupá los bloques por título usando `category` (mismo string EXACTO para bloques del mismo título). Para cada título distinto, generá además su propia práctica rápida en `practicaPorTitulo` (2 preguntas que cubran todo ese título, no cada bloque). Devolvé SIEMPRE en español rioplatense.";
-
-// Formato JSON para el resumen FREE (2 puntos simples con práctica embebida).
-const SUMMARY_SYSTEM_FREE_JSON = `${SUMMARY_SYSTEM}
-
-FORMATO DE SALIDA — devolvé EXCLUSIVAMENTE un objeto JSON válido (sin markdown):
-{
-  "title": "título corto",
-  "intro": "oración de contexto (opcional)",
-  "points": [ EXACTAMENTE 2 objetos con esta forma:
-    {"emoji":"📌","title":"3-8 palabras","description":"4-6 oraciones desarrolladas","category":"subtema","practica":[<pregunta>,<pregunta>]}
-  ]
+// Limpia fences de código que el modelo a veces pone alrededor de TODO el doc.
+function stripFences(s: string): string {
+  return s.replace(/^```(?:markdown|md)?\s*/i, "").replace(/```\s*$/i, "").trim();
 }
-Cada <pregunta>: {"pregunta":"...","opciones":["a","b","c","d"],"correcta":0,"explicacion":"..."}  (opciones: EXACTAMENTE 4; correcta: índice 0-3)`;
 
-export async function genSummaryPuntos(content: NoteContent, model: string, isPaid: boolean) {
-  if (isPaid) {
-    const parts = await buildUserContent(content, PUNTOS_PROMPT_PRO, isPaid);
-    const r = await generateStructured({
-      label: "summary_pro", model, schema: PuntosClaveSchemaPro,
-      system: SUMMARY_SYSTEM_PRO, content: parts,
-    });
-    return { object: r.object, usage: r.usage, title: r.object.title };
+// Genera el resumen como Markdown. Reintenta una vez si sale vacío o sin H1.
+export async function genSummaryMarkdown(content: NoteContent, model: string, isPaid: boolean) {
+  const instruction = isPaid ? SUMMARY_MD_INSTRUCTION_PRO : SUMMARY_MD_INSTRUCTION_FREE;
+  const parts = await buildUserContent(content, instruction, isPaid);
+  let lastErr: unknown;
+  for (let att = 1; att <= 2; att++) {
+    try {
+      const r = await generateText({
+        model: google(model),
+        system: SUMMARY_MD_SYSTEM,
+        messages: [{ role: "user", content: parts as never }],
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+      });
+      const markdown = stripFences(r.text);
+      if (markdown.length > 50 && /^#\s/m.test(markdown)) {
+        return { markdown, usage: r.usage as Usage, title: extractMdTitle(markdown) };
+      }
+      lastErr = new Error("resumen markdown vacío o sin encabezado");
+    } catch (e) {
+      lastErr = e;
+    }
+    Sentry.captureException(lastErr, { tags: { ai_gen: "summary_md", attempt: String(att) } });
   }
-  const parts = await buildUserContent(content, PUNTOS_PROMPT_FREE, isPaid);
-  const r = await generateStructured({
-    label: "summary_free", model, schema: PuntosClaveSchemaFree,
-    system: SUMMARY_SYSTEM_FREE_JSON, content: parts,
-  });
-  return { object: r.object, usage: r.usage, title: r.object.title };
+  throw lastErr;
 }
 
 // ---------------------------------------------------------------------------

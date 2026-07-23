@@ -5,15 +5,41 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { EspacioClient, SEC_COLORS } from "./_components/espacio-client";
 import { EspacioEmpty } from "./_components/espacio-empty";
 import { isDemoNoteId, getDemoResumen, getDemoTarjetas, getDemoSimulacro } from "@/lib/demo-content";
-import { plainText, type SummaryPoint } from "./resumen/_components/summary-blocks";
+import { parseSummaryMarkdown, readSummaryMarkdown, type SummarySection } from "@/lib/notes/summary-markdown";
 
 type SearchParams = Promise<{ note_id?: string; gen?: string }>;
+
+// Preview corto de una sección markdown (para el subtítulo del tema en el mapa).
+function sectionSnippet(md: string): string {
+  const line = md.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("|") && !l.startsWith("-"));
+  const raw = (line ?? md).replace(/^[-*#>\s]+/, "").replace(/\*\*/g, "").trim();
+  return raw ? raw.slice(0, 60) + (raw.length > 60 ? "…" : "") : "";
+}
+
+// Un grupo "Resumen" con cada sección '## ' del markdown como un tema navegable.
+// Los ids (topic-<noteId>-<idx>) coinciden con los que marca la página del
+// resumen, para que el progreso ("dominado") se sincronice entre ambas.
+function sectionsToEspacio(noteId: string, sections: SummarySection[]) {
+  if (!sections.length) return [];
+  return [
+    {
+      id: "sec-0",
+      name: "Resumen",
+      color: SEC_COLORS[0],
+      topics: sections.map((sec, i) => ({
+        id: `topic-${noteId}-${i}`,
+        name: sec.heading,
+        sub: sectionSnippet(sec.markdown),
+        pct: 0,
+      })),
+    },
+  ];
+}
 
 export default async function IAPage({ searchParams }: { searchParams: SearchParams }) {
   const { note_id } = await searchParams;
 
-  // Demo: mostrar el espacio completo (suite) cargando datos hardcodeados.
-  // Disponible sin cuenta.
+  // Demo: espacio completo con datos hardcodeados, disponible sin cuenta.
   if (note_id && isDemoNoteId(note_id)) {
     const demoResumen = getDemoResumen(note_id);
     if (!demoResumen) redirect("/app/ia");
@@ -21,37 +47,21 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     const demoTarjetas = getDemoTarjetas(note_id);
     const demoSimulacro = getDemoSimulacro(note_id);
 
-    const demoSections = demoResumen.sections.map((sec, si) => ({
-      id: `sec-${si}`,
-      name: sec.name,
-      color: SEC_COLORS[si % SEC_COLORS.length],
-      topics: sec.points.map((p, ti) => {
-        const desc = plainText(p);
-        return {
-          id: `topic-${note_id}-${si}-${ti}`,
-          name: p.emoji ? `${p.emoji} ${p.title}` : p.title,
-          sub: desc ? desc.slice(0, 60) + (desc.length > 60 ? "…" : "") : "",
-          pct: 0,
-        };
-      }),
-    }));
-
     const demoNoteData = {
       id: note_id,
       title: demoResumen.noteTitle,
       subjectName: demoResumen.subjectName,
-      summaryCount: demoResumen.sections.reduce((a, s) => a + s.points.length, 0),
+      summaryCount: demoResumen.sections.length,
       flashcardsCount: demoTarjetas?.flashcards.length ?? 0,
       simulacroCount: demoSimulacro?.questions.length ?? 0,
-      sections: demoSections,
+      sections: sectionsToEspacio(note_id, demoResumen.sections),
       fileUrl: null,
     };
 
     return <EspacioClient note={demoNoteData} generating={false} fileName={demoResumen.noteTitle} isPro />;
   }
 
-  // Identidad: Clerk o sesión anónima (free). Sin actor (invitado sin sesión
-  // todavía) → a la home.
+  // Identidad: Clerk o sesión anónima (free). Sin actor → a la home.
   const actor = await getActorReadonly();
   if (!actor) redirect("/app");
 
@@ -92,40 +102,16 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
   const flashcardsOutput = outputs?.find((o) => o.kind === "flashcards");
   const simulacroOutput = outputs?.find((o) => o.kind === "simulacro");
 
-  // La API guarda content = { format, data: { title, intro, points } }
-  type SumContent = { points?: SummaryPoint[]; data?: { points?: SummaryPoint[] } };
-  const sumContent = summaryOutput?.content as SumContent | null;
-  const points: SummaryPoint[] = sumContent?.data?.points ?? sumContent?.points ?? [];
-
-  const secMap = new Map<string, SummaryPoint[]>();
-  points.forEach((p) => {
-    const cat = p.category ?? "General";
-    if (!secMap.has(cat)) secMap.set(cat, []);
-    secMap.get(cat)!.push(p);
-  });
-
-  const sections = Array.from(secMap.entries()).map(([name, pts], si) => ({
-    id: `sec-${si}`,
-    name,
-    color: SEC_COLORS[si % SEC_COLORS.length],
-    topics: pts.map((p, ti) => {
-      const desc = plainText(p);
-      return {
-        id: `topic-${note.id}-${si}-${ti}`,
-        name: p.emoji ? `${p.emoji} ${p.title}` : p.title,
-        sub: desc ? desc.slice(0, 60) + (desc.length > 60 ? "…" : "") : "",
-        pct: 0,
-      };
-    }),
-  }));
+  // El resumen ahora es Markdown: cada '## ' es un tema del mapa de estudio.
+  const summaryMd = readSummaryMarkdown(summaryOutput?.content);
+  const summarySections = summaryMd ? parseSummaryMarkdown(summaryMd).sections : [];
+  const sections = sectionsToEspacio(note.id, summarySections);
 
   type Flashcard = { front?: string };
   type SimulacroPregunta = { pregunta?: string; question?: string };
-  // API guarda "cards" (FlashcardsSchema), soportar también "flashcards" para compat.
   const flashcardsContent = flashcardsOutput?.content as { cards?: Flashcard[]; flashcards?: Flashcard[] } | null;
   const simulacroContent = simulacroOutput?.content as { questions?: SimulacroPregunta[] } | null;
 
-  // Signed URL para "Ver archivo" (1 hora)
   let fileUrl: string | null = null;
   if (note.file_path) {
     const { data: signed } = await sb.storage.from("notes-uploads").createSignedUrl(note.file_path, 3600);
@@ -136,15 +122,17 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
     id: note.id,
     title: note.title,
     subjectName,
-    summaryCount: points.length,
+    summaryCount: summarySections.length,
     flashcardsCount: (flashcardsContent?.cards ?? flashcardsContent?.flashcards)?.length ?? 0,
     simulacroCount: simulacroContent?.questions?.length ?? 0,
     sections,
     fileUrl,
   };
 
-  // Auto-generar si falta cualquier output (resumen, tarjetas o simulacro)
-  const needsGeneration = !summaryOutput || !flashcardsOutput || !simulacroOutput;
+  // Auto-generar SOLO si falta el resumen. Tarjetas y simulacro están en pausa:
+  // no disparan el overlay automático — quedan en "Tocá para generar" y se
+  // generan cuando el usuario las toca. (Ver ALL_KINDS / AUTO_GEN_KINDS.)
+  const needsGeneration = !summaryOutput;
 
   return (
     <EspacioClient

@@ -11,9 +11,38 @@ export const DEMO_TOPICS: { id: DemoTopic; emoji: string; label: string }[] = [
   { id: "economia",     emoji: "📈", label: "Oferta y Demanda" },
 ];
 
+// El resumen del demo se escribió con el formato viejo (secciones + puntos).
+// Se convierte a la ResumenData actual (secciones markdown) sin reescribirlo.
+type DemoPoint = { emoji?: string; title: string; description: string; category?: string };
+type DemoResumenSource = {
+  noteId: string;
+  noteTitle: string;
+  subjectName: string;
+  intro: string;
+  sections: { name: string; points: DemoPoint[] }[];
+  fileUrl: string | null;
+};
+
+function demoToResumenData(src: DemoResumenSource): ResumenData {
+  const sections = src.sections.map((sec) => ({
+    heading: sec.name,
+    markdown: sec.points.map((p) => `- **${p.title}:** ${p.description}`).join("\n\n"),
+  }));
+  return {
+    noteId: src.noteId,
+    noteTitle: src.noteTitle,
+    subjectName: src.subjectName,
+    title: src.noteTitle,
+    intro: src.intro,
+    sections,
+    lockedCount: 0,
+    fileUrl: src.fileUrl,
+  };
+}
+
 // ─── PSICOLOGÍA: FREUD ──────────────────────────────────────────────────────
 
-const psicologiaResumen: ResumenData = {
+const psicologiaResumen: DemoResumenSource = {
   noteId: "demo-psicologia",
   noteTitle: "Psicología: Freud y el Psicoanálisis",
   subjectName: "Psicología",
@@ -78,7 +107,7 @@ const psicologiaSimulacro: SimulacroData = {
 
 // ─── SISTEMA CIRCULATORIO ────────────────────────────────────────────────────
 
-const circulatorioResumen: ResumenData = {
+const circulatorioResumen: DemoResumenSource = {
   noteId: "demo-circulatorio",
   noteTitle: "El Sistema Circulatorio",
   subjectName: "Biología",
@@ -144,7 +173,7 @@ const circulatorioSimulacro: SimulacroData = {
 
 // ─── REVOLUCIÓN INDUSTRIAL ───────────────────────────────────────────────────
 
-const industrialResumen: ResumenData = {
+const industrialResumen: DemoResumenSource = {
   noteId: "demo-industrial",
   noteTitle: "La Revolución Industrial",
   subjectName: "Historia",
@@ -210,7 +239,7 @@ const industrialSimulacro: SimulacroData = {
 
 // ─── OFERTA Y DEMANDA ────────────────────────────────────────────────────────
 
-const economiaResumen: ResumenData = {
+const economiaResumen: DemoResumenSource = {
   noteId: "demo-economia",
   noteTitle: "Oferta y Demanda: El Mercado",
   subjectName: "Economía",
@@ -275,7 +304,7 @@ const economiaSimulacro: SimulacroData = {
 
 // ─── Exports ────────────────────────────────────────────────────────────────
 
-const RESUMEN: Record<DemoTopic, ResumenData> = {
+const RESUMEN: Record<DemoTopic, DemoResumenSource> = {
   psicologia:   psicologiaResumen,
   circulatorio: circulatorioResumen,
   industrial:   industrialResumen,
@@ -307,7 +336,7 @@ export function getDemoTopic(noteId: string): DemoTopic | null {
 
 export function getDemoResumen(noteId: string): ResumenData | null {
   const t = getDemoTopic(noteId);
-  return t ? RESUMEN[t] : null;
+  return t ? demoToResumenData(RESUMEN[t]) : null;
 }
 
 export function getDemoTarjetas(noteId: string): TarjetasData | null {
