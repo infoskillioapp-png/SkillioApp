@@ -89,7 +89,7 @@ function ResumenSidebar({
         .md-body ul, .md-body ol { margin: 0 0 14px; padding-left: 22px; line-height: 1.75; }
         .md-body li { margin-bottom: 7px; }
         .md-body li::marker { color: #8b5cf6; }
-        .md-body strong { font-weight: 700; color: #4c2f9e; }
+        .md-body strong { font-weight: 700; color: #14162b; }
         .md-body em { color: #5b6178; }
         .md-body table {
           border-collapse: separate; border-spacing: 0; width: 100%; margin: 16px 0;
@@ -103,6 +103,31 @@ function ResumenSidebar({
         .md-body td { padding: 9px 12px; text-align: left; vertical-align: top; border-top: 1px solid #eee6fb; }
         .md-body tbody tr:nth-child(even) { background: rgba(139,92,246,.045); }
         .md-body .katex-display { margin: 14px 0; overflow-x: auto; }
+
+        /* ---- Modo oscuro (solo lectura del resumen) ---- */
+        .resumen-dark { background: #14151f; min-height: 100vh; }
+        .resumen-dark .rtopbar { background: #1b1d2b !important; border-color: #2a2d40 !important; }
+        .resumen-dark .rtopbar .back, .resumen-dark .crumb-r, .resumen-dark .crumb-r b, .resumen-dark .rfiles { color: #c7cad8 !important; }
+        .resumen-dark .rside { background: #1b1d2b !important; border-color: #2a2d40 !important; }
+        .resumen-dark .rside h2 { color: #eef0f8 !important; }
+        .resumen-dark .slabel { color: #9aa0b8 !important; }
+        .resumen-dark .t-item { background: #23263a !important; border-color: #2f3350 !important; }
+        .resumen-dark .t-item .t-name { color: #eef0f8 !important; }
+        .resumen-dark .t-item .t-sub { color: #9aa0b8 !important; }
+        .resumen-dark .t-item.on { background: #2b2f4a !important; }
+        .resumen-dark .reader-main { color: #dfe2f0; }
+        .resumen-dark .sec-eyebrow { color: #b7a6f5 !important; }
+        .resumen-dark .rtitle { color: #f4f5fc !important; }
+        .resumen-dark .rcard { background: #1e2030 !important; border-color: #2a2d40 !important; box-shadow: none !important; }
+        .resumen-dark .md-body { color: #d5d8e8; }
+        .resumen-dark .md-body h3 { color: #c4b5fd; border-left-color: #7c3aed; }
+        .resumen-dark .md-body strong { color: #f4f5fc; }
+        .resumen-dark .md-body em { color: #a7adc6; }
+        .resumen-dark .md-body td { border-top-color: #2f3350; }
+        .resumen-dark .md-body table { border-color: #2f3350; box-shadow: none; }
+        .resumen-dark .md-body tbody tr:nth-child(even) { background: rgba(139,92,246,.10); }
+        .rdark-toggle { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid rgba(120,90,200,.3); color: inherit; border-radius: 10px; padding: 5px 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .resumen-dark .rdark-toggle { border-color: #3a3f5c; color: #c7cad8; }
       `}</style>
 
       <h2 className="po">
@@ -184,6 +209,19 @@ export function ResumenClient({
   const [rescueOpen, setRescueOpen] = useState(false);
   const [rescueDone, setRescueDone] = useState(false);
   const showResumenTour = useTourRequired("skillio_resumen_tour_v1");
+  // Modo oscuro solo para la lectura del resumen (descansa la vista en sesiones
+  // largas). Se recuerda en localStorage.
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try { return localStorage.getItem("skillio_resumen_dark") === "1"; } catch { return false; }
+  });
+  function toggleDark() {
+    setDark((d) => {
+      const next = !d;
+      try { localStorage.setItem("skillio_resumen_dark", next ? "1" : "0"); } catch { /* noop */ }
+      return next;
+    });
+  }
 
   const sections = data.sections;
   const safeActiveIdx = Math.min(activeIdx, Math.max(0, sections.length - 1));
@@ -220,7 +258,7 @@ export function ResumenClient({
   if (!active) return <div style={{ padding: 40, color: "var(--muted)" }}>Sin contenido generado aún.</div>;
 
   return (
-    <>
+    <div className={dark ? "resumen-dark" : undefined}>
       {showPaywall && <SalePopup ctx="resumen" onClose={closePaywall} />}
       {rescueOpen && !rescueDone && (
         <RescuePrompt
@@ -259,6 +297,19 @@ export function ResumenClient({
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
           {doneCount}/{sections.length}{!isPro && data.lockedCount > 0 ? ` · 🔒 ${data.lockedCount}` : ""} dominados
         </div>
+        <button className="rdark-toggle" onClick={toggleDark} title="Modo lectura oscuro" aria-label="Alternar modo oscuro">
+          {dark ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+              Claro
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" /></svg>
+              Oscuro
+            </>
+          )}
+        </button>
       </div>
 
       <div className="rwrap">
@@ -343,6 +394,6 @@ export function ResumenClient({
           </div>
         </main>
       </div>
-    </>
+    </div>
   );
 }
