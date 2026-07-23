@@ -7,6 +7,9 @@ import { PdfSplitter } from "./pdf-splitter";
 import { DEMO_TOPICS } from "@/lib/demo-content";
 import type { DemoTopic } from "@/lib/demo-content";
 import { track } from "@/lib/track-client";
+import { countPdfPages, buildSegments, directUpload } from "@/lib/notes/upload-client";
+
+const PDF_PAGE_LIMIT = 20; // arriba de esto, mostramos el divisor
 
 type Tab = "file" | "text" | "yt" | "drive";
 type SplitSegment = { title: string; page_from: number; page_to: number };
@@ -17,6 +20,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   const [textInput, setTextInput] = useState("");
   const [ytUrl, setYtUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [splitterFile, setSplitterFile] = useState<File | null>(null);
   const [splitterPages, setSplitterPages] = useState(0);
   const [splitterSegments, setSplitterSegments] = useState<SplitSegment[]>([]);
@@ -38,35 +42,35 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
       file.type === "application/pdf" ||
       file.name.toLowerCase().endsWith(".pdf");
 
+    // PDF: contamos páginas EN EL NAVEGADOR (no mandamos el archivo al server —
+    // eso rompía con archivos grandes por el límite de body de Vercel). Si tiene
+    // más de 20 páginas, mostramos el divisor.
     if (isPdf) {
       setUploading(true);
       try {
-        const buf = await file.arrayBuffer();
-        const res = await fetch("/api/notes/pdf-info", { method: "POST", body: buf });
-        if (res.ok) {
-          const { pages, segments, needsSplit } = await res.json();
-          if (needsSplit) {
-            setSplitterFile(file);
-            setSplitterPages(pages);
-            setSplitterSegments(segments ?? []);
-            return;
-          }
+        const pages = await countPdfPages(file);
+        if (pages > PDF_PAGE_LIMIT) {
+          setSplitterFile(file);
+          setSplitterPages(pages);
+          setSplitterSegments(buildSegments(pages));
+          return;
         }
+      } catch {
+        // no se pudo leer el PDF en el browser → seguimos y subimos entero
       } finally {
         setUploading(false);
       }
     }
 
     setUploading(true);
+    setUploadError("");
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("title", file.name.replace(/\.[^.]+$/, ""));
-      const res = await fetch("/api/notes/upload", { method: "POST", body: form });
-      const data = await res.json();
-      if (res.ok && data.note?.id) {
+      const res = await directUpload(file, null);
+      if ("noteId" in res) {
         onClose();
-        router.push(`/app/ia?note_id=${data.note.id}&gen=1`);
+        router.push(`/app/ia?note_id=${res.noteId}&gen=1`);
+      } else {
+        setUploadError(res.error);
       }
     } finally {
       setUploading(false);
@@ -212,6 +216,11 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
                 </svg>
                 {uploading ? "Subiendo…" : "Seleccionar archivo"}
               </button>
+              {uploadError && (
+                <div style={{ marginTop: 12, fontSize: 13, color: "#c0392b", background: "#fff1f2", borderRadius: 10, padding: "9px 12px", maxWidth: 320, margin: "12px auto 0" }}>
+                  {uploadError}
+                </div>
+              )}
               {/* Demo pills */}
               {demoLoading ? (
                 <div style={{ marginTop: 16, textAlign: "center" }}>

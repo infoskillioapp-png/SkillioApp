@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { directUpload } from "@/lib/notes/upload-client";
 
 // Tope de seguridad para ediciones manuales: el corte automático ya viene
 // armado por peso real (300 KB por parte, calculado server-side) — este
@@ -79,16 +80,13 @@ export function PdfSplitter({
     setError("");
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("title", file.name.replace(/\.[^.]+$/, ""));
-      form.append("segments", JSON.stringify(segments));
-      const res = await fetch("/api/notes/upload", { method: "POST", body: form });
-      const data = await res.json();
-      if (res.ok && data.note?.id) {
-        router.push(`/app/ia?note_id=${data.note.id}&gen=1`);
+      // Subida directa a Supabase (el archivo no pasa por Vercel — así entran
+      // los apuntes grandes que antes rompían por el límite de body).
+      const res = await directUpload(file, segments, file.name.replace(/\.[^.]+$/, ""));
+      if ("noteId" in res) {
+        router.push(`/app/ia?note_id=${res.noteId}&gen=1`);
       } else {
-        setError(data.error ?? "Error al subir el archivo.");
+        setError(res.error);
       }
     } catch {
       setError("Error de red. Intentá de nuevo.");
