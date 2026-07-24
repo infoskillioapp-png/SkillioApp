@@ -105,18 +105,20 @@ function ContinuarRing({ pct }: { pct: number }) {
   );
 }
 
+type UsageBar = { used: number; limit: number; pct: number; resetAt: string };
 type Props = {
   user: { firstName: string; initial: string };
   lastNote: { id: string; subjectName: string; title: string; dominio: number } | null;
   subjects: { id: string; name: string; color: string }[];
   notes: { id: string; subject_id: string | null; title: string; has_ai_content: boolean }[];
+  usage?: { daily: UsageBar; weekly: UsageBar } | null;
   autoUpload?: boolean;
   autoUpgrade?: "semanal" | "mensual" | "trimestral" | null;
 };
 
 const HOME_TOUR_KEY = "skillio_home_tour_v1";
 
-export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false, autoUpgrade = null }: Props) {
+export function HomeClient({ user, lastNote, subjects, notes, usage = null, autoUpload = false, autoUpgrade = null }: Props) {
   const [modalOpen, setModalOpen] = useState(autoUpload);
   const [showPaywall, setShowPaywall] = useState(!!autoUpgrade);
   const bgRef = useParallaxBg();
@@ -155,6 +157,14 @@ export function HomeClient({ user, lastNote, subjects, notes, autoUpload = false
                   </span>
                   Subir archivo
                 </button>
+                {usage && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginTop: 12, padding: "7px 13px", borderRadius: 999, background: "rgba(255,255,255,.14)", border: "1px solid rgba(255,255,255,.25)", backdropFilter: "blur(6px)", fontSize: 12.5, color: "#fff", fontWeight: 600 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" /></svg>
+                    <span><b>{usage.daily.used}/{usage.daily.limit}</b> hoy</span>
+                    <span style={{ opacity: .5 }}>·</span>
+                    <span><b>{usage.weekly.used}/{usage.weekly.limit}</b> esta semana</span>
+                  </div>
+                )}
               </div>
               <div className="hero-booki">
                 <Image

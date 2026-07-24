@@ -4,26 +4,13 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 type Usage = { inputTokens?: number; outputTokens?: number } | undefined;
 
 // ---------------------------------------------------------------------------
-// Tope de uso (anti-abuso) para planes pagos — diario + semanal, estilo
-// Claude.ai. Protege contra sesiones fuera de serie (ej. $2.88 en 30 min de
-// un mismo usuario) sin tocar lo que el usuario ya generó (nunca se bloquea
-// contenido existente, solo generar cosas NUEVAS). No garantiza margen al
-// precio actual de los planes — es un techo anti-catástrofe, no un cálculo
-// de rentabilidad. Ver memoria "skillio-unit-economics" para el contexto.
-export const DAILY_CAP_USD = 1.5;
-export const WEEKLY_CAP_USD = 5;
-
-const PRICES: Record<string, { in: number; out: number }> = {
-  // Gemini (proveedor actual). USD por millón de tokens (in/out).
-  "gemini-3.6-flash": { in: 1.5, out: 9.0 },
-  "gemini-3.5-flash": { in: 1.5, out: 9.0 },
-  "gemini-3.5-flash-lite": { in: 0.25, out: 1.5 },
-  // Claude (proveedor anterior) — se mantiene para calcular registros viejos.
-  "claude-haiku-4-5-20251001": { in: 1.0, out: 5.0 },
-  "claude-haiku-4-5": { in: 1.0, out: 5.0 },
-  "claude-sonnet-4-6": { in: 3.0, out: 15.0 },
-};
-const DEFAULT_PRICE = { in: 1.5, out: 9.0 };
+// Tope de uso (anti-abuso) para planes pagos — por CANTIDAD DE APUNTES, diario
+// + semanal. La unidad es el apunte: subir un apunte y generar su resumen
+// cuenta 1. Las tarjetas y el simulacro on-demand de ESE mismo apunte NO
+// descuentan (no son 'summarize'). Nunca bloquea contenido ya generado, solo
+// generar un apunte NUEVO cuando se pasó del tope. Ver "skillio-unit-economics".
+export const DAILY_GEN_LIMIT = 5; // apuntes nuevos por día (plan pago)
+export const WEEKLY_GEN_LIMIT = 15; // apuntes nuevos por semana
 
 const TZ_OFFSET_HOURS = 3; // ART = UTC-3, sin horario de verano
 
@@ -47,72 +34,68 @@ function startOfWeekArt(): Date {
   return new Date(Date.UTC(y, m, d, TZ_OFFSET_HOURS, 0, 0));
 }
 
-async function costSinceUsd(userId: string, since: Date): Promise<number> {
+// Cuenta apuntes generados = filas kind='summarize' desde `since` (el resumen se
+// arma 1 vez por apunte al subirlo; las tarjetas/simulacro on-demand son otro
+// kind y no cuentan). Usa count exacto (head) para no traer filas.
+async function countSummariesSince(userId: string, since: Date): Promise<number> {
   const sb = supabaseAdmin();
-  const { data } = await sb
+  const { count } = await sb
     .from("ai_usage")
-    .select("model, input_tokens, output_tokens")
+    .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
+    .eq("kind", "summarize")
     .gte("created_at", since.toISOString());
-  let usd = 0;
-  for (const row of data ?? []) {
-    const price = PRICES[row.model ?? ""] ?? DEFAULT_PRICE;
-    usd += ((row.input_tokens ?? 0) / 1e6) * price.in + ((row.output_tokens ?? 0) / 1e6) * price.out;
-  }
-  return usd;
+  return count ?? 0;
 }
 
 export type UsageLimitCheck =
   | { allowed: true }
   | { allowed: false; reason: "daily" | "weekly"; resetAt: string };
 
-/**
- * Chequea el tope de uso diario/semanal ANTES de dejar generar algo nuevo.
- * Solo aplica a planes pagos (llamar únicamente cuando isPaid === true — free
- * ya tiene su propio gate de 1 generación de por vida). Como se calcula sobre
- * ai_usage (histórico real), es retroactivo: si un usuario ya gastó de más
- * hoy/esta semana, el próximo intento de generar lo corta de inmediato.
- */
-export type UsageSnapshot = {
-  daily: { usedUsd: number; capUsd: number; pct: number; resetAt: string };
-  weekly: { usedUsd: number; capUsd: number; pct: number; resetAt: string };
-};
+export type UsageBar = { used: number; limit: number; pct: number; resetAt: string };
+export type UsageSnapshot = { daily: UsageBar; weekly: UsageBar };
 
-/** Para mostrar en /app/perfil (barras estilo Claude.ai) — mismo cálculo que checkUsageLimit. */
+/** Para mostrar en /app/perfil y en el home — mismo conteo que checkUsageLimit. */
 export async function getUsageSnapshot(userId: string): Promise<UsageSnapshot> {
   const dayStart = startOfTodayArt();
   const weekStart = startOfWeekArt();
-  const [dayCost, weekCost] = await Promise.all([
-    costSinceUsd(userId, dayStart),
-    costSinceUsd(userId, weekStart),
+  const [dayCount, weekCount] = await Promise.all([
+    countSummariesSince(userId, dayStart),
+    countSummariesSince(userId, weekStart),
   ]);
   return {
     daily: {
-      usedUsd: dayCost,
-      capUsd: DAILY_CAP_USD,
-      pct: Math.min(100, Math.round((dayCost / DAILY_CAP_USD) * 100)),
+      used: dayCount,
+      limit: DAILY_GEN_LIMIT,
+      pct: Math.min(100, Math.round((dayCount / DAILY_GEN_LIMIT) * 100)),
       resetAt: new Date(dayStart.getTime() + 86_400_000).toISOString(),
     },
     weekly: {
-      usedUsd: weekCost,
-      capUsd: WEEKLY_CAP_USD,
-      pct: Math.min(100, Math.round((weekCost / WEEKLY_CAP_USD) * 100)),
+      used: weekCount,
+      limit: WEEKLY_GEN_LIMIT,
+      pct: Math.min(100, Math.round((weekCount / WEEKLY_GEN_LIMIT) * 100)),
       resetAt: new Date(weekStart.getTime() + 7 * 86_400_000).toISOString(),
     },
   };
 }
 
+/**
+ * Chequea el tope de apuntes diario/semanal ANTES de generar un apunte NUEVO.
+ * Solo para planes pagos (free tiene su gate de 1 generación de por vida).
+ * Llamar SOLO cuando se va a generar un resumen nuevo — las generaciones
+ * on-demand (tarjetas/simulacro de un apunte ya existente) no se topean.
+ */
 export async function checkUsageLimit(userId: string): Promise<UsageLimitCheck> {
   const weekStart = startOfWeekArt();
-  const weekCost = await costSinceUsd(userId, weekStart);
-  if (weekCost >= WEEKLY_CAP_USD) {
+  const weekCount = await countSummariesSince(userId, weekStart);
+  if (weekCount >= WEEKLY_GEN_LIMIT) {
     const resetAt = new Date(weekStart.getTime() + 7 * 86_400_000);
     return { allowed: false, reason: "weekly", resetAt: resetAt.toISOString() };
   }
 
   const dayStart = startOfTodayArt();
-  const dayCost = await costSinceUsd(userId, dayStart);
-  if (dayCost >= DAILY_CAP_USD) {
+  const dayCount = await countSummariesSince(userId, dayStart);
+  if (dayCount >= DAILY_GEN_LIMIT) {
     const resetAt = new Date(dayStart.getTime() + 86_400_000);
     return { allowed: false, reason: "daily", resetAt: resetAt.toISOString() };
   }

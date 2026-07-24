@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { SalePopup } from "@/components/sale-popup";
 
-type UsageBar = { usedUsd: number; capUsd: number; pct: number; resetAt: string };
+type UsageBar = { used: number; limit: number; pct: number; resetAt: string };
 type UsageSnapshot = { daily: UsageBar; weekly: UsageBar };
 
 type Props = {
@@ -46,7 +46,7 @@ function UsageBarRow({ label, bar }: { label: string; bar: UsageBar }) {
     <div style={{ padding: "12px 0" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
         <span style={{ fontWeight: 600, color: "var(--ink)" }}>{label}</span>
-        <span style={{ color: "var(--muted)" }}>{bar.pct}% usado</span>
+        <span style={{ color: "var(--muted)" }}><b style={{ color: "var(--ink)" }}>{bar.used}</b> / {bar.limit} apuntes</span>
       </div>
       <div style={{ height: 8, borderRadius: 999, background: "#eef0f8", overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${bar.pct}%`, borderRadius: 999, background: color, transition: "width .4s ease" }} />
@@ -148,6 +148,9 @@ export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSi
       {usage && (
         <div className="perfil-section in" style={{ marginBottom: 16 }}>
           <h3>Tu uso</h3>
+          <p style={{ padding: "0 20px", margin: "0 0 4px", fontSize: 12.5, color: "var(--muted)" }}>
+            Apuntes nuevos que podés generar. Las tarjetas y el simulacro de un apunte ya generado no cuentan.
+          </p>
           <div style={{ padding: "0 20px" }}>
             <UsageBarRow label="Límite diario" bar={usage.daily} />
             <div style={{ height: 1, background: "var(--rule, #eef0f8)" }} />

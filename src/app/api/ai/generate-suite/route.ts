@@ -58,19 +58,6 @@ export async function POST(req: Request) {
       if (!allowed) return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
     }
 
-    // Tope de uso anti-abuso para pagos (diario + semanal). Se calcula sobre
-    // el historial real de ai_usage, así que es retroactivo: si ya gastó de
-    // más hoy/esta semana, corta acá mismo. Nunca toca lo ya generado.
-    if (isPaid) {
-      const limitCheck = await checkUsageLimit(userRow.id);
-      if (!limitCheck.allowed) {
-        return NextResponse.json(
-          { error: "usage_limit_reached", reason: limitCheck.reason, resetAt: limitCheck.resetAt },
-          { status: 402 },
-        );
-      }
-    }
-
     const summaryModel = modelForGeneration(userRow.plan, userRow.expires_at, "summarize");
     const flashModel = modelForGeneration(userRow.plan, userRow.expires_at, "flashcards");
     const simModel = modelForGeneration(userRow.plan, userRow.expires_at, "simulacro");
@@ -88,6 +75,19 @@ export async function POST(req: Request) {
 
     // Se genera un modo solo si el cliente lo pidió Y no está ya guardado.
     const want = (k: Kind) => kinds.includes(k) && !already.has(k);
+
+    // Tope anti-abuso por CANTIDAD DE APUNTES (pagos): solo aplica cuando se va
+    // a generar un resumen NUEVO (= un apunte nuevo). Las generaciones on-demand
+    // de tarjetas/simulacro de un apunte ya existente no se topean.
+    if (isPaid && want("summary")) {
+      const limitCheck = await checkUsageLimit(userRow.id);
+      if (!limitCheck.allowed) {
+        return NextResponse.json(
+          { error: "usage_limit_reached", reason: limitCheck.reason, resetAt: limitCheck.resetAt },
+          { status: 402 },
+        );
+      }
+    }
 
     // Las pedidas y faltantes, en paralelo, reusando el MISMO content ya
     // descargado/parseado. Las no pedidas se rechazan con "skip" (no es error).
