@@ -721,6 +721,37 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
             </ModoWrapper>
           </div>
 
+          {/* Banner: Modo Juego (Kahoot single-player) — reusa el simulacro */}
+          <ModoWrapper
+            count={note.simulacroCount}
+            genKind="simulacro"
+            href={`/app/ia/jugar?note_id=${note.id}`}
+            className="in game-banner"
+            style={{
+              display: "flex", alignItems: "center", gap: 16, marginTop: 14, padding: "16px 20px",
+              borderRadius: 20, textDecoration: "none", position: "relative", overflow: "hidden",
+              background: "radial-gradient(120% 160% at 12% 0%, #2a1f5e 0%, #1a1440 55%, #120e2e 100%)",
+              border: "1px solid rgba(150,110,255,.35)",
+              boxShadow: "0 12px 40px rgba(80,40,180,.35), 0 0 0 1px rgba(255,255,255,.04) inset",
+              animationDelay: ".28s",
+            }}
+          >
+            <span style={{ position: "absolute", right: -40, top: -40, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle,#7c3aed,transparent 70%)", opacity: .5, filter: "blur(20px)", pointerEvents: "none" }} />
+            <Image src="/booki-3.png" alt="Booki" width={62} height={62} style={{ width: 62, height: 62, objectFit: "contain", flexShrink: 0, filter: "drop-shadow(0 4px 12px rgba(124,58,237,.6))" }} />
+            <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: ".08em", color: "#c4b5fd", background: "rgba(150,110,255,.16)", border: "1px solid rgba(150,110,255,.3)", borderRadius: 999, padding: "2px 9px", marginBottom: 6 }}>
+                NUEVO · MODO JUEGO
+              </div>
+              <div className="po" style={{ color: "#fff", fontWeight: 800, fontSize: 17, lineHeight: 1.2 }}>🎮 Jugá tu simulacro</div>
+              <div style={{ color: "rgba(255,255,255,.68)", fontSize: 13, marginTop: 2 }}>
+                {note.simulacroCount ? "Contrarreloj, 10 vidas y racha. ¿Superás tu récord?" : "Generá el simulacro y desbloqueá el juego ⚡"}
+              </div>
+            </div>
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, flexShrink: 0, borderRadius: 14, background: "linear-gradient(135deg,#8b5cf6,#4f7dff)", boxShadow: "0 6px 20px rgba(99,60,220,.6)" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
+            </span>
+          </ModoWrapper>
+
           {/* mapa del tema */}
           <div className="sectit">
             <svg className="star" viewBox="0 0 24 24" fill="none" stroke="#4f7dff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
