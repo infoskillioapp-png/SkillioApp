@@ -742,7 +742,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: ".08em", color: "#c4b5fd", background: "rgba(150,110,255,.16)", border: "1px solid rgba(150,110,255,.3)", borderRadius: 999, padding: "2px 9px", marginBottom: 6 }}>
                 NUEVO · MODO JUEGO
               </div>
-              <div className="po" style={{ color: "#fff", fontWeight: 800, fontSize: 17, lineHeight: 1.2 }}>🎮 Jugá tu simulacro</div>
+              <div className="po" style={{ color: "#fff", fontWeight: 800, fontSize: 17, lineHeight: 1.2 }}>🎮 Divertite estudiando</div>
               <div style={{ color: "rgba(255,255,255,.68)", fontSize: 13, marginTop: 2 }}>
                 {note.simulacroCount ? "Contrarreloj, 10 vidas y racha. ¿Superás tu récord?" : "Generá el simulacro y desbloqueá el juego ⚡"}
               </div>

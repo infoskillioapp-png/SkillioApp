@@ -5,8 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  initAudio, setMuted, isMuted,
+  initAudio, setMuted,
   sfxCorrect, sfxWrong, sfxTick, sfxStreak, sfxWin, sfxGameOver, sfxSelect,
+  startMusic, setMusicWanted,
 } from "@/lib/game/sfx";
 
 export type GameQuestion = {
@@ -130,11 +131,26 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
   const [gained, setGained] = useState(0); // puntos ganados en la respuesta actual
   const [mood, setMood] = useState<"idle" | "good" | "bad">("idle");
   const [muted, setMutedState] = useState(false);
+  const [flash, setFlash] = useState<"good" | "bad" | null>(null);
   const [record, setRecord] = useState<{ best: number; isRecord: boolean } | null>(null);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const deadline = useRef<number>(0);
   const barKey = useRef(0);
+  const confettiRef = useRef<HTMLDivElement>(null);
+
+  const burst = useCallback((strong: boolean) => {
+    const layer = confettiRef.current;
+    if (!layer || reduce) return;
+    const colors = ["#ff3b5c", "#2b7fff", "#ffb020", "#22c55e", "#c4b5fd", "#f9a8d4"];
+    const n = strong ? 46 : 24;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement("span");
+      p.style.cssText = `position:absolute;left:50%;top:34%;width:9px;height:14px;border-radius:2px;background:${colors[i % colors.length]};--cx:${Math.random() * 300 - 150}px;--cy:${240 + Math.random() * 300}px;--cr:${Math.random() * 900 - 450}deg;animation:gcConfetti ${0.9 + Math.random() * 0.8}s cubic-bezier(.2,.7,.3,1) forwards;will-change:transform,opacity`;
+      layer.appendChild(p);
+      setTimeout(() => p.remove(), 1900);
+    }
+  }, [reduce]);
 
   const q = questions[qIndex];
   const mult = streak >= 5 ? 2 : streak >= 3 ? 1.5 : 1;
@@ -144,10 +160,11 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
     timers.current = [];
   }, []);
 
-  useEffect(() => () => clearTimers(), [clearTimers]);
+  useEffect(() => () => { clearTimers(); setMusicWanted(false); }, [clearTimers]);
 
   const finish = useCallback(async (finalScore: number, finalCorrect: number, finalAnswered: number) => {
     clearTimers();
+    setMusicWanted(false);
     setPhase("over");
     const acc = finalAnswered ? Math.round((finalCorrect / finalAnswered) * 100) : 0;
     if (finalScore >= bestScore && finalScore > 0) sfxWin(); else sfxGameOver();
@@ -215,20 +232,26 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
       setMaxStreak((v) => Math.max(v, newStreak));
       setCorrectCount(newCorrect);
       setMood("good");
+      setFlash("good");
+      burst(newStreak >= 3);
       if (newStreak >= 3) sfxStreak(); else sfxCorrect();
+      timers.current.push(setTimeout(() => setFlash(null), 420));
       timers.current.push(setTimeout(() => nextOrEnd(lives, newScore, newCorrect, newAnswered), 1500));
     } else {
       const newLives = lives - 1;
       setLives(newLives);
       setStreak(0);
       setMood("bad");
+      setFlash("bad");
       sfxWrong();
+      timers.current.push(setTimeout(() => setFlash(null), 420));
       timers.current.push(setTimeout(() => nextOrEnd(newLives, score, correctCount, newAnswered), 1650));
     }
   }
 
   function start() {
     initAudio();
+    startMusic();
     setPhase("playing");
   }
 
@@ -245,18 +268,52 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 100, color: "#fff", fontFamily: "var(--po, system-ui)", overflow: "hidden", userSelect: "none" }}>
+    <div className="gc-root" style={{ position: "fixed", inset: 0, zIndex: 500, color: "#fff", fontFamily: "var(--po, system-ui)", overflow: "hidden", userSelect: "none", WebkitTapHighlightColor: "transparent" }}>
       <style>{`
-        @keyframes gcShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+        .gc-root, .gc-root * { box-sizing: border-box; }
+        @keyframes gcShake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-10px)} 30%{transform:translateX(10px)} 45%{transform:translateX(-8px)} 60%{transform:translateX(8px)} 80%{transform:translateX(-4px)} }
+        @keyframes gcConfetti { to { transform: translate(var(--cx), var(--cy)) rotate(var(--cr)); opacity: 0; } }
+        @keyframes gcGlow { 0%,100%{ box-shadow: 0 12px 40px rgba(99,60,220,.55) } 50%{ box-shadow: 0 16px 60px rgba(150,110,255,.95), 0 0 0 7px rgba(139,92,246,.16) } }
         .gc-opt:hover { filter: brightness(1.12); }
         .gc-btn { cursor: pointer; }
       `}</style>
 
       <GameBackground intensity={Math.min(1, streak / 5)} />
 
+      {/* flash de pantalla en cada respuesta */}
+      <AnimatePresence>
+        {flash && (
+          <motion.div key={flash + qIndex} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }}
+            style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 3, background: flash === "good"
+              ? "radial-gradient(circle at 50% 58%, rgba(34,197,94,.42), transparent 68%)"
+              : "radial-gradient(circle at 50% 58%, rgba(255,59,92,.5), transparent 68%)" }} />
+        )}
+      </AnimatePresence>
+
+      {/* confetti */}
+      <div ref={confettiRef} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 6, overflow: "hidden" }} />
+
+      {/* puntos grandes / feedback central */}
+      <AnimatePresence>
+        {locked && phase === "playing" && (
+          gained > 0 ? (
+            <motion.div key={"pts" + qIndex} initial={{ y: 30, opacity: 0, scale: 0.4 }} animate={{ y: -46, opacity: [0, 1, 1, 0], scale: 1.1 }} transition={{ duration: 1.15, times: [0, 0.15, 0.7, 1] }}
+              style={{ position: "absolute", left: "50%", top: "40%", transform: "translateX(-50%)", zIndex: 7, textAlign: "center", pointerEvents: "none" }}>
+              <div style={{ fontWeight: 900, fontSize: "clamp(38px,11vw,64px)", color: "#22c55e", textShadow: "0 0 34px rgba(34,197,94,.95)", lineHeight: 1 }}>+{gained.toLocaleString("es-AR")}</div>
+              {mult > 1 && <div style={{ fontWeight: 900, fontSize: 20, color: "#ffb020", textShadow: "0 0 20px rgba(255,176,32,.9)", marginTop: 4 }}>RACHA ×{mult} 🔥</div>}
+            </motion.div>
+          ) : (
+            <motion.div key={"miss" + qIndex} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 14 }}
+              style={{ position: "absolute", left: "50%", top: "40%", transform: "translateX(-50%)", zIndex: 7, fontWeight: 900, fontSize: "clamp(26px,7vw,40px)", color: "#ff5b78", textShadow: "0 0 26px rgba(255,59,92,.9)", whiteSpace: "nowrap", pointerEvents: "none" }}>
+              {chosen === -1 ? "¡Tiempo!" : "¡Ups!"} −1 ❤
+            </motion.div>
+          )
+        )}
+      </AnimatePresence>
+
       {/* top bar: volver + mute */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 5, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px" }}>
-        <Link href={`/app/ia?note_id=${noteId}`} onClick={clearTimers} className="gc-btn" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,.85)", textDecoration: "none", fontSize: 13.5, fontWeight: 600, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)", borderRadius: 999, padding: "7px 14px", backdropFilter: "blur(6px)" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "max(12px, env(safe-area-inset-top)) 14px 12px" }}>
+        <Link href={`/app/ia?note_id=${noteId}`} onClick={() => { clearTimers(); setMusicWanted(false); }} className="gc-btn" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,.85)", textDecoration: "none", fontSize: 13.5, fontWeight: 600, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)", borderRadius: 999, padding: "7px 14px", backdropFilter: "blur(6px)" }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg>
           Salir
         </Link>
@@ -276,7 +333,7 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
 
         {phase === "playing" && q && (
           <motion.div key="play" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", padding: "62px 16px 20px", maxWidth: 860, margin: "0 auto" }}>
+            style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", padding: "60px 14px max(18px, env(safe-area-inset-bottom))", width: "100%", maxWidth: 760, margin: "0 auto", overflowY: "auto" }}>
 
             {/* HUD */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
@@ -330,9 +387,9 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
                 let opacity = 1;
                 let extraGlow = "";
                 if (reveal) {
-                  if (isCorrect) { extraGlow = `, 0 0 34px rgba(${st.glow},.9)`; }
-                  else if (isChosen) { opacity = 0.9; }
-                  else { opacity = 0.32; }
+                  if (isCorrect) { extraGlow = `, 0 0 55px rgba(${st.glow},1), 0 0 0 4px rgba(255,255,255,.55)`; }
+                  else if (isChosen) { opacity = 0.92; }
+                  else { opacity = 0.28; }
                 }
                 return (
                   <motion.button
@@ -341,8 +398,8 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
                     disabled={locked}
                     onClick={() => handleAnswer(i)}
                     initial={{ y: 22, opacity: 0 }}
-                    animate={{ y: 0, opacity, scale: reveal && isChosen && !isCorrect ? 0.98 : 1 }}
-                    transition={{ delay: reduce ? 0 : i * 0.06, type: "spring", stiffness: 260, damping: 20 }}
+                    animate={{ y: 0, opacity, scale: reveal && isCorrect ? 1.06 : reveal && isChosen && !isCorrect ? 0.95 : 1 }}
+                    transition={{ delay: reduce ? 0 : i * 0.06, type: "spring", stiffness: 260, damping: reveal && isCorrect ? 9 : 20 }}
                     whileTap={{ scale: 0.96 }}
                     style={{
                       display: "flex", alignItems: "center", gap: 12, textAlign: "left",
@@ -368,23 +425,6 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
               })}
             </div>
 
-            {/* feedback flotante */}
-            <div style={{ position: "relative", height: 46, marginTop: 10 }}>
-              <AnimatePresence>
-                {locked && gained > 0 && (
-                  <motion.div key="pts" initial={{ y: 10, opacity: 0, scale: 0.7 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                    style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", fontWeight: 900, fontSize: 22, color: "#22c55e", textShadow: "0 0 18px rgba(34,197,94,.8)" }}>
-                    +{gained.toLocaleString("es-AR")}{mult > 1 ? ` (×${mult})` : ""}
-                  </motion.div>
-                )}
-                {locked && chosen !== null && chosen !== q.correctIndex && (
-                  <motion.div key="miss" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", fontWeight: 800, fontSize: 15, color: "#ff8098" }}>
-                    {chosen === -1 ? "¡Se acabó el tiempo!" : "Perdiste una vida"}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </motion.div>
         )}
 
@@ -424,14 +464,18 @@ function IntroScreen({ noteTitle, bestScore, onStart, reduce }: { noteTitle: str
         </motion.div>
       )}
 
-      <motion.button
-        onClick={onStart}
-        className="gc-btn"
-        initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.34 }}
-        whileHover={reduce ? undefined : { scale: 1.04 }} whileTap={{ scale: 0.96 }}
-        style={{ padding: "17px 46px", borderRadius: 999, border: "none", color: "#fff", fontWeight: 800, fontSize: 19, cursor: "pointer", background: "linear-gradient(135deg,#8b5cf6,#4f7dff)", boxShadow: "0 12px 40px rgba(99,60,220,.6), 0 0 0 1px rgba(255,255,255,.1) inset" }}>
-        ▶  Jugar
-      </motion.button>
+      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.34 }}>
+        <motion.div animate={reduce ? {} : { scale: [1, 1.05, 1] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }} style={{ display: "inline-block" }}>
+          <motion.button
+            onClick={onStart}
+            className="gc-btn"
+            whileHover={reduce ? undefined : { scale: 1.04 }} whileTap={{ scale: 0.94 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "18px 52px", borderRadius: 999, border: "none", color: "#fff", fontWeight: 800, fontSize: 20, cursor: "pointer", background: "linear-gradient(135deg,#8b5cf6,#4f7dff)", animation: reduce ? undefined : "gcGlow 1.5s ease-in-out infinite" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
+            Jugar
+          </motion.button>
+        </motion.div>
+      </motion.div>
     </motion.div>
   );
 }
