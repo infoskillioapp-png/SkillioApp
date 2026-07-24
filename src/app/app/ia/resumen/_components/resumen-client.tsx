@@ -225,6 +225,9 @@ export function ResumenClient({
       return next;
     });
   }
+  // Rompe-cache del PDF: el visor del navegador cachea por URL, así que sin esto
+  // "volver a descargar" podía devolver el PDF viejo. Valor fijo por carga.
+  const [pdfV] = useState(() => Date.now());
 
   const sections = data.sections;
   const safeActiveIdx = Math.min(activeIdx, Math.max(0, sections.length - 1));
@@ -345,7 +348,7 @@ export function ResumenClient({
 
           {!isDemo && (
             <a
-              href={`/api/ai/resumen-pdf?note_id=${data.noteId}`}
+              href={`/api/ai/resumen-pdf?note_id=${data.noteId}&v=${pdfV}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
