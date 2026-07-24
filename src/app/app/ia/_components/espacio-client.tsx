@@ -134,13 +134,11 @@ const GEN_STEPS = [
   "Calculando tu ruta de estudio",
 ];
 
-// ⏸ PAUSA (testing): qué se genera AUTOMÁTICAMENTE al subir un apunte. Hoy solo
-// el resumen — tarjetas y simulacro quedan en "Tocá para generar" para no gastar
-// USD probando algo que ya funciona. Al tocar un modo se generan las 3 (ver
-// ModoWrapper). Para reactivar que se generen las 3 al subir, poné:
-//   const AUTO_GEN_KINDS = ["summary", "flashcards", "simulacro"];
+// Comportamiento del producto: al subir un apunte se genera SOLO el resumen.
+// Tarjetas y simulacro quedan "a demanda" ("Tocá para generar") y se arman —
+// cada uno por separado — recién cuando el usuario los toca (ver ModoWrapper).
+// Así no se gasta en lo que el usuario no pide.
 const AUTO_GEN_KINDS = ["summary"];
-const ALL_GEN_KINDS = ["summary", "flashcards", "simulacro"];
 
 function GeneratingOverlay({ noteId, fileName, kinds, onDone, onPaywall, onUsageLimit, onError }: {
   noteId: string; fileName: string; kinds: string[]; onDone: () => void; onPaywall: () => void;
@@ -495,9 +493,11 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
   const doneCount = allTopics.filter(t => (donePcts[t.id] ?? t.pct) >= 100).length;
   const showEspacioTour = useTourRequired("skillio_espacio_tour_v1");
 
-  // Cuando un modo no tiene contenido, genera en vez de navegar
-  function ModoWrapper({ count, href, className, style, children, tourAttr }: {
-    count: number; href: string; className: string;
+  // Cuando un modo no tiene contenido, genera SOLO ese modo (a demanda) en vez
+  // de navegar. Así tocar "Tarjetas" arma solo las tarjetas, y "Simulacro" solo
+  // el simulacro — sin gastar en lo que el usuario no pidió.
+  function ModoWrapper({ count, href, genKind, className, style, children, tourAttr }: {
+    count: number; href: string; genKind: string; className: string;
     style?: React.CSSProperties; children: React.ReactNode;
     tourAttr?: string;
   }) {
@@ -508,7 +508,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
     return (
       <div
         className={className} style={{ ...style, cursor: "pointer" }}
-        onClick={() => { setGenKinds(ALL_GEN_KINDS); setIsGenerating(true); }}
+        onClick={() => { setGenKinds([genKind]); setIsGenerating(true); }}
         {...extra}
       >
         {children}
@@ -649,7 +649,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
           </div>
 
           <div className="modos">
-            <ModoWrapper count={note.summaryCount} href={`/app/ia/resumen?note_id=${note.id}`} className="modo blue in" style={{ animationDelay: ".1s" }} tourAttr="resumen-card">
+            <ModoWrapper count={note.summaryCount} genKind="summary" href={`/app/ia/resumen?note_id=${note.id}`} className="modo blue in" style={{ animationDelay: ".1s" }} tourAttr="resumen-card">
               <span className="deco" /><span className="deco2" /><span className="sweep" />
               <div className="top">
                 <span className="mi">
@@ -678,7 +678,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
               </div>
             </ModoWrapper>
 
-            <ModoWrapper count={note.flashcardsCount} href={`/app/ia/tarjetas?note_id=${note.id}`} className="modo violet in" style={{ animationDelay: ".17s" }}>
+            <ModoWrapper count={note.flashcardsCount} genKind="flashcards" href={`/app/ia/tarjetas?note_id=${note.id}`} className="modo violet in" style={{ animationDelay: ".17s" }}>
               <span className="deco" /><span className="deco2" /><span className="sweep" />
               <div className="top">
                 <span className="mi">
@@ -699,7 +699,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
               </div>
             </ModoWrapper>
 
-            <ModoWrapper count={note.simulacroCount} href={`/app/ia/simulacro?note_id=${note.id}`} className="modo coral in" style={{ animationDelay: ".24s" }}>
+            <ModoWrapper count={note.simulacroCount} genKind="simulacro" href={`/app/ia/simulacro?note_id=${note.id}`} className="modo coral in" style={{ animationDelay: ".24s" }}>
               <span className="deco" /><span className="deco2" /><span className="sweep" />
               <div className="top">
                 <span className="mi">

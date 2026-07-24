@@ -104,10 +104,28 @@ function convertMath(s: string): string {
     .replace(/\$([^$]+)\$/g, (_, m) => latexToText(m));
 }
 
-// Limpia markdown inline que no renderizamos (fórmulas LaTeX, italics, backticks).
-// La negrita se maneja aparte en <Inline>.
+// CLAVE: Gemini casi nunca usa comandos LaTeX (\sum) — mete los SÍMBOLOS UNICODE
+// literales (Σ, ≤, √, π...) directo. KaTeX en pantalla los muestra bien, pero
+// Helvetica del PDF no tiene esos glifos y salen rotos (£, d, e...). Acá los
+// pasamos a ASCII que Helvetica sí dibuja. Se aplica a TODO el texto del PDF.
+function unicodeMathToAscii(s: string): string {
+  return s
+    .replace(/[≤⩽]/g, "<=").replace(/[≥⩾]/g, ">=").replace(/≠/g, "!=").replace(/≈/g, "~=")
+    .replace(/√/g, "sqrt").replace(/∞/g, "inf")
+    .replace(/[Σ∑]/g, "sum").replace(/∏/g, "prod").replace(/∫/g, "int")
+    .replace(/−/g, "-").replace(/⋅/g, "·").replace(/[→➔]/g, "->").replace(/⇒/g, "=>").replace(/≡/g, "=")
+    .replace(/α/g, "alpha").replace(/β/g, "beta").replace(/γ/g, "gamma").replace(/δ/g, "delta")
+    .replace(/Δ/g, "Delta").replace(/θ/g, "theta").replace(/λ/g, "lambda").replace(/μ/g, "mu")
+    .replace(/π/g, "pi").replace(/σ/g, "sigma").replace(/τ/g, "tau").replace(/φ/g, "phi")
+    .replace(/ρ/g, "rho").replace(/ε/g, "eps").replace(/ω/g, "omega").replace(/Ω/g, "Omega");
+}
+
+// Limpia el texto para el PDF: fórmulas ($...$ + comandos LaTeX), símbolos
+// unicode matemáticos, italics y backticks. La negrita se maneja en <Inline>.
 function clean(s: string): string {
-  return convertMath(s).replace(/`/g, "").replace(/(^|[^*])\*(?!\*)([^*]+)\*(?!\*)/g, "$1$2");
+  return unicodeMathToAscii(convertMath(s))
+    .replace(/`/g, "")
+    .replace(/(^|[^*])\*(?!\*)([^*]+)\*(?!\*)/g, "$1$2");
 }
 
 function Inline({ text }: { text: string }) {
@@ -129,7 +147,7 @@ function BlockView({ b }: { b: Block }) {
   if (b.t === "p") return <Text style={styles.p}><Inline text={b.text} /></Text>;
   if (b.t === "li")
     return (
-      <View style={styles.liRow}>
+      <View style={styles.liRow} wrap={false}>
         <Text style={styles.liBullet}>•</Text>
         <Text style={styles.liText}><Inline text={b.text} /></Text>
       </View>
