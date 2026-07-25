@@ -26,7 +26,7 @@ type Props = {
 };
 
 const LIVES = 10;
-const QUESTION_TIME = 15; // segundos, fijo y generoso
+const QUESTION_TIME = 25; // segundos, fijo y generoso (leer + pensar)
 const BASE_POINTS = 1000;
 const MIN_CORRECT = 120; // piso de puntos por acertar aunque sea lento
 
@@ -73,12 +73,12 @@ function GameBackground({ intensity }: { intensity: number }) {
       ].map((b, i) => (
         <motion.div
           key={i}
-          animate={reduce ? {} : { x: [0, 30, -20, 0], y: [0, -25, 15, 0], scale: [1, 1.12, 0.96, 1] }}
+          animate={reduce ? {} : { x: [0, 28, -18, 0], y: [0, -22, 14, 0] }}
           transition={{ duration: b.d, repeat: Infinity, ease: "easeInOut" }}
           style={{
             position: "absolute", left: b.x, top: b.y, width: b.s, height: b.s, marginLeft: -b.s / 2, marginTop: -b.s / 2,
-            borderRadius: "50%", background: b.c, filter: "blur(90px)",
-            opacity: 0.28 + intensity * 0.12,
+            borderRadius: "50%", background: b.c, filter: "blur(78px)",
+            opacity: 0.28 + intensity * 0.12, willChange: "transform",
           }}
         />
       ))}
@@ -358,9 +358,9 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
             {/* timer */}
             <div style={{ height: 8, borderRadius: 999, background: "rgba(255,255,255,.1)", overflow: "hidden", marginBottom: 18 }}>
               {!locked && (
-                <motion.div key={barKey.current} initial={{ width: "100%" }} animate={{ width: "0%" }}
+                <motion.div key={barKey.current} initial={{ scaleX: 1 }} animate={{ scaleX: 0 }}
                   transition={{ duration: QUESTION_TIME, ease: "linear" }}
-                  style={{ height: "100%", borderRadius: 999, background: "linear-gradient(90deg,#22c55e,#ffb020,#ff3b5c)" }} />
+                  style={{ height: "100%", width: "100%", transformOrigin: "left", borderRadius: 999, background: "linear-gradient(90deg,#22c55e,#ffb020,#ff3b5c)", willChange: "transform" }} />
               )}
             </div>
 
