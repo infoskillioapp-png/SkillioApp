@@ -1,85 +1,25 @@
-// Audio del juego. Efectos y música son ARCHIVOS reales (CC0) en
-// /public/efectos de sonido/. Para los pocos sonidos utilitarios sin archivo
-// (tick del reloj, game over) se usa un beep sintetizado mínimo.
+// Audio del juego con Web Audio API + buffers. Los archivos reales (CC0) se
+// descargan y DECODIFICAN UNA sola vez (al tocar "Jugar") y se reproducen con
+// AudioBufferSourceNode — fuera del hilo principal, sin trabar las animaciones.
+// (HTMLAudio reproduce en el main thread y causaba lag; por eso este cambio.)
 
+let ctx: AudioContext | null = null;
 let muted = false;
+let loaded = false;
 
-// ---- archivos reales (HTMLAudio) ----
 const FILES: Record<string, string> = {
   correct: "/efectos de sonido/respuesta correcta.wav",
   wrong: "/efectos de sonido/respuesta incorrecta.wav",
   points: "/efectos de sonido/cuando suma puntos.wav",
   win: "/efectos de sonido/mixkit-game-level-completed-2059.wav",
+  music: "/efectos de sonido/musica de fondo juego.mp3",
 };
-const VOL: Record<string, number> = { correct: 0.75, wrong: 0.7, points: 0.7, win: 0.6 };
+const buffers: Record<string, AudioBuffer> = {};
 
-const els: Record<string, HTMLAudioElement> = {};
-let music: HTMLAudioElement | null = null;
+let musicSrc: AudioBufferSourceNode | null = null;
+let musicGain: GainNode | null = null;
 let musicWanted = false;
 
-function el(key: string): HTMLAudioElement | null {
-  if (typeof window === "undefined") return null;
-  if (!els[key]) {
-    const a = new Audio(encodeURI(FILES[key]));
-    a.preload = "auto";
-    a.volume = VOL[key] ?? 0.7;
-    els[key] = a;
-  }
-  return els[key];
-}
-
-function play(key: string) {
-  if (muted) return;
-  const a = el(key);
-  if (!a) return;
-  try { a.currentTime = 0; void a.play(); } catch { /* noop */ }
-}
-
-function musicEl(): HTMLAudioElement | null {
-  if (typeof window === "undefined") return null;
-  if (!music) {
-    music = new Audio(encodeURI("/efectos de sonido/musica de fondo juego.mp3"));
-    music.loop = true;
-    music.volume = 0.3;
-  }
-  return music;
-}
-
-// Se llama dentro del gesto del usuario (tocar "Jugar"): "desbloquea" los audios
-// (iOS/Safari) reproduciéndolos y pausándolos, así después se pueden disparar por
-// código (ej: sonido de error por timeout) sin que el navegador los bloquee.
-export function initAudio() {
-  Object.keys(FILES).forEach((k) => {
-    const a = el(k);
-    if (a) a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
-  });
-}
-
-export function setMuted(m: boolean) {
-  muted = m;
-  if (m) stopMusic();
-  else if (musicWanted) startMusic();
-}
-export function isMuted() { return muted; }
-
-export const sfxCorrect = () => play("correct");
-export const sfxWrong = () => play("wrong");
-export const sfxStreak = () => play("points");
-export const sfxSelect = () => { /* el tap ya lo cubre correcto/incorrecto */ };
-export const sfxWin = () => play("win");
-
-// ---- música de fondo ----
-export function startMusic() {
-  musicWanted = true;
-  if (muted) return;
-  const m = musicEl();
-  if (m) m.play().catch(() => {});
-}
-export function stopMusic() { if (music) music.pause(); }
-export function setMusicWanted(w: boolean) { musicWanted = w; if (!w) stopMusic(); }
-
-// ---- beep sintetizado mínimo para lo que no tiene archivo (tick, game over) ----
-let ctx: AudioContext | null = null;
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!ctx) {
@@ -90,6 +30,69 @@ function getCtx(): AudioContext | null {
   if (ctx.state === "suspended") void ctx.resume();
   return ctx;
 }
+
+// Se llama dentro del gesto del usuario (tocar "Jugar"). Descarga + decodifica
+// todos los sonidos una vez. Si ya se pidió música, arranca al terminar.
+export function initAudio() {
+  const ac = getCtx();
+  if (!ac || loaded) return;
+  loaded = true;
+  Object.entries(FILES).forEach(async ([k, url]) => {
+    try {
+      const res = await fetch(encodeURI(url));
+      buffers[k] = await ac.decodeAudioData(await res.arrayBuffer());
+      if (k === "music" && musicWanted && !muted) startMusic();
+    } catch { /* si un archivo falla, el resto sigue */ }
+  });
+}
+
+function playBuf(key: string, gain: number) {
+  const ac = getCtx();
+  if (!ac || muted || !buffers[key]) return;
+  const src = ac.createBufferSource();
+  src.buffer = buffers[key];
+  const g = ac.createGain();
+  g.gain.value = gain;
+  src.connect(g).connect(ac.destination);
+  src.start();
+}
+
+export function setMuted(m: boolean) {
+  muted = m;
+  if (m) stopMusic();
+  else if (musicWanted) startMusic();
+}
+export function isMuted() { return muted; }
+
+export const sfxCorrect = () => playBuf("correct", 0.85);
+export const sfxWrong = () => playBuf("wrong", 0.8);
+export const sfxStreak = () => playBuf("points", 0.8);
+export const sfxWin = () => playBuf("win", 0.7);
+export const sfxSelect = () => { /* el tap ya lo cubre correcto/incorrecto */ };
+
+// ---- música de fondo (buffer en loop) ----
+export function startMusic() {
+  musicWanted = true;
+  const ac = getCtx();
+  if (!ac || muted || !buffers.music || musicSrc) return;
+  musicGain = ac.createGain();
+  musicGain.gain.value = 0.28;
+  musicSrc = ac.createBufferSource();
+  musicSrc.buffer = buffers.music;
+  musicSrc.loop = true;
+  musicSrc.connect(musicGain).connect(ac.destination);
+  musicSrc.start();
+}
+export function stopMusic() {
+  if (musicSrc) {
+    try { musicSrc.stop(); } catch { /* noop */ }
+    musicSrc.disconnect();
+    musicSrc = null;
+  }
+}
+export function setMusicWanted(w: boolean) { musicWanted = w; if (!w) stopMusic(); }
+
+// ---- beeps sintetizados para lo que no tiene archivo (tick, game over) ----
 function beep(freq: number, dur: number, gain = 0.1, type: OscillatorType = "sine", delay = 0, slideTo?: number) {
   const ac = getCtx();
   if (!ac || muted) return;

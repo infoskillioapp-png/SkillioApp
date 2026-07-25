@@ -60,24 +60,29 @@ function Heart({ full }: { full: boolean }) {
   );
 }
 
-// ---- fondo synthwave neón (ESTÁTICO: los blobs con blur no se animan por
-// frame — animar un blur grande es carísimo para la GPU y trababa el juego). ----
+// ---- fondo synthwave neón animado ----
 function GameBackground({ intensity }: { intensity: number }) {
+  const reduce = useReducedMotion();
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "radial-gradient(120% 90% at 50% 0%, #241b52 0%, #150f31 45%, #0c0920 100%)" }}>
       {[
-        { c: "#7c3aed", x: "12%", y: "16%", s: 400 },
-        { c: "#2b7fff", x: "84%", y: "20%", s: 360 },
-        { c: "#ff3b5c", x: "72%", y: "84%", s: 320 },
-        { c: "#22c55e", x: "18%", y: "82%", s: 280 },
+        { c: "#7c3aed", x: "12%", y: "18%", s: 420, d: 9 },
+        { c: "#2b7fff", x: "82%", y: "22%", s: 380, d: 11 },
+        { c: "#ff3b5c", x: "70%", y: "82%", s: 340, d: 10 },
+        { c: "#22c55e", x: "20%", y: "80%", s: 300, d: 12 },
       ].map((b, i) => (
-        <div key={i} style={{
-          position: "absolute", left: b.x, top: b.y, width: b.s, height: b.s, marginLeft: -b.s / 2, marginTop: -b.s / 2,
-          borderRadius: "50%", background: b.c, filter: "blur(64px)",
-          opacity: 0.26 + intensity * 0.14, transition: "opacity .5s ease",
-        }} />
+        <motion.div
+          key={i}
+          animate={reduce ? {} : { x: [0, 30, -20, 0], y: [0, -25, 15, 0], scale: [1, 1.12, 0.96, 1] }}
+          transition={{ duration: b.d, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            position: "absolute", left: b.x, top: b.y, width: b.s, height: b.s, marginLeft: -b.s / 2, marginTop: -b.s / 2,
+            borderRadius: "50%", background: b.c, filter: "blur(90px)",
+            opacity: 0.28 + intensity * 0.12,
+          }}
+        />
       ))}
-      {/* grid synthwave inferior (estático) */}
+      {/* grid synthwave inferior */}
       <div style={{
         position: "absolute", left: 0, right: 0, bottom: 0, height: "42%",
         backgroundImage: "linear-gradient(rgba(150,110,255,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(150,110,255,.16) 1px, transparent 1px)",
