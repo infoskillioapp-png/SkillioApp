@@ -60,38 +60,32 @@ function Heart({ full }: { full: boolean }) {
   );
 }
 
-// ---- fondo animado (synthwave neón) ----
+// ---- fondo synthwave neón (ESTÁTICO: los blobs con blur no se animan por
+// frame — animar un blur grande es carísimo para la GPU y trababa el juego). ----
 function GameBackground({ intensity }: { intensity: number }) {
-  const reduce = useReducedMotion();
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "radial-gradient(120% 90% at 50% 0%, #241b52 0%, #150f31 45%, #0c0920 100%)" }}>
-      {/* blobs neón */}
-      {!reduce && [
-        { c: "#7c3aed", x: "12%", y: "18%", s: 420, d: 9 },
-        { c: "#2b7fff", x: "82%", y: "22%", s: 380, d: 11 },
-        { c: "#ff3b5c", x: "70%", y: "82%", s: 340, d: 10 },
-        { c: "#22c55e", x: "20%", y: "80%", s: 300, d: 12 },
+      {[
+        { c: "#7c3aed", x: "12%", y: "16%", s: 400 },
+        { c: "#2b7fff", x: "84%", y: "20%", s: 360 },
+        { c: "#ff3b5c", x: "72%", y: "84%", s: 320 },
+        { c: "#22c55e", x: "18%", y: "82%", s: 280 },
       ].map((b, i) => (
-        <motion.div
-          key={i}
-          animate={{ x: [0, 30, -20, 0], y: [0, -25, 15, 0], scale: [1, 1.12, 0.96, 1] }}
-          transition={{ duration: b.d, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            position: "absolute", left: b.x, top: b.y, width: b.s, height: b.s, marginLeft: -b.s / 2, marginTop: -b.s / 2,
-            borderRadius: "50%", background: b.c, filter: "blur(90px)",
-            opacity: 0.28 + intensity * 0.12,
-          }}
-        />
+        <div key={i} style={{
+          position: "absolute", left: b.x, top: b.y, width: b.s, height: b.s, marginLeft: -b.s / 2, marginTop: -b.s / 2,
+          borderRadius: "50%", background: b.c, filter: "blur(64px)",
+          opacity: 0.26 + intensity * 0.14, transition: "opacity .5s ease",
+        }} />
       ))}
-      {/* grid synthwave inferior */}
+      {/* grid synthwave inferior (estático) */}
       <div style={{
         position: "absolute", left: 0, right: 0, bottom: 0, height: "42%",
-        backgroundImage: "linear-gradient(rgba(150,110,255,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(150,110,255,.18) 1px, transparent 1px)",
+        backgroundImage: "linear-gradient(rgba(150,110,255,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(150,110,255,.16) 1px, transparent 1px)",
         backgroundSize: "44px 44px",
         transform: "perspective(340px) rotateX(62deg)", transformOrigin: "bottom",
         maskImage: "linear-gradient(to top, #000 10%, transparent 80%)",
         WebkitMaskImage: "linear-gradient(to top, #000 10%, transparent 80%)",
-        opacity: 0.5 + intensity * 0.2,
+        opacity: 0.5 + intensity * 0.2, transition: "opacity .5s ease",
       }} />
     </div>
   );
@@ -142,14 +136,15 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
   const burst = useCallback((strong: boolean) => {
     const layer = confettiRef.current;
     if (!layer || reduce) return;
+    layer.replaceChildren(); // no acumular explosiones (evita el lag)
     const colors = ["#ff3b5c", "#2b7fff", "#ffb020", "#22c55e", "#c4b5fd", "#f9a8d4"];
-    const n = strong ? 46 : 24;
+    const n = strong ? 26 : 16;
     for (let i = 0; i < n; i++) {
       const p = document.createElement("span");
-      p.style.cssText = `position:absolute;left:50%;top:34%;width:9px;height:14px;border-radius:2px;background:${colors[i % colors.length]};--cx:${Math.random() * 300 - 150}px;--cy:${240 + Math.random() * 300}px;--cr:${Math.random() * 900 - 450}deg;animation:gcConfetti ${0.9 + Math.random() * 0.8}s cubic-bezier(.2,.7,.3,1) forwards;will-change:transform,opacity`;
+      p.style.cssText = `position:absolute;left:50%;top:34%;width:9px;height:14px;border-radius:2px;background:${colors[i % colors.length]};--cx:${Math.random() * 280 - 140}px;--cy:${230 + Math.random() * 280}px;--cr:${Math.random() * 800 - 400}deg;animation:gcConfetti ${0.9 + Math.random() * 0.7}s cubic-bezier(.2,.7,.3,1) forwards`;
       layer.appendChild(p);
-      setTimeout(() => p.remove(), 1900);
     }
+    setTimeout(() => layer.replaceChildren(), 1700);
   }, [reduce]);
 
   const q = questions[qIndex];
@@ -333,7 +328,7 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
 
         {phase === "playing" && q && (
           <motion.div key="play" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", padding: "60px 14px max(18px, env(safe-area-inset-bottom))", width: "100%", maxWidth: 760, margin: "0 auto", overflowY: "auto" }}>
+            style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", padding: "60px 14px max(18px, env(safe-area-inset-bottom))", width: "100%", maxWidth: 760, margin: "0 auto", overflow: "hidden" }}>
 
             {/* HUD */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
@@ -398,8 +393,8 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
                     disabled={locked}
                     onClick={() => handleAnswer(i)}
                     initial={{ y: 22, opacity: 0 }}
-                    animate={{ y: 0, opacity, scale: reveal && isCorrect ? 1.06 : reveal && isChosen && !isCorrect ? 0.95 : 1 }}
-                    transition={{ delay: reduce ? 0 : i * 0.06, type: "spring", stiffness: 260, damping: reveal && isCorrect ? 9 : 20 }}
+                    animate={{ y: 0, opacity, scale: reveal && isCorrect ? 1.035 : reveal && isChosen && !isCorrect ? 0.96 : 1 }}
+                    transition={{ delay: reduce ? 0 : i * 0.05, type: "spring", stiffness: 260, damping: reveal && isCorrect ? 11 : 20 }}
                     whileTap={{ scale: 0.96 }}
                     style={{
                       display: "flex", alignItems: "center", gap: 12, textAlign: "left",
