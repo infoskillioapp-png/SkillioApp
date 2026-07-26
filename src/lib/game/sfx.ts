@@ -31,11 +31,27 @@ function getCtx(): AudioContext | null {
   return ctx;
 }
 
-// Se llama dentro del gesto del usuario (tocar "Jugar"). Descarga + decodifica
-// todos los sonidos una vez. Si ya se pidió música, arranca al terminar.
+// iOS/Safari: el AudioContext arranca bloqueado y SOLO se desbloquea si se
+// reproduce algo sincrónicamente dentro de un gesto del usuario. Reproducir un
+// buffer silencioso de 1 sample alcanza. Sin esto, en mobile no sonaba nada.
+function unlock(ac: AudioContext) {
+  try {
+    const b = ac.createBuffer(1, 1, 22050);
+    const s = ac.createBufferSource();
+    s.buffer = b;
+    s.connect(ac.destination);
+    s.start(0);
+  } catch { /* noop */ }
+}
+
+// Se llama dentro del gesto del usuario (tocar "Jugar"): resume + desbloquea el
+// contexto (iOS) y descarga + decodifica los sonidos una sola vez. Al terminar
+// de decodificar, si se pidió música, arranca.
 export function initAudio() {
-  const ac = getCtx();
-  if (!ac || loaded) return;
+  const ac = getCtx(); // crea + resume
+  if (!ac) return;
+  unlock(ac); // desbloqueo iOS, sincrónico dentro del gesto
+  if (loaded) return;
   loaded = true;
   Object.entries(FILES).forEach(async ([k, url]) => {
     try {
