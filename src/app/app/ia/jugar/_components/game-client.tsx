@@ -27,8 +27,11 @@ type Props = {
 
 const LIVES = 10;
 const QUESTION_TIME = 25; // segundos, fijo y generoso (leer + pensar)
-const BASE_POINTS = 1000;
-const MIN_CORRECT = 120; // piso de puntos por acertar aunque sea lento
+// Economía de monedas: acierto = base + bonus por velocidad, luego × multiplicador
+// de racha. Máximo 40 por acierto (20 × 2). Escala pensada para una partida
+// perfecta ≈ 500 monedas (números chicos para que los desbloqueos tengan valor).
+const COIN_BASE = 10;        // siempre que aciertes
+const COIN_SPEED_BONUS = 10; // +0..+10 según tiempo restante
 
 // Estilo por posición: color neón + forma tipo Kahoot.
 const OPTS = [
@@ -242,7 +245,7 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
     if (isCorrect) {
       const newStreak = streak + 1;
       const m = newStreak >= 5 ? 2 : newStreak >= 3 ? 1.5 : 1;
-      const pts = Math.round(Math.max(MIN_CORRECT, BASE_POINTS * frac) * m);
+      const pts = Math.round((COIN_BASE + Math.round(COIN_SPEED_BONUS * frac)) * m);
       const newScore = score + pts;
       const newCorrect = correctCount + 1;
       setGained(pts);
