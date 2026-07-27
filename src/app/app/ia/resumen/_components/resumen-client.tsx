@@ -8,7 +8,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { SalePopup } from "@/components/sale-popup";
-import { RescuePrompt } from "@/components/rescue-prompt";
+import { GiftPopup } from "@/components/gift-popup";
 import { OnboardingTour, useTourRequired, TourIconBook } from "../../../_components/onboarding-tour";
 
 // El resumen es Markdown. Cada sección (un '## ' del documento) es una unidad
@@ -209,8 +209,9 @@ export function ResumenClient({
     } catch { return new Set<number>(); }
   });
   const [showPaywall, setShowPaywall] = useState(false);
-  const [rescueOpen, setRescueOpen] = useState(false);
-  const [rescueDone, setRescueDone] = useState(false);
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [discountDone, setDiscountDone] = useState(false);
+  const [showPdfGift, setShowPdfGift] = useState(false);
   const showResumenTour = useTourRequired("skillio_resumen_tour_v1");
   // Modo oscuro solo para la lectura del resumen (descansa la vista en sesiones
   // largas). Se recuerda en localStorage.
@@ -236,7 +237,9 @@ export function ResumenClient({
 
   function closePaywall() {
     setShowPaywall(false);
-    if (isGuest && !rescueDone) setRescueOpen(true);
+    // Lead caliente que cerró el paywall → regalo de descuento (una sola vez):
+    // captura el mail y cierra la venta con un cupón. No aplica a pagos ni demo.
+    if (!isPro && !isDemo && !discountDone) setShowDiscount(true);
   }
 
   function persistDone(newSet: Set<number>) {
@@ -266,11 +269,44 @@ export function ResumenClient({
   return (
     <div className={dark ? "resumen-dark" : undefined}>
       {showPaywall && <SalePopup ctx="resumen" onClose={closePaywall} />}
-      {rescueOpen && !rescueDone && (
-        <RescuePrompt
+      {showDiscount && (
+        <GiftPopup
+          type="discount"
+          eyebrow="🎁 SOLO PARA VOS"
+          title="Te queremos adentro: 25% OFF"
+          subtitle={
+            <>
+              Vimos que lo estás pensando. Te regalamos <b>25% de descuento</b> en tu primer pago.
+              <div style={{ display: "flex", gap: 8, marginTop: 12, textAlign: "left" }}>
+                <div style={{ flex: 1, background: "#f8f7ff", border: "1.5px solid #e0d9ff", borderRadius: 10, padding: "8px 10px" }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: "#4f7dff" }}>⚡ Semanal</div>
+                  <div style={{ fontSize: 12, color: "#9a8f80", textDecoration: "line-through" }}>$4.900</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink,#1f2347)" }}>$3.675</div>
+                </div>
+                <div style={{ flex: 1, background: "linear-gradient(135deg,#f3f0ff,#eef2ff)", border: "1.5px solid #c4b5fd", borderRadius: 10, padding: "8px 10px" }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: "#8b5cf6" }}>⭐ Mensual</div>
+                  <div style={{ fontSize: 12, color: "#9a8f80", textDecoration: "line-through" }}>$15.900</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink,#1f2347)" }}>$11.925</div>
+                </div>
+              </div>
+            </>
+          }
+          ctaText="Enviame el código 25% OFF"
+          successText="¡Tu código va en camino! 🎟️"
+          onClose={() => { setShowDiscount(false); setDiscountDone(true); }}
+          onSuccess={() => setDiscountDone(true)}
+        />
+      )}
+      {showPdfGift && (
+        <GiftPopup
+          type="resumen_pdf"
           noteId={data.noteId}
-          onClose={() => setRescueOpen(false)}
-          onDone={() => { setRescueDone(true); setRescueOpen(false); }}
+          eyebrow="🎁 TE LO MANDAMOS"
+          title="Tu resumen, a tu correo 📄"
+          subtitle={<>Dejanos tu mail y te enviamos el <b>link a tu resumen</b> para abrirlo y descargarlo cuando quieras, desde cualquier dispositivo.</>}
+          ctaText="Enviarme mi resumen"
+          successText="¡Enviado! Revisá tu correo 📬"
+          onClose={() => setShowPdfGift(false)}
         />
       )}
 
@@ -346,25 +382,29 @@ export function ResumenClient({
             </Link>
           </div>
 
-          {!isDemo && (
-            <a
-              href={`/api/ai/resumen-pdf?note_id=${data.noteId}&v=${pdfV}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                width: "100%", margin: "0 0 16px", padding: "13px 16px", borderRadius: 14,
-                background: "linear-gradient(135deg,#10b981,#059669)",
-                color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
-                textDecoration: "none", boxShadow: "0 6px 18px rgba(16,185,129,.30)",
-              }}
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-              </svg>
-              Descargar PDF
-            </a>
-          )}
+          {!isDemo && (() => {
+            const pdfStyle = {
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              width: "100%", margin: "0 0 16px", padding: "13px 16px", borderRadius: 14,
+              background: "linear-gradient(135deg,#10b981,#059669)",
+              color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+              textDecoration: "none", boxShadow: "0 6px 18px rgba(16,185,129,.30)",
+            } as const;
+            const inner = (
+              <>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                </svg>
+                Descargar PDF
+              </>
+            );
+            // Pro: descarga directa. Free: regalo → se lo mandamos por mail (captura).
+            return isPro ? (
+              <a href={`/api/ai/resumen-pdf?note_id=${data.noteId}&v=${pdfV}`} target="_blank" rel="noopener noreferrer" style={pdfStyle}>{inner}</a>
+            ) : (
+              <button onClick={() => setShowPdfGift(true)} style={{ ...pdfStyle, border: "none", cursor: "pointer" }}>{inner}</button>
+            );
+          })()}
 
           <div className="rcard in">
             <MD text={active.markdown} />

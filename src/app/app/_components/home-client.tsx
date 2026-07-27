@@ -7,6 +7,7 @@ import { UploadModal } from "./upload-modal";
 import { MateriasAccordion } from "./materias-accordion";
 import { OnboardingTour, useTourRequired, TourIconSparkles, TourIconUpload } from "./onboarding-tour";
 import { SalePopup } from "@/components/sale-popup";
+import { GiftPopup } from "@/components/gift-popup";
 
 function useParallaxBg() {
   const ref = useRef<HTMLDivElement>(null);
@@ -121,6 +122,7 @@ const HOME_TOUR_KEY = "skillio_home_tour_v1";
 export function HomeClient({ user, lastNote, subjects, notes, usage = null, autoUpload = false, autoUpgrade = null }: Props) {
   const [modalOpen, setModalOpen] = useState(autoUpload);
   const [showPaywall, setShowPaywall] = useState(!!autoUpgrade);
+  const [showGift, setShowGift] = useState(false);
   const bgRef = useParallaxBg();
   const showTour = useTourRequired(HOME_TOUR_KEY);
 
@@ -157,6 +159,11 @@ export function HomeClient({ user, lastNote, subjects, notes, usage = null, auto
                   </span>
                   Subir archivo
                 </button>
+                <div style={{ marginTop: 10 }}>
+                  <button onClick={() => setShowGift(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 999, border: "1.5px solid rgba(255,214,107,.55)", background: "rgba(255,214,107,.16)", color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", backdropFilter: "blur(6px)" }}>
+                    <span style={{ fontSize: 16 }}>🎁</span> Regalo: 10 técnicas de estudio
+                  </button>
+                </div>
                 {usage && (
                   <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginTop: 12, padding: "7px 13px", borderRadius: 999, background: "rgba(255,255,255,.14)", border: "1px solid rgba(255,255,255,.25)", backdropFilter: "blur(6px)", fontSize: 12.5, color: "#fff", fontWeight: 600 }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" /></svg>
@@ -234,6 +241,18 @@ export function HomeClient({ user, lastNote, subjects, notes, usage = null, auto
           ctx="generic"
           preferredPlan={autoUpgrade}
           onClose={() => setShowPaywall(false)}
+        />
+      )}
+
+      {showGift && (
+        <GiftPopup
+          type="techniques"
+          eyebrow="🎁 REGALO GRATIS"
+          title="10 técnicas de estudio que sí funcionan"
+          subtitle={<>Las <b>10 técnicas más respaldadas por la ciencia</b> para rendir más en menos tiempo. Dejanos tu mail y te las mandamos ahora.</>}
+          ctaText="Enviame las 10 técnicas"
+          successText="¡Enviadas! Revisá tu correo 📬"
+          onClose={() => setShowGift(false)}
         />
       )}
 

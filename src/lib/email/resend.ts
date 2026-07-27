@@ -133,7 +133,7 @@ export async function sendWelcomeEmail(to: string, name?: string | null): Promis
     html: wrap({
       preview: "Subí un apunte y en segundos tenés resumen, tarjetas y simulacro.",
       heading: `¡Hola ${n}! Ya estás dentro 🎉`,
-      body: `Skillio convierte tus apuntes y PDFs en <b>resúmenes claros, flashcards y simulacros de parcial</b> en segundos.<br><br>Tenés <b>3 generaciones gratis</b> para empezar. El mejor primer paso: subí el apunte más denso que tengas.`,
+      body: `Skillio convierte tus apuntes y PDFs en <b>resúmenes claros, flashcards y simulacros de parcial</b> en segundos.<br><br>Tenés tu <b>primera generación gratis</b> para empezar. El mejor primer paso: subí el apunte más denso que tengas.`,
       ctaText: "Subir mi primer apunte →",
       ctaPath: "/app?upload=1",
     }),
@@ -155,11 +155,11 @@ export async function scheduleNudgeEmails(to: string, name?: string | null): Pro
   await send({
     to,
     scheduledAt: in2h,
-    subject: "¿Ya probaste la IA? Tenés 3 generaciones gratis 📚",
+    subject: "¿Ya probaste la IA? Tu generación gratis te espera 📚",
     html: wrap({
       preview: "Pegá un apunte y armá tu primer resumen, mazo o simulacro.",
       heading: `${n}, ¿ya generaste algo?`,
-      body: `Tus <b>3 generaciones gratis</b> te están esperando.<br><br>Subí cualquier apunte y en segundos tenés un <b>resumen por puntos clave</b>, un <b>mazo de flashcards</b> o un <b>simulacro de parcial</b> listo para practicar.`,
+      body: `Tu <b>generación gratis</b> te está esperando.<br><br>Subí cualquier apunte y en segundos tenés un <b>resumen por puntos clave</b>, un <b>mazo de flashcards</b> y un <b>simulacro de parcial</b> listo para practicar.`,
       ctaText: "Generar ahora →",
       ctaPath: "/app?upload=1",
     }),
@@ -207,7 +207,7 @@ export async function sendCreditsExhaustedEmail(to: string, name?: string | null
     html: wrap({
       preview: "Justo cuando le estabas agarrando la mano. Seguí sin límites con PRO.",
       heading: `${n}, te quedaste sin generaciones en plena racha 🔥`,
-      body: `Usaste tus 3 generaciones gratis justo cuando le estabas agarrando la mano.<br><br>Con <b>Skillio PRO</b> seguís generando resúmenes, flashcards y simulacros <b>sin límites</b>.<br><br>
+      body: `Usaste tu generación gratis justo cuando le estabas agarrando la mano.<br><br>Con <b>Skillio PRO</b> seguís generando resúmenes, flashcards y simulacros <b>sin límites</b>.<br><br>
         <span style="background:#f3f0ff;border-radius:8px;padding:4px 10px;font-weight:700;color:#8b5cf6;">⚡ Semanal $4.900</span>&nbsp;&nbsp;
         <span style="background:#f3f0ff;border-radius:8px;padding:4px 10px;font-weight:700;color:#8b5cf6;">⭐ Mensual $15.900</span>`,
       ctaText: "Ver planes y seguir →",
