@@ -311,20 +311,14 @@ export async function sendDiscountEmail(to: string, code: string, pct: number): 
       heading: `🎁 ${pct}% OFF, de regalo`,
       body: `Como te lo prometimos, acá está tu código de descuento:<br><br>
         <div style="text-align:center;margin:8px 0 4px;"><span style="display:inline-block;background:#f3f0ff;border:2px dashed #8b5cf6;border-radius:12px;padding:12px 24px;font-size:22px;font-weight:800;letter-spacing:2px;color:#6d28d9;">${code}</span></div>
-        <div style="text-align:center;color:#9a8f80;font-size:12px;margin-bottom:16px;">${pct}% OFF en tu primer pago</div>
+        <div style="text-align:center;color:#9a8f80;font-size:12px;margin-bottom:16px;">${pct}% OFF en tu primer mes del plan Mensual PRO</div>
         Con <b>Skillio PRO</b> generás sin límites, con el mejor modelo de IA.<br><br>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0;">
           <tr>
-            <td style="background:#f8f7ff;border:1.5px solid #e0d9ff;border-radius:12px;padding:12px 16px;width:48%;">
-              <div style="font-weight:700;font-size:13px;color:#4f7dff;">⚡ Semanal</div>
-              <div style="font-size:13px;color:#9a8f80;text-decoration:line-through;">$4.900</div>
-              <div style="font-size:20px;font-weight:800;color:#2b2620;">$3.675</div>
-            </td>
-            <td style="width:4%;"></td>
-            <td style="background:linear-gradient(135deg,#f3f0ff,#eef2ff);border:1.5px solid #c4b5fd;border-radius:12px;padding:12px 16px;width:48%;">
-              <div style="font-weight:700;font-size:13px;color:#8b5cf6;">⭐ Mensual PRO</div>
-              <div style="font-size:13px;color:#9a8f80;text-decoration:line-through;">$15.900</div>
-              <div style="font-size:20px;font-weight:800;color:#2b2620;">$11.925</div>
+            <td style="background:linear-gradient(135deg,#f3f0ff,#eef2ff);border:1.5px solid #c4b5fd;border-radius:12px;padding:14px 18px;">
+              <div style="font-weight:700;font-size:14px;color:#8b5cf6;">⭐ Mensual PRO</div>
+              <div style="margin-top:4px;"><span style="font-size:14px;color:#9a8f80;text-decoration:line-through;">$15.900</span> &nbsp;<span style="font-size:22px;font-weight:800;color:#2b2620;">$11.925</span> <span style="font-size:12px;color:#8b5cf6;font-weight:700;">primer mes</span></div>
+              <div style="font-size:12px;color:#9a8f80;margin-top:4px;">Después se renueva a $15.900/mes. Cancelás cuando quieras.</div>
             </td>
           </tr>
         </table>

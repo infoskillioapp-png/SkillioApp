@@ -276,17 +276,18 @@ export function ResumenClient({
           title="Te queremos adentro: 25% OFF"
           subtitle={
             <>
-              Vimos que lo estás pensando. Te regalamos <b>25% de descuento</b> en tu primer pago.
-              <div style={{ display: "flex", gap: 8, marginTop: 12, textAlign: "left" }}>
-                <div style={{ flex: 1, background: "#f8f7ff", border: "1.5px solid #e0d9ff", borderRadius: 10, padding: "8px 10px" }}>
-                  <div style={{ fontWeight: 700, fontSize: 12, color: "#4f7dff" }}>⚡ Semanal</div>
-                  <div style={{ fontSize: 12, color: "#9a8f80", textDecoration: "line-through" }}>$4.900</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink,#1f2347)" }}>$3.675</div>
-                </div>
-                <div style={{ flex: 1, background: "linear-gradient(135deg,#f3f0ff,#eef2ff)", border: "1.5px solid #c4b5fd", borderRadius: 10, padding: "8px 10px" }}>
-                  <div style={{ fontWeight: 700, fontSize: 12, color: "#8b5cf6" }}>⭐ Mensual</div>
-                  <div style={{ fontSize: 12, color: "#9a8f80", textDecoration: "line-through" }}>$15.900</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink,#1f2347)" }}>$11.925</div>
+              Vimos que lo estás pensando. Te regalamos <b>25% OFF en tu primer mes</b> del plan Mensual PRO.
+              <div style={{ marginTop: 12, textAlign: "left" }}>
+                <div style={{ background: "linear-gradient(135deg,#f3f0ff,#eef2ff)", border: "1.5px solid #c4b5fd", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: "#8b5cf6" }}>⭐ Mensual PRO</div>
+                    <div style={{ fontSize: 11.5, color: "#9a8f80" }}>después $15.900/mes</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 12.5, color: "#9a8f80", textDecoration: "line-through" }}>$15.900</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "var(--ink,#1f2347)", lineHeight: 1.1 }}>$11.925</div>
+                    <div style={{ fontSize: 10.5, color: "#8b5cf6", fontWeight: 700 }}>primer mes</div>
+                  </div>
                 </div>
               </div>
             </>
