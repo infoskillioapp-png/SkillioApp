@@ -101,6 +101,59 @@ export function mpCreateSubscription(data: {
   });
 }
 
+// Checkout EMBEBIDO: crea la suscripción con la tarjeta ya tokenizada en el
+// navegador (Bricks). status:"authorized" + card_token_id → MP cobra el primer
+// pago YA y devuelve la preapproval autorizada, sin redirigir a MP. El monto va
+// directo en auto_recurring (sin preapproval_plan_id) para tener control total
+// del importe — clave para el descuento de primer mes (Fase 2), donde después
+// se sube el monto con mpUpdateSubscriptionAmount y MP lo respeta por ser una
+// preapproval de monto propio (no heredado de un plan).
+export function mpCreateSubscriptionWithToken(data: {
+  reason: string;
+  externalRef: string;
+  payerEmail: string;
+  cardTokenId: string;
+  amount: number;
+  backUrl: string;
+  frequency?: number;
+  frequencyType?: "months" | "days";
+}): Promise<MpSubscription> {
+  return mpFetch("/preapproval", {
+    method: "POST",
+    body: JSON.stringify({
+      reason: data.reason,
+      external_reference: data.externalRef,
+      payer_email: data.payerEmail,
+      card_token_id: data.cardTokenId,
+      auto_recurring: {
+        frequency: data.frequency ?? 1,
+        frequency_type: data.frequencyType ?? "months",
+        transaction_amount: data.amount,
+        currency_id: "ARS",
+      },
+      back_url: data.backUrl,
+      status: "authorized",
+    }),
+  });
+}
+
+// Sube (o cambia) el importe de una suscripción ya autorizada. Se usa en la
+// primera renovación del descuento de primer mes: la sub nace a $11.925 y acá
+// se lleva a $15.900 para los cobros siguientes.
+export function mpUpdateSubscriptionAmount(id: string, amount: number): Promise<MpSubscription> {
+  return mpFetch<MpSubscription>(`/preapproval/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: "months",
+        transaction_amount: amount,
+        currency_id: "ARS",
+      },
+    }),
+  });
+}
+
 export function mpGetPlan(id: string): Promise<MpPlan> {
   return mpFetch<MpPlan>(`/preapproval_plan/${id}`);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { track, pixel } from "@/lib/track-client";
 
 // Valor (ARS) por plan, para los eventos de Meta.
@@ -42,13 +43,27 @@ type Props = { ctx: PaywallCtx; onClose: () => void; preferredPlan?: PlanPrefere
 
 export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás después" }: Props) {
   const [loading, setLoading] = useState<"semanal" | "pro" | "trimestral" | null>(null);
+  const router = useRouter();
   const msg = CTX[ctx];
 
-  async function subscribe(plan: "semanal" | "pro" | "trimestral") {
-    setLoading(plan);
+  function trackPlanClick(plan: "semanal" | "pro" | "trimestral") {
     // Funnel + Meta: el usuario eligió un plan en el paywall (alta intención)
     track("paywall_plan_click", plan);
     pixel("InitiateCheckout", { value: PLAN_VALUE[plan] ?? 0, currency: "ARS", content_name: `Plan ${plan}` });
+  }
+
+  // Plan Mensual (pro): checkout EMBEBIDO — navegación interna a /pagar, el
+  // usuario no sale de Skillio (no pierde la cookie de sesión anónima).
+  function subscribePro() {
+    trackPlanClick("pro");
+    setLoading("pro");
+    router.push("/pagar");
+  }
+
+  // Semanal / Trimestral: siguen con Checkout Pro (redirect a MercadoPago).
+  async function subscribeRedirect(plan: "semanal" | "trimestral") {
+    setLoading(plan);
+    trackPlanClick(plan);
     try {
       const res = await fetch("/api/subscription/create", {
         method: "POST",
@@ -71,8 +86,8 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
   // Si el usuario vino con un plan preferido desde la landing, auto-dispara al montar
   useEffect(() => {
     if (!preferredPlan) return;
-    const mp = preferredPlan === "semanal" ? "semanal" : preferredPlan === "trimestral" ? "trimestral" : "pro";
-    subscribe(mp);
+    if (preferredPlan === "semanal" || preferredPlan === "trimestral") subscribeRedirect(preferredPlan);
+    else subscribePro();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -152,7 +167,7 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
 
           {/* plan Trimestral — mayor ahorro */}
           <button
-            onClick={() => subscribe("trimestral")}
+            onClick={() => subscribeRedirect("trimestral")}
             disabled={!!loading}
             style={{
               width: "100%",
@@ -188,7 +203,7 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
 
           {/* plan PRO — hero */}
           <button
-            onClick={() => subscribe("pro")}
+            onClick={subscribePro}
             disabled={!!loading}
             style={{
               width: "100%",
@@ -240,14 +255,14 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             }}>
               <span style={{ fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, color: "#fff" }}>
-                {loading === "pro" ? "Redirigiendo…" : "Empezar con Mensual PRO →"}
+                {loading === "pro" ? "Abriendo checkout…" : "Empezar con Mensual PRO →"}
               </span>
             </div>
           </button>
 
           {/* plan Semanal — secundario */}
           <button
-            onClick={() => subscribe("semanal")}
+            onClick={() => subscribeRedirect("semanal")}
             disabled={!!loading}
             style={{
               width: "100%",
