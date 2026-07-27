@@ -235,3 +235,102 @@ export async function sendResultRescueEmail(to: string, resultPath: string): Pro
     }),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Mails-regalo (captura de mail en el embudo anónimo). Todos entran por
+// /api/public/gift. Enmarcados como REGALO, no como pedido de mail.
+// ---------------------------------------------------------------------------
+
+/** Regalo #1: lead magnet "10 técnicas de estudio con base científica". */
+export async function sendTechniquesEmail(to: string): Promise<void> {
+  const tecnicas: [string, string][] = [
+    ["Recuerdo activo", "Cerrá el apunte y tratá de escribir o decir lo que recordás. Recuperar la info fija muchísimo más que releer."],
+    ["Repetición espaciada", "Repasá en intervalos crecientes (1 día, 3 días, 1 semana). Le gana a estudiar todo junto la noche anterior."],
+    ["Técnica Pomodoro", "25 minutos de foco total + 5 de descanso. Repetí. Evita el agotamiento y sube la concentración."],
+    ["Efecto Feynman", "Explicá el tema en voz alta como si se lo enseñaras a alguien. Si te trabás, ahí está lo que no entendiste."],
+    ["Intercalado", "Mezclá temas o materias en una misma sesión en vez de bloques largos de uno solo. Mejora la retención a largo plazo."],
+    ["Practicá con exámenes", "Hacer simulacros es de lo más efectivo que existe: el propio test es estudio (testing effect)."],
+    ["Dormí bien", "La memoria se consolida durmiendo. No sacrifiques el sueño la noche antes del parcial."],
+    ["Cero multitarea", "Un solo tema a la vez y el celular lejos. Cambiar de tarea te cuesta minutos de foco cada vez."],
+    ["Resumí con tus palabras", "Reescribir un tema con tus propias palabras supera por lejos a subrayar y releer."],
+    ["Enseñá lo aprendido", "Contarle el tema a un compañero (o a Booki 😄) es la prueba final de que lo dominás."],
+  ];
+  const list = tecnicas
+    .map(([t, d], i) => `<div style="margin:0 0 14px;"><b style="color:#2b2620;">${i + 1}. ${t}</b><br><span style="color:#5b5247;">${d}</span></div>`)
+    .join("");
+  await send({
+    to,
+    subject: "🎁 Tus 10 técnicas de estudio (con base científica)",
+    html: wrap({
+      preview: "Recuerdo activo, repetición espaciada, Feynman y 7 más. Tu regalo de Skillio.",
+      heading: "🎁 Tus 10 técnicas de estudio",
+      body: `Acá va tu regalo: las <b>10 técnicas de estudio más respaldadas por la ciencia</b>, para que rindas más en menos tiempo.<br><br>${list}<br>Lo mejor: con Skillio ya aplicás varias de estas (recuerdo activo, simulacros, resúmenes) en automático desde tus apuntes. 💜`,
+      ctaText: "Probar Skillio gratis →",
+      ctaPath: "/app?upload=1",
+    }),
+  });
+}
+
+/** Regalo #2: link al resumen del free para "descargarlo" (lo mandamos por mail). */
+export async function sendResumenLinkEmail(to: string, resultPath: string): Promise<void> {
+  await send({
+    to,
+    subject: "🎁 Tu resumen de Skillio, listo para estudiar 📄",
+    html: wrap({
+      preview: "Te dejamos el link a tu resumen para que lo tengas siempre a mano.",
+      heading: "🎁 Acá está tu resumen",
+      body: `Te mandamos el link a tu resumen para que lo abras cuando quieras, desde cualquier dispositivo.<br><br>Desde ahí lo podés leer y descargar en PDF. Y si querés el resumen <b>completo</b> (todos los temas desbloqueados) + tarjetas y simulacro, lo desbloqueás con PRO. 💜`,
+      ctaText: "Abrir mi resumen →",
+      ctaPath: resultPath,
+    }),
+  });
+}
+
+/** Regalo #3: confirmación de la generación extra desbloqueada. */
+export async function sendBonusGenerationEmail(to: string): Promise<void> {
+  await send({
+    to,
+    subject: "🎁 Te regalamos 1 generación más 🎉",
+    html: wrap({
+      preview: "Desbloqueaste una generación extra en Skillio. A usarla.",
+      heading: "🎁 ¡Generación extra desbloqueada!",
+      body: `Gracias por dejarnos tu mail. Te regalamos <b>1 generación más</b> — ya está lista en tu cuenta.<br><br>Subí otro apunte y armá tu resumen, tarjetas y simulacro. Cuando quieras generar sin límites, PRO te espera. 💜`,
+      ctaText: "Usar mi generación →",
+      ctaPath: "/app?upload=1",
+    }),
+  });
+}
+
+/** Regalo #4: código de descuento para el lead caliente que cerró el paywall. */
+export async function sendDiscountEmail(to: string, code: string, pct: number): Promise<void> {
+  await send({
+    to,
+    subject: `🎁 Tu ${pct}% OFF te está esperando (código adentro)`,
+    html: wrap({
+      preview: `Usá el código ${code} y arrancá con ${pct}% de descuento.`,
+      heading: `🎁 ${pct}% OFF, de regalo`,
+      body: `Como te lo prometimos, acá está tu código de descuento:<br><br>
+        <div style="text-align:center;margin:8px 0 4px;"><span style="display:inline-block;background:#f3f0ff;border:2px dashed #8b5cf6;border-radius:12px;padding:12px 24px;font-size:22px;font-weight:800;letter-spacing:2px;color:#6d28d9;">${code}</span></div>
+        <div style="text-align:center;color:#9a8f80;font-size:12px;margin-bottom:16px;">${pct}% OFF en tu primer pago</div>
+        Con <b>Skillio PRO</b> generás sin límites, con el mejor modelo de IA.<br><br>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0;">
+          <tr>
+            <td style="background:#f8f7ff;border:1.5px solid #e0d9ff;border-radius:12px;padding:12px 16px;width:48%;">
+              <div style="font-weight:700;font-size:13px;color:#4f7dff;">⚡ Semanal</div>
+              <div style="font-size:13px;color:#9a8f80;text-decoration:line-through;">$4.900</div>
+              <div style="font-size:20px;font-weight:800;color:#2b2620;">$3.675</div>
+            </td>
+            <td style="width:4%;"></td>
+            <td style="background:linear-gradient(135deg,#f3f0ff,#eef2ff);border:1.5px solid #c4b5fd;border-radius:12px;padding:12px 16px;width:48%;">
+              <div style="font-weight:700;font-size:13px;color:#8b5cf6;">⭐ Mensual PRO</div>
+              <div style="font-size:13px;color:#9a8f80;text-decoration:line-through;">$15.900</div>
+              <div style="font-size:20px;font-weight:800;color:#2b2620;">$11.925</div>
+            </td>
+          </tr>
+        </table>
+        <div style="color:#9a8f80;font-size:12px;">⏳ Válido por 48 horas.</div>`,
+      ctaText: "Activar mi descuento →",
+      ctaPath: "/app",
+    }),
+  });
+}

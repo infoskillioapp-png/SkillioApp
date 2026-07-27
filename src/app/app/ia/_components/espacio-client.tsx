@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { QuickPaywall } from "@/components/quick-paywall";
+import { GiftPopup } from "@/components/gift-popup";
 import { OnboardingTour, useTourRequired, TourIconBook, TourIconSparkles } from "../../_components/onboarding-tour";
 
 // ---- tipos ----
@@ -382,11 +383,12 @@ type Props = {
   generating: boolean;
   fileName: string;
   isPro?: boolean;
+  giftBonusAvailable?: boolean;
 };
 
 const STORAGE_KEY_PREFIX = "skillio_tema_";
 
-export function EspacioClient({ note, generating, fileName, isPro = false }: Props) {
+export function EspacioClient({ note, generating, fileName, isPro = false, giftBonusAvailable = false }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isGenerating, setIsGenerating] = useState(generating);
@@ -396,6 +398,10 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
   const [domPct, setDomPct] = useState(0);
   const [donePcts, setDonePcts] = useState<Record<string, number>>({});
   const [showPaywall, setShowPaywall] = useState(false);
+  // Regalo #3: "+1 generación por tu mail" antes del paywall (free bloqueado).
+  const [showGiftBonus, setShowGiftBonus] = useState(false);
+  const [giftOffered, setGiftOffered] = useState(false);
+  const [bonusGranted, setBonusGranted] = useState(false);
   const [usageLimitInfo, setUsageLimitInfo] = useState<{ reason: "daily" | "weekly"; resetAt: string } | null>(null);
   const [showGenError, setShowGenError] = useState(false);
   const bigringRef = useRef<HTMLDivElement>(null);
@@ -446,10 +452,14 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
     if (!isPro && !note.id.startsWith("demo-")) setShowPaywall(true);
   }, [note.id, router, isPro]);
 
+  // 402 free_limit_reached (free intentó un apunte nuevo estando bloqueado).
+  // Antes del paywall le ofrecemos el REGALO #3: +1 generación por su mail.
+  // Si ya lo ofrecimos o no tiene bonus disponible → paywall directo.
   const handlePaywall = useCallback(() => {
     setIsGenerating(false);
-    setShowPaywall(true);
-  }, []);
+    if (giftBonusAvailable && !giftOffered) setShowGiftBonus(true);
+    else setShowPaywall(true);
+  }, [giftBonusAvailable, giftOffered]);
 
   const handleUsageLimit = useCallback((reason: "daily" | "weekly", resetAt: string) => {
     setIsGenerating(false);
@@ -523,6 +533,24 @@ export function EspacioClient({ note, generating, fileName, isPro = false }: Pro
       )}
 
       {showPaywall && <QuickPaywall ctx="generic" onClose={() => setShowPaywall(false)} />}
+
+      {showGiftBonus && (
+        <GiftPopup
+          type="bonus_gen"
+          eyebrow="🎁 UN REGALO PARA VOS"
+          title="¿Querés una generación más?"
+          subtitle={<>El plan gratis incluye 1 apunte. Dejanos tu mail y te <b>regalamos 1 generación extra</b> para que sigas estudiando. 💜</>}
+          ctaText="Dame mi generación extra"
+          successText="¡Generación desbloqueada! 🎉"
+          onSuccess={() => { setGiftOffered(true); setBonusGranted(true); }}
+          onClose={() => {
+            setShowGiftBonus(false);
+            setGiftOffered(true);
+            if (bonusGranted) { setGenKinds(AUTO_GEN_KINDS); setIsGenerating(true); }
+            else setShowPaywall(true);
+          }}
+        />
+      )}
 
       {usageLimitInfo && (
         <UsageLimitModal info={usageLimitInfo} onClose={() => setUsageLimitInfo(null)} />

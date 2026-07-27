@@ -291,18 +291,27 @@ export async function markActivationIfFirst(userId: string): Promise<string | nu
 }
 
 /**
- * Gate para usuarios free: devuelve true si pueden generar (no tienen ningún
- * ai_output previo). Una vez que completaron su 1 suite, queda bloqueado.
- * No hay race condition: todos los calls paralelos del mismo suite pasan (0 outputs),
- * y el segundo intento los encuentra todos bloqueados (3 outputs).
+ * Gate para usuarios free. Puede generar hasta `1 + bonus_generations` apuntes
+ * DISTINTOS de por vida. Si `noteId` es un apunte que YA generó, siempre se
+ * permite (generar más modos on-demand de su propio apunte no cuenta como nuevo).
+ * El bonus lo otorga el popup-regalo "dejá tu mail y te damos 1 generación más".
  */
-export async function isFreeGenerationAllowed(userId: string): Promise<boolean> {
+export async function isFreeGenerationAllowed(userId: string, noteId?: string): Promise<boolean> {
   const sb = supabaseAdmin();
-  const { count } = await sb
+  const { data: outputs } = await sb
     .from("ai_outputs")
-    .select("*", { count: "exact", head: true })
+    .select("note_id")
     .eq("user_id", userId);
-  return (count ?? 0) === 0;
+  const noteIds = (outputs ?? []).map((o) => o.note_id as string);
+  // Generar más modos de un apunte ya generado → permitido (no es "apunte nuevo").
+  if (noteId && noteIds.includes(noteId)) return true;
+  const distintos = new Set(noteIds).size;
+  const { data: u } = await sb
+    .from("users")
+    .select("bonus_generations")
+    .eq("id", userId)
+    .maybeSingle();
+  return distintos < 1 + (u?.bonus_generations ?? 0);
 }
 
 export async function saveAiOutput(opts: {

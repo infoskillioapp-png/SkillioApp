@@ -52,9 +52,10 @@ export async function POST(req: Request) {
 
     const isPaid = isPaidPlan(userRow.plan, userRow.expires_at);
 
-    // Gate free "1 de por vida": si ya generó algo, paywall.
+    // Gate free "1 de por vida" (+ bonos por dejar el mail). Generar más modos de
+    // un apunte YA generado no cuenta como nuevo (se pasa note.id).
     if (userRow.plan === "free") {
-      const allowed = await isFreeGenerationAllowed(userRow.id);
+      const allowed = await isFreeGenerationAllowed(userRow.id, note.id);
       if (!allowed) return NextResponse.json({ error: "free_limit_reached" }, { status: 402 });
     }
 

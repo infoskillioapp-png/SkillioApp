@@ -134,12 +134,22 @@ export default async function IAPage({ searchParams }: { searchParams: SearchPar
   // generan cuando el usuario las toca. (Ver ALL_KINDS / AUTO_GEN_KINDS.)
   const needsGeneration = !summaryOutput;
 
+  const isPro = isPaidPlan(actor.plan, actor.expires_at);
+  // ¿Ofrecemos el regalo "+1 generación por tu mail"? Solo a free que todavía
+  // no usó el bonus (para no ofrecerlo dos veces).
+  let giftBonusAvailable = false;
+  if (!isPro) {
+    const { data: u } = await sb.from("users").select("bonus_generations").eq("id", actor.id).maybeSingle();
+    giftBonusAvailable = (u?.bonus_generations ?? 0) === 0;
+  }
+
   return (
     <EspacioClient
       note={noteData}
       generating={needsGeneration}
       fileName={note.file_name ?? note.title}
-      isPro={isPaidPlan(actor.plan, actor.expires_at)}
+      isPro={isPro}
+      giftBonusAvailable={giftBonusAvailable}
     />
   );
 }
