@@ -60,6 +60,25 @@ function Heart({ full }: { full: boolean }) {
   );
 }
 
+// Moneda dorada (SVG). id de gradiente único por tamaño para no colisionar.
+function Coin({ size = 20 }: { size?: number }) {
+  const gid = `coinG${size}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden style={{ flexShrink: 0, filter: "drop-shadow(0 1px 3px rgba(180,110,0,.5))" }}>
+      <defs>
+        <radialGradient id={gid} cx="36%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#ffe89a" />
+          <stop offset="55%" stopColor="#ffb020" />
+          <stop offset="100%" stopColor="#e08a06" />
+        </radialGradient>
+      </defs>
+      <circle cx="12" cy="12" r="10" fill={`url(#${gid})`} stroke="#b56d00" strokeWidth="1" />
+      <circle cx="12" cy="12" r="6.6" fill="none" stroke="#fff3cf" strokeWidth="1.2" opacity="0.65" />
+      <text x="12" y="16.2" textAnchor="middle" fontSize="11" fontWeight="900" fill="#8a5200" fontFamily="system-ui, sans-serif">$</text>
+    </svg>
+  );
+}
+
 // ---- fondo synthwave neón animado ----
 function GameBackground({ intensity }: { intensity: number }) {
   const reduce = useReducedMotion();
@@ -299,8 +318,10 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
           gained > 0 ? (
             <motion.div key={"pts" + qIndex} initial={{ y: 30, opacity: 0, scale: 0.4 }} animate={{ y: -46, opacity: [0, 1, 1, 0], scale: 1.1 }} transition={{ duration: 1.15, times: [0, 0.15, 0.7, 1] }}
               style={{ position: "absolute", left: "50%", top: "40%", transform: "translateX(-50%)", zIndex: 7, textAlign: "center", pointerEvents: "none" }}>
-              <div style={{ fontWeight: 900, fontSize: "clamp(38px,11vw,64px)", color: "#22c55e", textShadow: "0 0 34px rgba(34,197,94,.95)", lineHeight: 1 }}>+{gained.toLocaleString("es-AR")}</div>
-              {mult > 1 && <div style={{ fontWeight: 900, fontSize: 20, color: "#ffb020", textShadow: "0 0 20px rgba(255,176,32,.9)", marginTop: 4 }}>RACHA ×{mult} 🔥</div>}
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontWeight: 900, fontSize: "clamp(38px,11vw,62px)", color: "#ffce6b", textShadow: "0 0 34px rgba(255,176,32,.95)", lineHeight: 1 }}>
+                <Coin size={46} />+{gained.toLocaleString("es-AR")}
+              </div>
+              {mult > 1 && <div style={{ fontWeight: 900, fontSize: 20, color: "#ff8a3d", textShadow: "0 0 20px rgba(255,138,61,.9)", marginTop: 6 }}>RACHA ×{mult} 🔥</div>}
             </motion.div>
           ) : (
             <motion.div key={"miss" + qIndex} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 14 }}
@@ -349,8 +370,8 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
                   </motion.div>
                 )}
                 <motion.div key={score} initial={{ scale: 1.25 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 320, damping: 14 }}
-                  style={{ fontWeight: 900, fontSize: 22, letterSpacing: "-.02em", textShadow: "0 0 16px rgba(124,58,237,.7)" }}>
-                  {score.toLocaleString("es-AR")}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 900, fontSize: 22, letterSpacing: "-.02em", color: "#ffd66b", textShadow: "0 0 16px rgba(255,176,32,.65)" }}>
+                  <Coin size={21} />{score.toLocaleString("es-AR")}
                 </motion.div>
               </div>
             </div>
@@ -453,14 +474,14 @@ function IntroScreen({ noteTitle, bestScore, onStart, reduce }: { noteTitle: str
       </motion.h1>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
         style={{ color: "rgba(255,255,255,.7)", fontSize: 15, maxWidth: 420, lineHeight: 1.5, margin: "0 0 22px" }}>
-        Respondé rápido y sin errores. <b style={{ color: "#fff" }}>10 vidas</b>, puntos por velocidad y multiplicador de racha. Tema: <b style={{ color: "#c4b5fd" }}>{noteTitle}</b>.
+        Respondé rápido y sin errores. <b style={{ color: "#fff" }}>10 vidas</b>, ganás <b style={{ color: "#ffce6b" }}>monedas</b> por velocidad y multiplicador de racha. Tema: <b style={{ color: "#c4b5fd" }}>{noteTitle}</b>.
       </motion.p>
 
       {bestScore > 0 && (
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.28 }}
           style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "rgba(255,176,32,.12)", border: "1px solid rgba(255,176,32,.35)", color: "#ffce6b", borderRadius: 999, padding: "9px 18px", fontWeight: 700, fontSize: 14, marginBottom: 22 }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="#ffb020"><path d="M6 4h12v3a4 4 0 0 1-3 3.87V13l2 5H7l2-5v-2.13A4 4 0 0 1 6 7Z" /></svg>
-          Tu récord: {bestScore.toLocaleString("es-AR")} · ¿Lo superás?
+          <Coin size={18} />
+          Tu récord: {bestScore.toLocaleString("es-AR")} monedas · ¿Lo superás?
         </motion.div>
       )}
 
@@ -507,10 +528,10 @@ function EndScreen({ noteId, score, correct, answered, maxStreak, lives, record,
         {lives > 0 ? "¡Terminaste!" : "Game Over"}
       </motion.div>
       <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 220, damping: 13, delay: 0.12 }}
-        style={{ fontSize: "clamp(48px,14vw,84px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1, margin: "4px 0 4px", textShadow: "0 0 40px rgba(124,58,237,.8)" }}>
-        {score.toLocaleString("es-AR")}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, fontSize: "clamp(48px,14vw,82px)", fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1, margin: "4px 0 4px", color: "#ffd66b", textShadow: "0 0 40px rgba(255,176,32,.8)" }}>
+        <Coin size={62} />{score.toLocaleString("es-AR")}
       </motion.div>
-      <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, marginBottom: 22 }}>puntos</div>
+      <div style={{ color: "rgba(255,255,255,.5)", fontSize: 13, marginBottom: 22 }}>monedas</div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%", maxWidth: 380, marginBottom: 24 }}>
         {stats.map((s, i) => (
@@ -524,7 +545,7 @@ function EndScreen({ noteId, score, correct, answered, maxStreak, lives, record,
 
       {record && !record.isRecord && record.best > 0 && (
         <div style={{ color: "rgba(255,255,255,.55)", fontSize: 13.5, marginBottom: 18 }}>
-          Tu récord sigue siendo <b style={{ color: "#ffce6b" }}>{record.best.toLocaleString("es-AR")}</b>. ¡Casi!
+          Tu récord sigue siendo <b style={{ color: "#ffce6b" }}>{record.best.toLocaleString("es-AR")} monedas</b>. ¡Casi!
         </div>
       )}
 
