@@ -51,7 +51,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       notes={notes}
       usage={usage}
       // Invitado nuevo (sin actor): abrimos el modal directo para que suba.
-      autoUpload={upload === "1" || !actor}
+      // Si viene con `upgrade` (ej: link de mail "activar mi descuento"), no
+      // le pisamos el paywall con el modal de subida.
+      autoUpload={(upload === "1" || !actor) && !upgrade}
       autoUpgrade={["semanal", "mensual", "trimestral"].includes(upgrade ?? "") ? (upgrade as "semanal" | "mensual" | "trimestral") : null}
     />
   );

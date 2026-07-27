@@ -271,16 +271,16 @@ export async function sendTechniquesEmail(to: string): Promise<void> {
   });
 }
 
-/** Regalo #2: link al resumen del free para "descargarlo" (lo mandamos por mail). */
+/** Regalo #2: el PDF del resumen del free, listo para descargar (se lo mandamos por mail). */
 export async function sendResumenLinkEmail(to: string, resultPath: string): Promise<void> {
   await send({
     to,
     subject: "🎁 Tu resumen de Skillio, listo para estudiar 📄",
     html: wrap({
-      preview: "Te dejamos el link a tu resumen para que lo tengas siempre a mano.",
-      heading: "🎁 Acá está tu resumen",
-      body: `Te mandamos el link a tu resumen para que lo abras cuando quieras, desde cualquier dispositivo.<br><br>Desde ahí lo podés leer y descargar en PDF. Y si querés el resumen <b>completo</b> (todos los temas desbloqueados) + tarjetas y simulacro, lo desbloqueás con PRO. 💜`,
-      ctaText: "Abrir mi resumen →",
+      preview: "Tu PDF ya está listo. Tocá el botón para descargarlo.",
+      heading: "🎁 Tu PDF está listo",
+      body: `Te dejamos el botón para descargar tu resumen en PDF, desde cualquier dispositivo, cuando quieras.<br><br>Y si querés el resumen <b>completo</b> (todos los temas desbloqueados) + tarjetas y simulacro, lo desbloqueás con PRO. 💜`,
+      ctaText: "Descargar mi PDF →",
       ctaPath: resultPath,
     }),
   });
@@ -330,7 +330,9 @@ export async function sendDiscountEmail(to: string, code: string, pct: number): 
         </table>
         <div style="color:#9a8f80;font-size:12px;">⏳ Válido por 48 horas.</div>`,
       ctaText: "Activar mi descuento →",
-      ctaPath: "/app",
+      // Directo al paywall con el plan Mensual preseleccionado (no a la home
+      // genérica, que puede abrir otros modales encima).
+      ctaPath: "/app?upgrade=mensual",
     }),
   });
 }

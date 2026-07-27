@@ -49,10 +49,12 @@ export async function POST(req: Request) {
       await sendTechniquesEmail(email);
     } else if (type === "resumen_pdf") {
       if (!noteId) return NextResponse.json({ error: "note_id_required" }, { status: 400 });
+      // El regalo es el PDF en sí (no un link a la página bloqueada): el link
+      // adopta la sesión en este/otro dispositivo y redirige directo al PDF.
       const session = (await cookies()).get(ANON_COOKIE)?.value ?? "";
       const path = session
-        ? `/api/public/adopt?s=${session}&note_id=${noteId}`
-        : `/app/ia/resumen?note_id=${noteId}`;
+        ? `/api/public/adopt?s=${session}&note_id=${noteId}&to=pdf`
+        : `/api/ai/resumen-pdf?note_id=${noteId}`;
       await sendResumenLinkEmail(email, path);
     } else if (type === "bonus_gen") {
       // +1 generación, UNA sola vez por fila (evita abuso reenviando el form).

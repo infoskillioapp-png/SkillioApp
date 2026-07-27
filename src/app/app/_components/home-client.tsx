@@ -256,7 +256,7 @@ export function HomeClient({ user, lastNote, subjects, notes, usage = null, auto
         />
       )}
 
-      {showTour && !modalOpen && (
+      {showTour && !modalOpen && !showPaywall && !showGift && (
         <OnboardingTour
           storageKey={HOME_TOUR_KEY}
           steps={[

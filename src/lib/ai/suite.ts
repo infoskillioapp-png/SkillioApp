@@ -5,6 +5,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
 import { buildUserContent, type NoteContent } from "@/lib/ai/claude";
+import { parseSummaryMarkdown } from "@/lib/notes/summary-markdown";
 
 // =============================================================================
 // Fuente ÚNICA de los prompts y generadores de la "suite" de estudio
@@ -148,10 +149,16 @@ export async function genSummaryMarkdown(content: NoteContent, model: string, is
         maxOutputTokens: MAX_OUTPUT_TOKENS,
       });
       const markdown = stripFences(r.text);
-      if (markdown.length > 50 && /^#\s/m.test(markdown)) {
+      // No alcanza con "hay texto y hay un H1": el modelo a veces devuelve los
+      // encabezados ('## Parte') sin desarrollar el contenido de abajo — pasaba
+      // el chequeo viejo (>50 chars total) y el usuario veía el tema vacío.
+      // Exigimos que al menos una sección tenga contenido real.
+      const hasHeader = markdown.length > 50 && /^#\s/m.test(markdown);
+      const hasRealContent = hasHeader && parseSummaryMarkdown(markdown).sections.some((s) => s.markdown.trim().length > 40);
+      if (hasRealContent) {
         return { markdown, usage: r.usage as Usage, title: extractMdTitle(markdown) };
       }
-      lastErr = new Error("resumen markdown vacío o sin encabezado");
+      lastErr = new Error(hasHeader ? "resumen con encabezados pero sin contenido en las secciones" : "resumen markdown vacío o sin encabezado");
     } catch (e) {
       lastErr = e;
     }

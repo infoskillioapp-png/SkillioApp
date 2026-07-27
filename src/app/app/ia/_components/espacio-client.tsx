@@ -560,7 +560,9 @@ export function EspacioClient({ note, generating, fileName, isPro = false, giftB
         <GenerationErrorModal onRetry={retryGeneration} onClose={() => setShowGenError(false)} />
       )}
 
-      {showEspacioTour && !isGenerating && (
+      {/* No mostrar el tour encima de un popup de venta/regalo — se pisan
+          visualmente. El tour espera a que el usuario cierre esos primero. */}
+      {showEspacioTour && !isGenerating && !showPaywall && !showGiftBonus && (
         <OnboardingTour
           storageKey="skillio_espacio_tour_v1"
           steps={[
