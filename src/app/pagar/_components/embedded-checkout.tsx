@@ -59,7 +59,12 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 402 || data?.error === "card_declined") {
-        setError("La tarjeta fue rechazada. Probá con otra o revisá los datos.");
+        // TEMPORAL (debug del flujo real): mostramos el motivo crudo de MP.
+        setError(
+          data?.detail
+            ? `La tarjeta fue rechazada. Motivo (MP): ${data.detail}`
+            : "La tarjeta fue rechazada. Probá con otra o revisá los datos.",
+        );
         setProcessing(false);
         return;
       }

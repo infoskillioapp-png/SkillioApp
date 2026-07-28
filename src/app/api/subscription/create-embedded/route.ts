@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -74,8 +75,13 @@ export async function POST(req: Request) {
         backUrl: `${appUrl}/app?upgraded=1`,
       });
     } catch (e) {
-      console.error("[create-embedded] MP rechazó la suscripción:", e);
-      return NextResponse.json({ error: "card_declined" }, { status: 402 });
+      // El error de mpFetch trae el body crudo de MP (con el motivo real del
+      // rechazo). Lo devolvemos como `detail` TEMPORALMENTE para diagnosticar
+      // el flujo real de pago — hay que sacarlo cuando el checkout esté validado.
+      const raw = e instanceof Error ? e.message : String(e);
+      console.error("[create-embedded] MP rechazó la suscripción:", raw);
+      Sentry.captureException(e, { tags: { step: "create-embedded:mp" } });
+      return NextResponse.json({ error: "card_declined", detail: raw }, { status: 402 });
     }
 
     // Funnel: llegó al checkout (y lo pagó, a confirmar por status).
