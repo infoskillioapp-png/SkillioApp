@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
 import { initMercadoPago, CardPayment } from "@mercadopago/sdk-react";
-import { PRO_PRICE_ARS, PRO_PRICE_DISCOUNTED, DISCOUNT_CODE, DISCOUNT_PCT, isValidDiscountCode } from "@/lib/pricing";
+import { PLANS, PRO_PRICE_ARS, PRO_PRICE_DISCOUNTED, DISCOUNT_CODE, DISCOUNT_PCT, isValidDiscountCode, type PlanKind } from "@/lib/pricing";
+
+const PERIODO: Record<PlanKind, string> = { pro: "/mes", semanal: "/semana", trimestral: "/trimestre" };
 
 // Checkout EMBEBIDO del plan Mensual, en 2 PASOS:
 //   Paso 1 (datos): mail + teléfono (+ código opcional) → se guardan ANTES de
@@ -17,10 +19,10 @@ const fmt = (n: number) => `$${n.toLocaleString("es-AR")}`;
 
 let mpInitDone = false;
 
-function fireStartTrial() {
+function fireStartTrial(value: number) {
   const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
   if (!fbq) return;
-  fbq("track", "StartTrial", { value: PRO_PRICE_ARS, currency: "ARS", content_name: "Plan PRO Skillio" });
+  fbq("track", "StartTrial", { value, currency: "ARS", content_name: "Skillio PRO" });
 }
 
 const CUENTA_INFO: { icon: React.ReactNode; title: string; body: string }[] = [
@@ -41,21 +43,24 @@ function FormSkeleton() {
   );
 }
 
-export function EmbeddedCheckout({ initialEmail = "", initialPromo = "" }: { initialEmail?: string; initialPromo?: string }) {
+export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = "pro" }: { initialEmail?: string; initialPromo?: string; plan?: PlanKind }) {
   const router = useRouter();
   const { signIn } = useSignIn();
+
+  const spec = PLANS[plan];
+  const canDiscount = plan === "pro"; // el descuento SKILLIO25 es solo para Mensual
 
   const [step, setStep] = useState<"datos" | "tarjeta">("datos");
   const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState("");
   const [savingLead, setSavingLead] = useState(false);
 
-  // Código de descuento (25% OFF primer mes). Arranca aplicado si vino por el
-  // link del mail (?promo=SKILLIO25); si no, el usuario lo puede tipear.
+  // Código de descuento (25% OFF primer mes, solo pro). Arranca aplicado si
+  // vino por el link del mail (?promo=SKILLIO25).
   const [promoInput, setPromoInput] = useState(initialPromo);
-  const [promoApplied, setPromoApplied] = useState(isValidDiscountCode(initialPromo));
+  const [promoApplied, setPromoApplied] = useState(canDiscount && isValidDiscountCode(initialPromo));
   const [promoError, setPromoError] = useState(false);
-  const amount = promoApplied ? PRO_PRICE_DISCOUNTED : PRO_PRICE_ARS;
+  const amount = promoApplied ? PRO_PRICE_DISCOUNTED : spec.amount;
 
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -99,7 +104,7 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "" }: { ini
       const res = await fetch("/api/subscription/create-embedded", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card_token: formData.token, email: email || formData.payer?.email, phone, promo: promoApplied ? DISCOUNT_CODE : undefined }),
+        body: JSON.stringify({ card_token: formData.token, email: email || formData.payer?.email, phone, plan, promo: promoApplied ? DISCOUNT_CODE : undefined }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -112,7 +117,7 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "" }: { ini
 
       if (data.pending) { router.replace("/pago-exitoso"); return; }
 
-      fireStartTrial();
+      fireStartTrial(amount);
 
       if (data.token) {
         if (!signIn) { router.replace("/login"); return; }
@@ -152,37 +157,6 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "" }: { ini
             onKeyDown={(e) => { if (e.key === "Enter") continuarAlPago(); }}
           />
 
-          {/* Código de descuento */}
-          {promoApplied ? (
-            <div className="ck-promo-ok">
-              <span>🎟️ Código <b>{DISCOUNT_CODE}</b> aplicado — {DISCOUNT_PCT}% OFF el primer mes</span>
-              <button onClick={() => { setPromoApplied(false); setPromoInput(""); }} className="ck-promo-remove">Quitar</button>
-            </div>
-          ) : (
-            <div className="ck-promo-row">
-              <input
-                className="ck-input" style={{ marginBottom: 0, flex: 1 }} type="text"
-                placeholder="¿Tenés un código?" value={promoInput}
-                onChange={(e) => { setPromoInput(e.target.value); if (promoError) setPromoError(false); }}
-                onKeyDown={(e) => { if (e.key === "Enter") applyPromo(); }}
-              />
-              <button type="button" className="ck-promo-apply" onClick={applyPromo}>Aplicar</button>
-            </div>
-          )}
-          {promoError && <div className="ck-promo-err">Ese código no es válido.</div>}
-
-          {/* Resumen de precio */}
-          <div className="ck-price">
-            {promoApplied ? (
-              <>
-                <span className="ck-price-now">Primer mes: <b>{fmt(PRO_PRICE_DISCOUNTED)}</b></span>
-                <span className="ck-price-then">luego {fmt(PRO_PRICE_ARS)}/mes</span>
-              </>
-            ) : (
-              <span className="ck-price-now"><b>{fmt(PRO_PRICE_ARS)}</b>/mes</span>
-            )}
-          </div>
-
           <div className="ck-info">
             {CUENTA_INFO.map((it) => (
               <div key={it.title} className="ck-info-item">
@@ -204,6 +178,36 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "" }: { ini
           <div className="ck-payas">
             <span>Pagás como <b>{email}</b></span>
             <button onClick={() => { setStep("datos"); setReady(false); }} className="ck-change">Cambiar</button>
+          </div>
+
+          {/* Código de descuento (solo Mensual) + resumen de precio */}
+          {canDiscount && (promoApplied ? (
+            <div className="ck-promo-ok">
+              <span>🎟️ Código <b>{DISCOUNT_CODE}</b> aplicado — {DISCOUNT_PCT}% OFF el primer mes</span>
+              <button onClick={() => { setPromoApplied(false); setPromoInput(""); }} className="ck-promo-remove">Quitar</button>
+            </div>
+          ) : (
+            <div className="ck-promo-row">
+              <input
+                className="ck-input" style={{ marginBottom: 0, flex: 1 }} type="text"
+                placeholder="¿Tenés un código?" value={promoInput}
+                onChange={(e) => { setPromoInput(e.target.value); if (promoError) setPromoError(false); }}
+                onKeyDown={(e) => { if (e.key === "Enter") applyPromo(); }}
+              />
+              <button type="button" className="ck-promo-apply" onClick={applyPromo}>Aplicar</button>
+            </div>
+          ))}
+          {promoError && <div className="ck-promo-err">Ese código no es válido.</div>}
+
+          <div className="ck-price">
+            {promoApplied ? (
+              <>
+                <span className="ck-price-now">Primer mes: <b>{fmt(PRO_PRICE_DISCOUNTED)}</b></span>
+                <span className="ck-price-then">luego {fmt(PRO_PRICE_ARS)}/mes</span>
+              </>
+            ) : (
+              <span className="ck-price-now"><b>{fmt(spec.amount)}</b>{PERIODO[plan]}</span>
+            )}
           </div>
 
           <div style={{ position: "relative", minHeight: ready ? undefined : 320 }}>

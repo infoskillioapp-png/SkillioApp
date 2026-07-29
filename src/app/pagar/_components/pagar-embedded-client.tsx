@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { SkillioMark } from "@/app/_components/landing/landing-top";
+import { PLANS, type PlanKind } from "@/lib/pricing";
 
 // El Brick de MP es 100% cliente (usa window). Lo cargamos con ssr:false.
 const EmbeddedCheckout = dynamic(
@@ -17,7 +18,11 @@ const FEATURES = [
   "Acceso completo sin cortes a todos tus apuntes",
 ];
 
-export function PagarEmbeddedClient({ initialEmail = "", initialPromo = "" }: { initialEmail?: string; initialPromo?: string }) {
+const PERIODO: Record<PlanKind, string> = { pro: "/ mes", semanal: "/ semana", trimestral: "/ trimestre" };
+
+export function PagarEmbeddedClient({ initialEmail = "", initialPromo = "", plan = "pro" }: { initialEmail?: string; initialPromo?: string; plan?: PlanKind }) {
+  const spec = PLANS[plan];
+  const priceLabel = `$${spec.amount.toLocaleString("es-AR")}`;
   return (
     <div className="pagar-wrap">
       <style>{PAGAR_CSS}</style>
@@ -32,9 +37,9 @@ export function PagarEmbeddedClient({ initialEmail = "", initialPromo = "" }: { 
         <section className="hero pagar-hero in">
           <div className="htx">
             <div className="pagar-planrow">
-              <span className="pagar-plan">Mensual PRO</span>
-              <span className="pagar-price">$15.900</span>
-              <span className="pagar-per">/ mes</span>
+              <span className="pagar-plan">{spec.label}</span>
+              <span className="pagar-price">{priceLabel}</span>
+              <span className="pagar-per">{PERIODO[plan]}</span>
             </div>
             <ul className="pagar-feats">
               {FEATURES.map((f) => (
@@ -75,7 +80,7 @@ export function PagarEmbeddedClient({ initialEmail = "", initialPromo = "" }: { 
 
         {/* Card del checkout (2 pasos adentro) */}
         <div className="pagar-card in">
-          <EmbeddedCheckout initialEmail={initialEmail} initialPromo={initialPromo} />
+          <EmbeddedCheckout initialEmail={initialEmail} initialPromo={initialPromo} plan={plan} />
         </div>
 
         {/* Sellos de seguridad prominentes */}

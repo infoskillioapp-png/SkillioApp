@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { track, pixel } from "@/lib/track-client";
 
 // Paywall COMPACTO (sin imagen, 2 botones grandes) para el momento de máxima
@@ -8,6 +9,7 @@ import { track, pixel } from "@/lib/track-client";
 // sino avisar que hay PRO y el precio, dejando MUY visible "Seguir gratis".
 export function QuickPaywall({ onClose, ctx = "generic" }: { onClose: () => void; ctx?: string }) {
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     track("paywall_visto", ctx);
@@ -15,25 +17,13 @@ export function QuickPaywall({ onClose, ctx = "generic" }: { onClose: () => void
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function subscribe() {
+  // Checkout EMBEBIDO: navegación interna a /pagar (Mensual PRO), sin salir de
+  // Skillio ni redirigir a MercadoPago.
+  function subscribe() {
     setLoading(true);
     track("paywall_plan_click", "pro");
     pixel("InitiateCheckout", { value: 15900, currency: "ARS", content_name: "Plan PRO Mensual" });
-    try {
-      const res = await fetch("/api/subscription/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "pro" }),
-      });
-      const data = await res.json();
-      if (data.init_point) {
-        window.location.href = data.init_point;
-        return;
-      }
-    } catch {
-      /* noop */
-    }
-    setLoading(false);
+    router.push("/pagar");
   }
 
   return (
@@ -87,7 +77,7 @@ export function QuickPaywall({ onClose, ctx = "generic" }: { onClose: () => void
           }}
         >
           <span style={{ fontFamily: "var(--po)", fontWeight: 800, fontSize: 16 }}>
-            {loading ? "Redirigiendo…" : "⚡ Empezar con Mensual PRO"}
+            {loading ? "Abriendo checkout…" : "⚡ Empezar con Mensual PRO"}
           </span>
           <span style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.9 }}>$15.900 / mes · cancelás cuando quieras</span>
         </button>

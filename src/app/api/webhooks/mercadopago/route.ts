@@ -12,7 +12,7 @@ import {
 } from "@/lib/mercadopago";
 import { sendMetaPurchase } from "@/lib/meta-capi";
 import { recordFunnelEventForUser } from "@/lib/api/funnel";
-import { PRO_PRICE_ARS as FULL_MONTHLY_PRICE, PRO_PRICE_DISCOUNTED } from "@/lib/pricing";
+import { PRO_PRICE_ARS as FULL_MONTHLY_PRICE, PRO_PRICE_DISCOUNTED, planKindFromAmount } from "@/lib/pricing";
 
 // Descuento primer-mes: la sub nace a PRO_PRICE_DISCOUNTED. Tras el primer cobro
 // subimos el monto al precio normal para que el 2º mes en adelante salga full.
@@ -122,13 +122,15 @@ function isTrimestralPlan(preapprovalPlanId: string | undefined): boolean {
   return !!id && preapprovalPlanId === id;
 }
 
+// Detecta el plan por el preapproval_plan_id (Checkout Pro) y, si la sub no
+// tiene plan_id (Checkout EMBEBIDO, monto directo), por el MONTO.
 function detectPlanType(
   preapprovalPlanId: string | undefined,
-  fallback: "pro" | "semanal" | "trimestral" = "pro",
+  amount?: number | null,
 ): "pro" | "semanal" | "trimestral" {
   if (isSemanalPlan(preapprovalPlanId)) return "semanal";
   if (isTrimestralPlan(preapprovalPlanId)) return "trimestral";
-  return fallback;
+  return planKindFromAmount(amount) ?? "pro";
 }
 
 // Determina el plan por el MONTO cobrado (para pagos sueltos sin preapproval_id).
@@ -255,7 +257,7 @@ async function handlePreapproval(subscriptionId: string) {
     externalRef: subscription.external_reference,
     payerEmail: subscription.payer_email,
   };
-  const planType = detectPlanType(subscription.preapproval_plan_id);
+  const planType = detectPlanType(subscription.preapproval_plan_id, subscription.auto_recurring?.transaction_amount);
 
   if (subscription.status === "authorized") {
     const { user, matchedBy } = await findUser(sb, lookup);
@@ -337,7 +339,7 @@ async function handleAuthorizedPayment(authPaymentId: string) {
   }
 
   const planType: "pro" | "semanal" | "trimestral" = subscription
-    ? detectPlanType(subscription.preapproval_plan_id)
+    ? detectPlanType(subscription.preapproval_plan_id, subscription.auto_recurring?.transaction_amount ?? ap.transaction_amount)
     : (user.plan === "semanal" || user.plan === "trimestral") ? user.plan : "pro";
 
   await activateOrRenewPlan(sb, user, { subscriptionId: ap.preapproval_id, planType });
@@ -394,7 +396,7 @@ async function handlePayment(paymentId: string) {
   if (payment.preapproval_id) {
     try {
       const sub = await mpGetSubscription(payment.preapproval_id);
-      planType = detectPlanType(sub.preapproval_plan_id);
+      planType = detectPlanType(sub.preapproval_plan_id, sub.auto_recurring?.transaction_amount ?? amount);
       // Descuento primer-mes: subir el monto tras el 1er cobro.
       await bumpDiscountedAmountIfNeeded(sub);
     } catch {

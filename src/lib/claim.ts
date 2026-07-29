@@ -2,24 +2,33 @@ import "server-only";
 import { clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { normalizeEmail } from "@/lib/anti-fraude";
+import { PLANS, PRO_CREDITS, type PlanKind } from "@/lib/pricing";
 import type { MpSubscription } from "@/lib/mercadopago";
 
 const SEMANAL_DAYS = 7;
 const TRIMESTRAL_DAYS = 90;
-const PRO_CREDITS = 500;
 const DAY = 24 * 60 * 60 * 1000;
 
-function planFromSubscription(sub: MpSubscription): {
-  plan: "semanal" | "trimestral" | "pro";
-  expiresAt: string | null;
-  credits: number;
-} {
+type PlanActivation = { plan: PlanKind; expiresAt: string | null; credits: number };
+
+// Checkout Pro (sub con preapproval_plan_id): deduce el plan por el plan de MP.
+function planFromSubscription(sub: MpSubscription): PlanActivation {
   const pid = sub.preapproval_plan_id;
   if (pid && pid === process.env.MP_PLAN_ID_SEMANAL)
     return { plan: "semanal", expiresAt: new Date(Date.now() + SEMANAL_DAYS * DAY).toISOString(), credits: 0 };
   if (pid && pid === process.env.MP_PLAN_ID_TRIMESTRAL)
     return { plan: "trimestral", expiresAt: new Date(Date.now() + TRIMESTRAL_DAYS * DAY).toISOString(), credits: PRO_CREDITS };
   return { plan: "pro", expiresAt: null, credits: PRO_CREDITS };
+}
+
+// Checkout embebido (sub con monto directo, sin plan_id): el plan viene dado.
+function planFromKind(kind: PlanKind): PlanActivation {
+  const spec = PLANS[kind];
+  return {
+    plan: kind,
+    credits: spec.credits,
+    expiresAt: spec.expiresDays == null ? null : new Date(Date.now() + spec.expiresDays * DAY).toISOString(),
+  };
 }
 
 export type ClaimResult = { clerkUserId: string; plan: string };
@@ -42,11 +51,16 @@ export async function ensureAccountForPaidAnon(opts: {
   anonRowId: string;
   email: string;
   subscription: MpSubscription;
+  // Checkout embebido: el plan viene dado (la sub no tiene preapproval_plan_id).
+  // Si se omite, se deduce de la sub (Checkout Pro).
+  planKind?: PlanKind;
 }): Promise<ClaimResult> {
   const sb = supabaseAdmin();
   const email = opts.email.trim().toLowerCase();
   const norm = normalizeEmail(email);
-  const { plan, expiresAt, credits } = planFromSubscription(opts.subscription);
+  const { plan, expiresAt, credits } = opts.planKind
+    ? planFromKind(opts.planKind)
+    : planFromSubscription(opts.subscription);
 
   const patch: Record<string, unknown> = {
     plan,

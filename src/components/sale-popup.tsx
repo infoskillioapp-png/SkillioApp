@@ -46,34 +46,14 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
   const router = useRouter();
   const msg = CTX[ctx];
 
-  function trackPlanClick(plan: "semanal" | "pro" | "trimestral") {
-    // Funnel + Meta: el usuario eligió un plan en el paywall (alta intención)
+  // Los 3 planes usan el checkout EMBEBIDO — navegación interna a /pagar, el
+  // usuario no sale de Skillio (no pierde la cookie de sesión anónima).
+  function goToCheckout(plan: "semanal" | "pro" | "trimestral") {
+    // Funnel + Meta: el usuario eligió un plan en el paywall (alta intención).
     track("paywall_plan_click", plan);
     pixel("InitiateCheckout", { value: PLAN_VALUE[plan] ?? 0, currency: "ARS", content_name: `Plan ${plan}` });
-  }
-
-  // Plan Mensual (pro): checkout EMBEBIDO — navegación interna a /pagar, el
-  // usuario no sale de Skillio (no pierde la cookie de sesión anónima).
-  function subscribePro() {
-    trackPlanClick("pro");
-    setLoading("pro");
-    router.push("/pagar");
-  }
-
-  // Semanal / Trimestral: siguen con Checkout Pro (redirect a MercadoPago).
-  async function subscribeRedirect(plan: "semanal" | "trimestral") {
     setLoading(plan);
-    trackPlanClick(plan);
-    try {
-      const res = await fetch("/api/subscription/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
-      });
-      const data = await res.json();
-      if (data.init_point) { window.location.href = data.init_point; return; }
-    } catch { /* noop */ }
-    setLoading(null);
+    router.push(plan === "pro" ? "/pagar" : `/pagar?plan=${plan}`);
   }
 
   // Funnel + Meta: se mostró el paywall (señal de intermediación de compra)
@@ -86,8 +66,8 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
   // Si el usuario vino con un plan preferido desde la landing, auto-dispara al montar
   useEffect(() => {
     if (!preferredPlan) return;
-    if (preferredPlan === "semanal" || preferredPlan === "trimestral") subscribeRedirect(preferredPlan);
-    else subscribePro();
+    if (preferredPlan === "semanal" || preferredPlan === "trimestral") goToCheckout(preferredPlan);
+    else goToCheckout("pro");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -167,7 +147,7 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
 
           {/* plan Trimestral — mayor ahorro */}
           <button
-            onClick={() => subscribeRedirect("trimestral")}
+            onClick={() => goToCheckout("trimestral")}
             disabled={!!loading}
             style={{
               width: "100%",
@@ -203,7 +183,7 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
 
           {/* plan PRO — hero */}
           <button
-            onClick={subscribePro}
+            onClick={() => goToCheckout("pro")}
             disabled={!!loading}
             style={{
               width: "100%",
@@ -262,7 +242,7 @@ export function SalePopup({ ctx, onClose, preferredPlan, dismissLabel = "Quizás
 
           {/* plan Semanal — secundario */}
           <button
-            onClick={() => subscribeRedirect("semanal")}
+            onClick={() => goToCheckout("semanal")}
             disabled={!!loading}
             style={{
               width: "100%",

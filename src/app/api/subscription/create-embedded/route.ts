@@ -9,11 +9,11 @@ import { ensureAccountForPaidAnon } from "@/lib/claim";
 import { isDisposableEmail } from "@/lib/anti-fraude";
 import { recordFunnelEvent, recordFunnelEventForUser } from "@/lib/api/funnel";
 import { sendProWelcomeEmail } from "@/lib/email/resend";
-import { PRO_PRICE_ARS, PRO_PRICE_DISCOUNTED, isValidDiscountCode } from "@/lib/pricing";
+import { PLANS, PRO_PRICE_DISCOUNTED, isPlanKind, isValidDiscountCode, type PlanKind } from "@/lib/pricing";
 
 const ANON_COOKIE = "skillio_anon";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PRO_CREDITS = 500;
+const DAY = 24 * 60 * 60 * 1000;
 
 // back_url para MP. MP valida el back_url de la preapproval y RECHAZA los
 // dominios *.vercel.app (y valores sin protocolo) con "must be a valid URL" —
@@ -29,24 +29,24 @@ function getAppOrigin(): string {
   return PROD_ORIGIN;
 }
 
-// Checkout EMBEBIDO (Bricks). El front tokeniza la tarjeta en el navegador y nos
-// manda el card_token; acá creamos la suscripción con status:"authorized" (MP
-// cobra el primer pago al toque, sin redirigir) y activamos el plan en el mismo
-// request. Solo plan Mensual (pro) por ahora — semanal/trimestral siguen con
-// Checkout Pro. La tarjeta NUNCA toca nuestro server (solo el token de un uso).
+// Checkout EMBEBIDO (Bricks) para los 3 planes. El front tokeniza la tarjeta en
+// el navegador y nos manda el card_token; acá creamos la suscripción con
+// status:"authorized" (MP cobra el primer pago al toque, sin redirigir) y
+// activamos el plan en el mismo request. La tarjeta NUNCA toca nuestro server.
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const cardToken = typeof body.card_token === "string" ? body.card_token : "";
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-    // Teléfono capturado en el paso 1 (ya validado ahí). Se guarda al activar
-    // para que el gate de /completar-telefono no se dispare tras el pago.
     const phone = (typeof body.phone === "string" ? body.phone : "").replace(/[^\d+]/g, "").slice(0, 20);
-    // Código de descuento (SKILLIO25): SOLO primer mes. El monto del primer
-    // cobro baja a PRO_PRICE_DISCOUNTED y el webhook lo sube a PRO_PRICE_ARS
-    // tras ese primer pago (mpUpdateSubscriptionAmount).
-    const applyDiscount = isValidDiscountCode(body.promo);
-    const amount = applyDiscount ? PRO_PRICE_DISCOUNTED : PRO_PRICE_ARS;
+    const planKind: PlanKind = isPlanKind(body.plan) ? body.plan : "pro";
+    const spec = PLANS[planKind];
+
+    // Código de descuento (SKILLIO25): SOLO plan pro y SOLO primer mes. El
+    // monto del 1er cobro baja y el webhook lo sube al normal tras ese pago.
+    const applyDiscount = planKind === "pro" && isValidDiscountCode(body.promo);
+    const amount = applyDiscount ? PRO_PRICE_DISCOUNTED : spec.amount;
+    const expiresAt = spec.expiresDays == null ? null : new Date(Date.now() + spec.expiresDays * DAY).toISOString();
 
     if (!cardToken) return NextResponse.json({ error: "missing_card_token" }, { status: 400 });
     if (!EMAIL_RE.test(email) || isDisposableEmail(email))
@@ -62,11 +62,7 @@ export async function POST(req: Request) {
     let anonRowId: string | null = null;
 
     if (userId) {
-      const { data: user } = await sb
-        .from("users")
-        .select("id, plan")
-        .eq("clerk_user_id", userId)
-        .maybeSingle();
+      const { data: user } = await sb.from("users").select("id, plan").eq("clerk_user_id", userId).maybeSingle();
       if (!user) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
       externalRef = userId;
       currentPlan = user.plan;
@@ -83,22 +79,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "already_subscribed" }, { status: 400 });
 
     // OJO: MP valida el back_url de forma ultra-estricta y RECHAZA cualquier
-    // path o barra final (probado: "https://skillio.digital/app" y ".../" dan
-    // 400 "must be a valid URL"; solo el dominio pelado pasa). Con el checkout
-    // embebido el back_url no se usa para redirigir, así que va el dominio solo.
+    // path o barra final; solo el dominio pelado pasa. Con el embebido el
+    // back_url no se usa para redirigir igual.
     const backUrl = getAppOrigin();
 
-    // Crear la suscripción con la tarjeta tokenizada. Si la tarjeta se rechaza,
-    // MP tira error acá → lo devolvemos como card_declined para que el front
-    // pida otra tarjeta.
     let subscription;
     try {
       subscription = await mpCreateSubscriptionWithToken({
-        reason: "Plan Mensual Skillio",
+        reason: `Plan ${spec.label} Skillio`,
         externalRef,
         payerEmail: email,
         cardTokenId: cardToken,
         amount,
+        frequency: spec.frequency,
+        frequencyType: spec.frequencyType,
         backUrl,
       });
     } catch (e) {
@@ -110,54 +104,50 @@ export async function POST(req: Request) {
     }
 
     // Funnel: llegó al checkout (y lo pagó, a confirmar por status).
-    if (userId) await recordFunnelEvent("checkout_iniciado", "pro");
-    else if (anonRowId) await recordFunnelEventForUser(anonRowId, "checkout_iniciado", "pro");
+    if (userId) await recordFunnelEvent("checkout_iniciado", planKind);
+    else if (anonRowId) await recordFunnelEventForUser(anonRowId, "checkout_iniciado", planKind);
 
     // MP no autorizó al instante (raro con card_token; ej. requiere revisión).
     // La sub queda creada: el webhook la activará cuando pase a authorized.
     if (subscription.status !== "authorized") {
-      return NextResponse.json({ ok: true, pending: true, plan: "pro" });
+      return NextResponse.json({ ok: true, pending: true, plan: planKind });
     }
 
     // ── Activación inmediata (no dependemos del webhook) ──
     if (userId) {
-      // Usuario con cuenta: activar sobre su fila.
-      const { data: user } = await sb
-        .from("users")
-        .select("id, plan")
-        .eq("clerk_user_id", userId)
-        .maybeSingle();
+      const { data: user } = await sb.from("users").select("id, plan").eq("clerk_user_id", userId).maybeSingle();
       if (user && user.plan === "free") {
         await sb
           .from("users")
           .update({
-            plan: "pro",
-            credits: PRO_CREDITS,
-            expires_at: null,
+            plan: planKind,
+            credits: spec.credits,
+            expires_at: expiresAt,
             mp_subscription_id: subscription.id,
             ...(phone ? { phone } : {}),
             updated_at: new Date().toISOString(),
           })
           .eq("id", user.id);
-        await sendProWelcomeEmail(email);
+        if (planKind === "pro") await sendProWelcomeEmail(email);
       }
-      return NextResponse.json({ ok: true, plan: "pro" });
+      return NextResponse.json({ ok: true, plan: planKind });
     }
 
     // Anónimo: crear (o reutilizar) la cuenta, activar el plan y devolver un
-    // sign-in token para el auto-login en el cliente. Reusa la misma lógica que
-    // el claim del Checkout Pro (idempotente).
+    // sign-in token para el auto-login. El plan va explícito (la sub embebida
+    // no tiene preapproval_plan_id).
     const { clerkUserId, plan } = await ensureAccountForPaidAnon({
       anonRowId: anonRowId!,
       email,
       subscription,
+      planKind,
     });
 
     // Guardar el teléfono en la fila ya reclamada (evita el gate de
     // /completar-telefono tras el pago).
     if (phone) await sb.from("users").update({ phone }).eq("clerk_user_id", clerkUserId);
 
-    await sendProWelcomeEmail(email);
+    if (planKind === "pro") await sendProWelcomeEmail(email);
 
     const client = await clerkClient();
     const token = await client.signInTokens.createSignInToken({
