@@ -108,7 +108,7 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
         const finRes = await signIn.finalize();
         if (finRes.error) { router.replace("/login"); return; }
       }
-      router.replace("/app?upgraded=1");
+      router.replace("/gracias");
     } catch {
       setError("Algo salió mal. Si el cobro se hizo, tu cuenta se activará sola.");
       setProcessing(false);

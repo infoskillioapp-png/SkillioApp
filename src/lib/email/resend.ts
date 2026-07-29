@@ -33,27 +33,30 @@ function wrap(opts: {
   ctaPath: string;
 }): string {
   const url = `${APP_URL}${opts.ctaPath}`;
+  // Identidad Skillio actual: violeta (#7c3aed / #8b5cf6). Todos los mails
+  // pasan por acá, así que este template define el look de la marca en el mail.
   return `<!DOCTYPE html>
 <html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;background:#f4efe9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2b2620;">
+<body style="margin:0;background:#f4f2fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f2347;">
   <span style="display:none;max-height:0;overflow:hidden;opacity:0;">${opts.preview}</span>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4efe9;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f2fb;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e7ded2;">
-        <tr><td style="padding:28px 32px 8px;">
-          <div style="font-weight:800;font-size:22px;letter-spacing:-0.02em;">Skill<span style="color:#a5402d;">io</span></div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #ece7fb;box-shadow:0 12px 36px rgba(124,58,237,.10);">
+        <tr><td style="height:5px;background:linear-gradient(90deg,#6d3bf2,#9326cf,#c1338f);font-size:0;line-height:0;">&nbsp;</td></tr>
+        <tr><td style="padding:26px 32px 6px;">
+          <div style="font-weight:800;font-size:22px;letter-spacing:-0.02em;color:#1f2347;">Skill<span style="color:#7c3aed;">io</span></div>
         </td></tr>
         <tr><td style="padding:8px 32px 4px;">
-          <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;letter-spacing:-0.02em;color:#2b2620;">${opts.heading}</h1>
-          <div style="font-size:15px;line-height:1.6;color:#5b5247;">${opts.body}</div>
+          <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;letter-spacing:-0.02em;color:#1f2347;">${opts.heading}</h1>
+          <div style="font-size:15px;line-height:1.6;color:#5b6178;">${opts.body}</div>
         </td></tr>
         <tr><td style="padding:24px 32px 32px;">
-          <a href="${url}" style="display:inline-block;background:#a5402d;color:#fbf1ef;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px;border-radius:999px;">${opts.ctaText}</a>
+          <a href="${url}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px;border-radius:14px;">${opts.ctaText}</a>
         </td></tr>
         <tr><td style="padding:0 32px 28px;">
-          <div style="border-top:1px solid #efe8df;padding-top:16px;font-size:12px;color:#9a8f80;line-height:1.5;">
+          <div style="border-top:1px solid #f0ecfb;padding-top:16px;font-size:12px;color:#9aa0b8;line-height:1.5;">
             Skillio · Tu copiloto de estudio 🇦🇷<br>
-            ¿No querés más estos correos? <a href="__UNSUB_URL__" style="color:#9a8f80;text-decoration:underline;">Cancelar suscripción</a>.
+            ¿No querés más estos correos? <a href="__UNSUB_URL__" style="color:#9aa0b8;text-decoration:underline;">Cancelar suscripción</a>.
           </div>
         </td></tr>
       </table>
@@ -327,6 +330,34 @@ export async function sendDiscountEmail(to: string, code: string, pct: number): 
       // Directo al paywall con el plan Mensual preseleccionado (no a la home
       // genérica, que puede abrir otros modales encima).
       ctaPath: "/app?upgrade=mensual",
+    }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Transaccional: bienvenida PRO (tras un pago exitoso en el checkout embebido)
+// ---------------------------------------------------------------------------
+
+/** Se dispara al activar el plan pago: confirma la suscripción y explica el acceso. */
+export async function sendProWelcomeEmail(to: string, name?: string | null): Promise<void> {
+  const n = firstName(name);
+  await send({
+    to,
+    subject: "🎉 ¡Ya sos PRO! Tu suscripción está activa",
+    html: wrap({
+      preview: "Tu pago se acreditó. Ya tenés todo Skillio sin límites.",
+      heading: `¡Bienvenido a PRO, ${n}! 🎉`,
+      body: `Tu pago se acreditó y tu <b>suscripción Mensual PRO</b> ya está activa. Desde ahora tenés:<br><br>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr><td style="padding:3px 0;font-size:14px;color:#3b3558;">✅ Resúmenes, tarjetas, simulacros y juegos sin límites</td></tr>
+          <tr><td style="padding:3px 0;font-size:14px;color:#3b3558;">✅ El modelo de IA de máxima calidad en tus resúmenes</td></tr>
+          <tr><td style="padding:3px 0;font-size:14px;color:#3b3558;">✅ Acceso completo a todos tus apuntes, sin cortes</td></tr>
+        </table><br>
+        <b>¿Cómo entrás?</b> Sin contraseña: cada vez que quieras ingresar te mandamos un código a este mail.<br><br>
+        Se renueva automáticamente cada mes ($15.900). Podés cancelar cuando quieras desde tu perfil.<br><br>
+        ¿Alguna duda? Respondé este mail y te ayudamos — <b>soporte 24/7</b>. 💜`,
+      ctaText: "Entrar a estudiar →",
+      ctaPath: "/app",
     }),
   });
 }

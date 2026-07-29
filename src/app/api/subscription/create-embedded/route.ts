@@ -8,6 +8,7 @@ import { getOrCreateAnonUser } from "@/lib/anon";
 import { ensureAccountForPaidAnon } from "@/lib/claim";
 import { isDisposableEmail } from "@/lib/anti-fraude";
 import { recordFunnelEvent, recordFunnelEventForUser } from "@/lib/api/funnel";
+import { sendProWelcomeEmail } from "@/lib/email/resend";
 
 const ANON_COOKIE = "skillio_anon";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -135,6 +136,7 @@ export async function POST(req: Request) {
             updated_at: new Date().toISOString(),
           })
           .eq("id", user.id);
+        await sendProWelcomeEmail(email);
       }
       return NextResponse.json({ ok: true, plan: "pro" });
     }
@@ -151,6 +153,8 @@ export async function POST(req: Request) {
     // Guardar el teléfono en la fila ya reclamada (evita el gate de
     // /completar-telefono tras el pago).
     if (phone) await sb.from("users").update({ phone }).eq("clerk_user_id", clerkUserId);
+
+    await sendProWelcomeEmail(email);
 
     const client = await clerkClient();
     const token = await client.signInTokens.createSignInToken({
