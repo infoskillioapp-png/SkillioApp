@@ -22,5 +22,15 @@ export default async function PagarPage() {
     email = data?.email ?? "";
   }
 
-  return <PagarEmbeddedClient initialEmail={email} />;
+  return (
+    <>
+      {/* Adelantar el handshake con los dominios del SDK/Brick de MP: recorta
+          los segundos de espera al cargar el formulario de tarjeta. */}
+      <link rel="preconnect" href="https://sdk.mercadopago.com" crossOrigin="" />
+      <link rel="preconnect" href="https://api.mercadopago.com" crossOrigin="" />
+      <link rel="preconnect" href="https://http2.mlstatic.com" crossOrigin="" />
+      <link rel="dns-prefetch" href="https://sdk.mercadopago.com" />
+      <PagarEmbeddedClient initialEmail={email} />
+    </>
+  );
 }

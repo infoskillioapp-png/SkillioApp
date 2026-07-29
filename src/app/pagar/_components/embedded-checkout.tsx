@@ -8,10 +8,6 @@ import { initMercadoPago, CardPayment } from "@mercadopago/sdk-react";
 // Checkout EMBEBIDO del plan Mensual (Bricks). El usuario ingresa la tarjeta
 // acá dentro (nunca sale de Skillio); el SDK la tokeniza en el navegador y nos
 // manda solo el token. Con eso el server crea la suscripción y activa el plan.
-//
-// Dos flujos de salida:
-//  - Anónimo: el server devuelve un sign-in token → auto-login → /app.
-//  - Logueado: el server ya activó el plan → /app.
 
 const PRO_PRICE_ARS = 15900;
 
@@ -25,6 +21,36 @@ function fireStartTrial() {
     currency: "ARS",
     content_name: "Plan PRO Skillio",
   });
+}
+
+// Skeleton con la forma del formulario de tarjeta: cubre el hueco mientras el
+// Brick monta (arranca en unos segundos) para que no se sienta vacío/lento.
+function FormSkeleton() {
+  return (
+    <div className="ck-skel" aria-hidden>
+      <div className="ck-skel-line" style={{ width: "45%", height: 12 }} />
+      <div className="ck-skel-box" />
+      <div className="ck-skel-row">
+        <div className="ck-skel-box" style={{ flex: 1 }} />
+        <div className="ck-skel-box" style={{ flex: 1 }} />
+      </div>
+      <div className="ck-skel-box" />
+      <div className="ck-skel-box" />
+      <div className="ck-skel-btn" />
+      <style>{`
+        .ck-skel{display:flex;flex-direction:column;gap:14px;padding:4px 0}
+        .ck-skel-row{display:flex;gap:12px}
+        .ck-skel-line,.ck-skel-box,.ck-skel-btn{
+          border-radius:10px;
+          background:linear-gradient(100deg,#eef0f6 30%,#f7f8fc 50%,#eef0f6 70%);
+          background-size:220% 100%;animation:ckShim 1.25s linear infinite}
+        .ck-skel-box{height:46px}
+        .ck-skel-btn{height:50px;border-radius:14px;margin-top:6px}
+        @keyframes ckShim{from{background-position:180% 0}to{background-position:-40% 0}}
+        @media(prefers-reduced-motion:reduce){.ck-skel-line,.ck-skel-box,.ck-skel-btn{animation:none}}
+      `}</style>
+    </div>
+  );
 }
 
 export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string }) {
@@ -42,8 +68,6 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
     }
   }, []);
 
-  // onSubmit del Brick: ya tiene la tarjeta tokenizada. Creamos la suscripción
-  // en el server y resolvemos el login/redirect. Debe devolver una promesa.
   async function handleSubmit(formData: { token?: string; payer?: { email?: string } }) {
     setError(null);
     setProcessing(true);
@@ -59,7 +83,6 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 402 || data?.error === "card_declined") {
-        // TEMPORAL (debug del flujo real): mostramos el motivo crudo de MP.
         setError(
           data?.detail
             ? `La tarjeta fue rechazada. Motivo (MP): ${data.detail}`
@@ -75,19 +98,14 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
       }
 
       if (data.pending) {
-        // MP no autorizó al instante: la sub quedó creada, el webhook activará.
         router.replace("/pago-exitoso");
         return;
       }
 
       fireStartTrial();
 
-      // Anónimo: auto-login con el sign-in token (ticket + finalize).
       if (data.token) {
-        if (!signIn) {
-          router.replace("/login");
-          return;
-        }
+        if (!signIn) { router.replace("/login"); return; }
         const ticketRes = await signIn.ticket({ ticket: data.token });
         if (ticketRes.error) { router.replace("/login"); return; }
         const finRes = await signIn.finalize();
@@ -109,34 +127,44 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
         </div>
       )}
 
-      {!ready && (
-        <div style={{ textAlign: "center", padding: "24px 0", color: "var(--ink-soft, #64748b)", fontSize: 13 }}>
-          Cargando el pago seguro…
-        </div>
-      )}
+      <div style={{ position: "relative", minHeight: ready ? undefined : 340 }}>
+        {/* Skeleton encima hasta que el Brick esté listo */}
+        {!ready && (
+          <div style={{ position: "absolute", inset: 0, zIndex: 2 }}>
+            <FormSkeleton />
+          </div>
+        )}
 
-      <div style={{ opacity: processing ? 0.5 : 1, pointerEvents: processing ? "none" : "auto" }}>
-        <CardPayment
-          initialization={{ amount: PRO_PRICE_ARS, payer: { email: initialEmail } }}
-          customization={{
-            paymentMethods: { maxInstallments: 1 },
-            visual: { style: { theme: "default" } },
-          }}
-          onReady={() => setReady(true)}
-          onSubmit={handleSubmit}
-          onError={() => setError("Revisá los datos de la tarjeta e intentá de nuevo.")}
-        />
+        <div style={{ opacity: processing ? 0.5 : 1, pointerEvents: processing ? "none" : "auto", transition: "opacity .2s" }}>
+          <CardPayment
+            initialization={{ amount: PRO_PRICE_ARS, payer: { email: initialEmail } }}
+            customization={{
+              paymentMethods: { maxInstallments: 1 },
+              visual: {
+                style: {
+                  theme: "default",
+                  customVariables: {
+                    baseColor: "#7c3aed",
+                    formBackgroundColor: "#ffffff",
+                    borderRadiusMedium: "12px",
+                    borderRadiusLarge: "14px",
+                    fontSizeMedium: "15px",
+                  },
+                },
+              },
+            }}
+            onReady={() => setReady(true)}
+            onSubmit={handleSubmit}
+            onError={() => setError("Revisá los datos de la tarjeta e intentá de nuevo.")}
+          />
+        </div>
       </div>
 
       {processing && (
-        <div style={{ textAlign: "center", padding: "12px 0", color: "#8b5cf6", fontSize: 13, fontWeight: 700 }}>
-          Procesando tu pago…
+        <div style={{ textAlign: "center", padding: "12px 0 2px", color: "#7c3aed", fontSize: 13, fontWeight: 700 }}>
+          Procesando tu pago… no cierres esta ventana.
         </div>
       )}
-
-      <p style={{ textAlign: "center", fontSize: 11, color: "var(--ink-softer, #94a3b8)", marginTop: 12 }}>
-        🔒 Pago protegido por MercadoPago · Sin permanencia · Cancelás cuando quieras
-      </p>
     </div>
   );
 }
