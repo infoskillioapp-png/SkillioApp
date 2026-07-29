@@ -30,6 +30,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     if (isPaidPlan(actor.plan, actor.expires_at)) usage = await getUsageSnapshot(actor.id);
   }
 
+  const isPro = actor ? isPaidPlan(actor.plan, actor.expires_at) : false;
+
   const firstName = actor?.full_name?.split(" ")[0] ?? "Estudiante";
   const initial = firstName[0]?.toUpperCase() ?? "E";
 
@@ -50,6 +52,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       subjects={subjects}
       notes={notes}
       usage={usage}
+      isPro={isPro}
       // Invitado nuevo (sin actor): abrimos el modal directo para que suba.
       // Si viene con `upgrade` (ej: link de mail "activar mi descuento"), no
       // le pisamos el paywall con el modal de subida.
