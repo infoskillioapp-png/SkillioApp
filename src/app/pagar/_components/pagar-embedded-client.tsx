@@ -66,7 +66,7 @@ export function PagarEmbeddedClient({ initialEmail = "" }: { initialEmail?: stri
         {/* Banner de confianza con el logo oficial de Mercado Pago */}
         <div className="mp-trust in">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mercadopago.png" alt="Mercado Pago" className="mp-logo" />
+          <img src="/Mercado_Pago.svg.webp" alt="Mercado Pago" className="mp-logo" />
           <div className="mp-trust-tx">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#009ee3" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             <span>Pago protegido · tus datos viajan cifrados</span>
