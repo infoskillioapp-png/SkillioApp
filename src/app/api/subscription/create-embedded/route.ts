@@ -73,7 +73,11 @@ export async function POST(req: Request) {
     if (currentPlan !== "free")
       return NextResponse.json({ error: "already_subscribed" }, { status: 400 });
 
-    const backUrl = `${getAppOrigin()}/app`;
+    // OJO: MP valida el back_url de forma ultra-estricta y RECHAZA cualquier
+    // path o barra final (probado: "https://skillio.digital/app" y ".../" dan
+    // 400 "must be a valid URL"; solo el dominio pelado pasa). Con el checkout
+    // embebido el back_url no se usa para redirigir, así que va el dominio solo.
+    const backUrl = getAppOrigin();
 
     // Crear la suscripción con la tarjeta tokenizada. Si la tarjeta se rechaza,
     // MP tira error acá → lo devolvemos como card_declined para que el front
