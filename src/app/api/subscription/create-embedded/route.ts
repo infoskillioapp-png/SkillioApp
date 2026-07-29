@@ -38,6 +38,9 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const cardToken = typeof body.card_token === "string" ? body.card_token : "";
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    // Teléfono capturado en el paso 1 (ya validado ahí). Se guarda al activar
+    // para que el gate de /completar-telefono no se dispare tras el pago.
+    const phone = (typeof body.phone === "string" ? body.phone : "").replace(/[^\d+]/g, "").slice(0, 20);
 
     if (!cardToken) return NextResponse.json({ error: "missing_card_token" }, { status: 400 });
     if (!EMAIL_RE.test(email) || isDisposableEmail(email))
@@ -128,6 +131,7 @@ export async function POST(req: Request) {
             credits: PRO_CREDITS,
             expires_at: null,
             mp_subscription_id: subscription.id,
+            ...(phone ? { phone } : {}),
             updated_at: new Date().toISOString(),
           })
           .eq("id", user.id);
@@ -143,6 +147,10 @@ export async function POST(req: Request) {
       email,
       subscription,
     });
+
+    // Guardar el teléfono en la fila ya reclamada (evita el gate de
+    // /completar-telefono tras el pago).
+    if (phone) await sb.from("users").update({ phone }).eq("clerk_user_id", clerkUserId);
 
     const client = await clerkClient();
     const token = await client.signInTokens.createSignInToken({
