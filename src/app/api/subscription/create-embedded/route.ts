@@ -14,18 +14,18 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PRO_PRICE_ARS = 15900;
 const PRO_CREDITS = 500;
 
-// back_url para MP: DEBE ser una URL absoluta válida (MP la valida y rechaza la
-// suscripción si no lo es). No dependemos de NEXT_PUBLIC_APP_URL (venía vacía en
-// prod → back_url inválida → 400). Derivamos el origin del request y validamos
-// que tenga protocolo; sin query params (MP es quisquilloso con eso).
-function getAppOrigin(req: Request): string {
+// back_url para MP. MP valida el back_url de la preapproval y RECHAZA los
+// dominios *.vercel.app (y valores sin protocolo) con "must be a valid URL" —
+// exige el dominio real verificado. Por eso lo forzamos a skillio.digital y
+// solo respetamos NEXT_PUBLIC_APP_URL si es https y NO es *.vercel.app.
+const PROD_ORIGIN = "https://skillio.digital";
+
+function getAppOrigin(): string {
   const env = process.env.NEXT_PUBLIC_APP_URL;
-  if (env && /^https?:\/\/.+/.test(env)) return env.replace(/\/+$/, "");
-  const origin = req.headers.get("origin");
-  if (origin && /^https?:\/\/.+/.test(origin)) return origin;
-  const host = req.headers.get("host");
-  if (host) return `https://${host}`;
-  return "https://skillio.digital";
+  if (env && /^https:\/\/.+/.test(env) && !env.includes(".vercel.app")) {
+    return env.replace(/\/+$/, "");
+  }
+  return PROD_ORIGIN;
 }
 
 // Checkout EMBEBIDO (Bricks). El front tokeniza la tarjeta en el navegador y nos
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     if (currentPlan !== "free")
       return NextResponse.json({ error: "already_subscribed" }, { status: 400 });
 
-    const backUrl = `${getAppOrigin(req)}/app`;
+    const backUrl = `${getAppOrigin()}/app`;
 
     // Crear la suscripción con la tarjeta tokenizada. Si la tarjeta se rechaza,
     // MP tira error acá → lo devolvemos como card_declined para que el front
