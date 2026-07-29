@@ -14,6 +14,20 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PRO_PRICE_ARS = 15900;
 const PRO_CREDITS = 500;
 
+// back_url para MP: DEBE ser una URL absoluta válida (MP la valida y rechaza la
+// suscripción si no lo es). No dependemos de NEXT_PUBLIC_APP_URL (venía vacía en
+// prod → back_url inválida → 400). Derivamos el origin del request y validamos
+// que tenga protocolo; sin query params (MP es quisquilloso con eso).
+function getAppOrigin(req: Request): string {
+  const env = process.env.NEXT_PUBLIC_APP_URL;
+  if (env && /^https?:\/\/.+/.test(env)) return env.replace(/\/+$/, "");
+  const origin = req.headers.get("origin");
+  if (origin && /^https?:\/\/.+/.test(origin)) return origin;
+  const host = req.headers.get("host");
+  if (host) return `https://${host}`;
+  return "https://skillio.digital";
+}
+
 // Checkout EMBEBIDO (Bricks). El front tokeniza la tarjeta en el navegador y nos
 // manda el card_token; acá creamos la suscripción con status:"authorized" (MP
 // cobra el primer pago al toque, sin redirigir) y activamos el plan en el mismo
@@ -59,7 +73,7 @@ export async function POST(req: Request) {
     if (currentPlan !== "free")
       return NextResponse.json({ error: "already_subscribed" }, { status: 400 });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://skillio.digital";
+    const backUrl = `${getAppOrigin(req)}/app`;
 
     // Crear la suscripción con la tarjeta tokenizada. Si la tarjeta se rechaza,
     // MP tira error acá → lo devolvemos como card_declined para que el front
@@ -72,7 +86,7 @@ export async function POST(req: Request) {
         payerEmail: email,
         cardTokenId: cardToken,
         amount: PRO_PRICE_ARS,
-        backUrl: `${appUrl}/app?upgraded=1`,
+        backUrl,
       });
     } catch (e) {
       // El error de mpFetch trae el body crudo de MP (con el motivo real del
