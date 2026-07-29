@@ -38,6 +38,7 @@ export interface MpSubscription {
   payer_email: string;
   preapproval_plan_id: string;
   init_point: string;
+  auto_recurring?: { transaction_amount?: number; currency_id?: string } | null;
   summarized?: { last_charged_date?: string | null; last_charged_amount?: number | null } | null;
 }
 

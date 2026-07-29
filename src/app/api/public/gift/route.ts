@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { resolveActor } from "@/lib/actor";
 import { normalizeEmail, isDisposableEmail } from "@/lib/anti-fraude";
 import { recordFunnelEventForUser } from "@/lib/api/funnel";
+import { DISCOUNT_CODE, DISCOUNT_PCT } from "@/lib/pricing";
 import {
   sendTechniquesEmail, sendResumenLinkEmail, sendBonusGenerationEmail, sendDiscountEmail,
 } from "@/lib/email/resend";
@@ -11,8 +12,8 @@ import {
 const ANON_COOKIE = "skillio_anon";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export const DISCOUNT_CODE = "SKILLIO25";
-export const DISCOUNT_PCT = 25;
+// Re-export para no romper imports existentes de DISCOUNT_CODE/PCT.
+export { DISCOUNT_CODE, DISCOUNT_PCT } from "@/lib/pricing";
 
 type GiftType = "techniques" | "resumen_pdf" | "bonus_gen" | "discount";
 

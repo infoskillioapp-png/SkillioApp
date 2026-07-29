@@ -17,7 +17,7 @@ const FEATURES = [
   "Acceso completo sin cortes a todos tus apuntes",
 ];
 
-export function PagarEmbeddedClient({ initialEmail = "" }: { initialEmail?: string }) {
+export function PagarEmbeddedClient({ initialEmail = "", initialPromo = "" }: { initialEmail?: string; initialPromo?: string }) {
   return (
     <div className="pagar-wrap">
       <style>{PAGAR_CSS}</style>
@@ -75,7 +75,7 @@ export function PagarEmbeddedClient({ initialEmail = "" }: { initialEmail?: stri
 
         {/* Card del checkout (2 pasos adentro) */}
         <div className="pagar-card in">
-          <EmbeddedCheckout initialEmail={initialEmail} />
+          <EmbeddedCheckout initialEmail={initialEmail} initialPromo={initialPromo} />
         </div>
 
         {/* Sellos de seguridad prominentes */}

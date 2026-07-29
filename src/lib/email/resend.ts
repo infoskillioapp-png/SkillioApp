@@ -121,103 +121,10 @@ async function send(opts: {
 }
 
 // ---------------------------------------------------------------------------
-// Secuencia de nurture
+// NOTA: los mails de marketing/nurture del free (bienvenida, nudges +2h/+20h,
+// créditos agotados) se retiraron — el email marketing se rearma desde cero.
+// Abajo quedan los mails de CAPTURA (rescate + regalos) y el transaccional PRO.
 // ---------------------------------------------------------------------------
-
-/**
- * Mail 1 — inmediato al registrarse.
- * Objetivo: que suban su primer apunte y disparen la primera generación gratis.
- */
-export async function sendWelcomeEmail(to: string, name?: string | null): Promise<void> {
-  const n = firstName(name);
-  await send({
-    to,
-    subject: `${n}, tu IA de estudio te está esperando 🎉`,
-    html: wrap({
-      preview: "Subí un apunte y en segundos tenés resumen, tarjetas y simulacro.",
-      heading: `¡Hola ${n}! Ya estás dentro 🎉`,
-      body: `Skillio convierte tus apuntes y PDFs en <b>resúmenes claros, flashcards y simulacros de parcial</b> en segundos.<br><br>Tenés tu <b>primera generación gratis</b> para empezar. El mejor primer paso: subí el apunte más denso que tengas.`,
-      ctaText: "Subir mi primer apunte →",
-      ctaPath: "/app?upload=1",
-    }),
-  });
-}
-
-/**
- * Programa los mails de nurture post-registro.
- * Mail 2 (+2h): recordatorio para el que no generó todavía.
- * Mail 3 (+20h): upsell con los planes disponibles.
- */
-export async function scheduleNudgeEmails(to: string, name?: string | null): Promise<void> {
-  const n = firstName(name);
-
-  const in2h = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-  const in20h = new Date(Date.now() + 20 * 60 * 60 * 1000).toISOString();
-
-  // Mail 2 · +2h — empuje para el que no entró todavía
-  await send({
-    to,
-    scheduledAt: in2h,
-    subject: "¿Ya probaste la IA? Tu generación gratis te espera 📚",
-    html: wrap({
-      preview: "Pegá un apunte y armá tu primer resumen, mazo o simulacro.",
-      heading: `${n}, ¿ya generaste algo?`,
-      body: `Tu <b>generación gratis</b> te está esperando.<br><br>Subí cualquier apunte y en segundos tenés un <b>resumen por puntos clave</b>, un <b>mazo de flashcards</b> y un <b>simulacro de parcial</b> listo para practicar.`,
-      ctaText: "Generar ahora →",
-      ctaPath: "/app?upload=1",
-    }),
-  });
-
-  // Mail 3 · +20h — upsell con precios reales
-  await send({
-    to,
-    scheduledAt: in20h,
-    subject: "Antes de tu próximo parcial, una ventaja 🚀",
-    html: wrap({
-      preview: "Estudiá sin límites con Skillio PRO. Desde $4.900/semana.",
-      heading: `${n}, llevá tu estudio al siguiente nivel`,
-      body: `Con <b>Skillio PRO</b> generás resúmenes, flashcards y simulacros <b>sin límites</b>, con el modelo de IA más potente.<br><br>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;">
-          <tr>
-            <td style="background:#f8f7ff;border:1.5px solid #e0d9ff;border-radius:12px;padding:14px 18px;width:48%;">
-              <div style="font-weight:700;font-size:14px;color:#4f7dff;">⚡ Semanal</div>
-              <div style="font-size:22px;font-weight:800;color:#2b2620;margin:4px 0;">$4.900</div>
-              <div style="font-size:12px;color:#9a8f80;">Ideal para el parcial de esta semana</div>
-            </td>
-            <td style="width:4%;"></td>
-            <td style="background:linear-gradient(135deg,#f3f0ff,#eef2ff);border:1.5px solid #c4b5fd;border-radius:12px;padding:14px 18px;width:48%;">
-              <div style="font-weight:700;font-size:14px;color:#8b5cf6;">⭐ Mensual PRO</div>
-              <div style="font-size:22px;font-weight:800;color:#2b2620;margin:4px 0;">$15.900</div>
-              <div style="font-size:12px;color:#9a8f80;">Mejor valor · ~$530/día</div>
-            </td>
-          </tr>
-        </table>`,
-      ctaText: "Ver planes →",
-      ctaPath: "/app",
-    }),
-  });
-}
-
-/**
- * Mail de créditos agotados — se dispara cuando el free usa su última generación.
- * Objetivo: convertir en caliente, justo cuando el dolor es máximo.
- */
-export async function sendCreditsExhaustedEmail(to: string, name?: string | null): Promise<void> {
-  const n = firstName(name);
-  await send({
-    to,
-    subject: "Se te acabaron las generaciones gratis 🔥",
-    html: wrap({
-      preview: "Justo cuando le estabas agarrando la mano. Seguí sin límites con PRO.",
-      heading: `${n}, te quedaste sin generaciones en plena racha 🔥`,
-      body: `Usaste tu generación gratis justo cuando le estabas agarrando la mano.<br><br>Con <b>Skillio PRO</b> seguís generando resúmenes, flashcards y simulacros <b>sin límites</b>.<br><br>
-        <span style="background:#f3f0ff;border-radius:8px;padding:4px 10px;font-weight:700;color:#8b5cf6;">⚡ Semanal $4.900</span>&nbsp;&nbsp;
-        <span style="background:#f3f0ff;border-radius:8px;padding:4px 10px;font-weight:700;color:#8b5cf6;">⭐ Mensual $15.900</span>`,
-      ctaText: "Ver planes y seguir →",
-      ctaPath: "/app",
-    }),
-  });
-}
 
 /**
  * Mail de rescate del embudo anónimo (registro diferido). Se dispara cuando el
@@ -259,7 +166,7 @@ export async function sendTechniquesEmail(to: string): Promise<void> {
     ["Enseñá lo aprendido", "Contarle el tema a un compañero (o a Booki 😄) es la prueba final de que lo dominás."],
   ];
   const list = tecnicas
-    .map(([t, d], i) => `<div style="margin:0 0 14px;"><b style="color:#2b2620;">${i + 1}. ${t}</b><br><span style="color:#5b5247;">${d}</span></div>`)
+    .map(([t, d], i) => `<div style="margin:0 0 14px;"><b style="color:#1f2347;">${i + 1}. ${t}</b><br><span style="color:#5b6178;">${d}</span></div>`)
     .join("");
   await send({
     to,
@@ -314,22 +221,21 @@ export async function sendDiscountEmail(to: string, code: string, pct: number): 
       heading: `🎁 ${pct}% OFF, de regalo`,
       body: `Como te lo prometimos, acá está tu código de descuento:<br><br>
         <div style="text-align:center;margin:8px 0 4px;"><span style="display:inline-block;background:#f3f0ff;border:2px dashed #8b5cf6;border-radius:12px;padding:12px 24px;font-size:22px;font-weight:800;letter-spacing:2px;color:#6d28d9;">${code}</span></div>
-        <div style="text-align:center;color:#9a8f80;font-size:12px;margin-bottom:16px;">${pct}% OFF en tu primer mes del plan Mensual PRO</div>
+        <div style="text-align:center;color:#9aa0b8;font-size:12px;margin-bottom:16px;">${pct}% OFF en tu primer mes del plan Mensual PRO</div>
         Con <b>Skillio PRO</b> generás sin límites, con el mejor modelo de IA.<br><br>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0;">
           <tr>
             <td style="background:linear-gradient(135deg,#f3f0ff,#eef2ff);border:1.5px solid #c4b5fd;border-radius:12px;padding:14px 18px;">
               <div style="font-weight:700;font-size:14px;color:#8b5cf6;">⭐ Mensual PRO</div>
-              <div style="margin-top:4px;"><span style="font-size:14px;color:#9a8f80;text-decoration:line-through;">$15.900</span> &nbsp;<span style="font-size:22px;font-weight:800;color:#2b2620;">$11.925</span> <span style="font-size:12px;color:#8b5cf6;font-weight:700;">primer mes</span></div>
-              <div style="font-size:12px;color:#9a8f80;margin-top:4px;">Después se renueva a $15.900/mes. Cancelás cuando quieras.</div>
+              <div style="margin-top:4px;"><span style="font-size:14px;color:#9aa0b8;text-decoration:line-through;">$15.900</span> &nbsp;<span style="font-size:22px;font-weight:800;color:#1f2347;">$11.925</span> <span style="font-size:12px;color:#8b5cf6;font-weight:700;">primer mes</span></div>
+              <div style="font-size:12px;color:#9aa0b8;margin-top:4px;">Después se renueva a $15.900/mes. Cancelás cuando quieras.</div>
             </td>
           </tr>
         </table>
-        <div style="color:#9a8f80;font-size:12px;">⏳ Válido por 48 horas.</div>`,
+        <div style="color:#9aa0b8;font-size:12px;">⏳ Válido por 48 horas.</div>`,
       ctaText: "Activar mi descuento →",
-      // Directo al paywall con el plan Mensual preseleccionado (no a la home
-      // genérica, que puede abrir otros modales encima).
-      ctaPath: "/app?upgrade=mensual",
+      // Directo al checkout embebido con el código ya aplicado (25% OFF primer mes).
+      ctaPath: `/pagar?promo=${code}`,
     }),
   });
 }

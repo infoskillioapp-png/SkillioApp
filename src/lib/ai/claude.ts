@@ -8,7 +8,6 @@ import { PDFDocument } from "pdf-lib";
 import { extractText } from "unpdf";
 import mammoth from "mammoth";
 import type { Note } from "@/lib/types";
-import { sendCreditsExhaustedEmail } from "@/lib/email/resend";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
 const BUCKET = "notes-uploads";
@@ -241,16 +240,6 @@ export async function consumeFreeGeneration(
     .from("users")
     .update({ free_generations_used: next })
     .eq("id", userId);
-
-  // Al consumir la última generación gratis → mail "se te acabaron los créditos".
-  if (next === FREE_GENERATION_LIMIT) {
-    const { data } = await sb
-      .from("users")
-      .select("email, full_name")
-      .eq("id", userId)
-      .maybeSingle();
-    if (data?.email) await sendCreditsExhaustedEmail(data.email, data.full_name);
-  }
 }
 
 /**

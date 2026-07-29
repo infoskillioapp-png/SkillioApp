@@ -6,11 +6,28 @@ import {
   mpGetSubscription,
   mpGetPayment,
   mpGetAuthorizedPayment,
+  mpUpdateSubscriptionAmount,
   periodEndFromLastCharge,
   type MpSubscription,
 } from "@/lib/mercadopago";
 import { sendMetaPurchase } from "@/lib/meta-capi";
 import { recordFunnelEventForUser } from "@/lib/api/funnel";
+import { PRO_PRICE_ARS as FULL_MONTHLY_PRICE, PRO_PRICE_DISCOUNTED } from "@/lib/pricing";
+
+// Descuento primer-mes: la sub nace a PRO_PRICE_DISCOUNTED. Tras el primer cobro
+// subimos el monto al precio normal para que el 2º mes en adelante salga full.
+// Idempotente: una vez subido ya no coincide con el monto descontado.
+async function bumpDiscountedAmountIfNeeded(sub: MpSubscription) {
+  const current = sub.auto_recurring?.transaction_amount;
+  if (current === PRO_PRICE_DISCOUNTED) {
+    try {
+      await mpUpdateSubscriptionAmount(sub.id, FULL_MONTHLY_PRICE);
+      console.log(`[webhook] descuento primer-mes agotado: sub ${sub.id} $${PRO_PRICE_DISCOUNTED} → $${FULL_MONTHLY_PRICE}`);
+    } catch (e) {
+      console.error(`[webhook] no se pudo subir el monto de la sub ${sub.id}:`, e);
+    }
+  }
+}
 
 function verifySignature(req: NextRequest, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -257,6 +274,9 @@ async function handlePreapproval(subscriptionId: string) {
         .update({ mp_subscription_id: subscription.id })
         .eq("id", user.id);
     }
+    // Descuento primer-mes: el 1er cobro (con card_token) ya se hizo al crear
+    // la sub; subimos el monto para que el 2º mes salga full.
+    await bumpDiscountedAmountIfNeeded(subscription);
   } else if (subscription.status === "cancelled" || subscription.status === "paused") {
     const { user, matchedBy } = await findUser(sb, lookup);
     if (!user) {
@@ -323,6 +343,9 @@ async function handleAuthorizedPayment(authPaymentId: string) {
   await activateOrRenewPlan(sb, user, { subscriptionId: ap.preapproval_id, planType });
   console.log(`[webhook/authpay] ${user.email} ${planType} renovado (matchedBy=${matchedBy})`);
 
+  // Descuento primer-mes: tras el 1er cobro, subir el monto al precio normal.
+  if (subscription) await bumpDiscountedAmountIfNeeded(subscription);
+
   const amount = ap.transaction_amount ?? (
     planType === "semanal" ? SEMANAL_PRICE_ARS :
     planType === "trimestral" ? TRIMESTRAL_PRICE_ARS :
@@ -372,6 +395,8 @@ async function handlePayment(paymentId: string) {
     try {
       const sub = await mpGetSubscription(payment.preapproval_id);
       planType = detectPlanType(sub.preapproval_plan_id);
+      // Descuento primer-mes: subir el monto tras el 1er cobro.
+      await bumpDiscountedAmountIfNeeded(sub);
     } catch {
       planType = planTypeFromAmount(amount, user.plan);
     }

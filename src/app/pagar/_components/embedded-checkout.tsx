@@ -4,15 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
 import { initMercadoPago, CardPayment } from "@mercadopago/sdk-react";
+import { PRO_PRICE_ARS, PRO_PRICE_DISCOUNTED, DISCOUNT_CODE, DISCOUNT_PCT, isValidDiscountCode } from "@/lib/pricing";
 
 // Checkout EMBEBIDO del plan Mensual, en 2 PASOS:
-//   Paso 1 (datos): mail + teléfono → se guardan ANTES de la tarjeta (así, si
-//     abandonan en el paso 2, igual quedamos con el contacto para recuperarlos).
+//   Paso 1 (datos): mail + teléfono (+ código opcional) → se guardan ANTES de
+//     la tarjeta (si abandonan en el paso 2, quedamos con el contacto).
 //   Paso 2 (tarjeta): Card Brick de MP con el mail ya prefilleado. Al pagar,
 //     el server crea la suscripción y activa el plan (anon → auto-login).
 
-const PRO_PRICE_ARS = 15900;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const fmt = (n: number) => `$${n.toLocaleString("es-AR")}`;
 
 let mpInitDone = false;
 
@@ -40,7 +41,7 @@ function FormSkeleton() {
   );
 }
 
-export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string }) {
+export function EmbeddedCheckout({ initialEmail = "", initialPromo = "" }: { initialEmail?: string; initialPromo?: string }) {
   const router = useRouter();
   const { signIn } = useSignIn();
 
@@ -49,9 +50,21 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
   const [phone, setPhone] = useState("");
   const [savingLead, setSavingLead] = useState(false);
 
+  // Código de descuento (25% OFF primer mes). Arranca aplicado si vino por el
+  // link del mail (?promo=SKILLIO25); si no, el usuario lo puede tipear.
+  const [promoInput, setPromoInput] = useState(initialPromo);
+  const [promoApplied, setPromoApplied] = useState(isValidDiscountCode(initialPromo));
+  const [promoError, setPromoError] = useState(false);
+  const amount = promoApplied ? PRO_PRICE_DISCOUNTED : PRO_PRICE_ARS;
+
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function applyPromo() {
+    if (isValidDiscountCode(promoInput)) { setPromoApplied(true); setPromoError(false); }
+    else { setPromoApplied(false); setPromoError(true); }
+  }
 
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
@@ -86,12 +99,12 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
       const res = await fetch("/api/subscription/create-embedded", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card_token: formData.token, email: email || formData.payer?.email, phone }),
+        body: JSON.stringify({ card_token: formData.token, email: email || formData.payer?.email, phone, promo: promoApplied ? DISCOUNT_CODE : undefined }),
       });
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 402 || data?.error === "card_declined") {
-        setError(data?.detail ? `La tarjeta fue rechazada. Motivo (MP): ${data.detail}` : "La tarjeta fue rechazada. Probá con otra o revisá los datos.");
+        setError("No pudimos procesar el pago con esa tarjeta. Revisá los datos o probá con otra.");
         setProcessing(false);
         return;
       }
@@ -139,6 +152,37 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
             onKeyDown={(e) => { if (e.key === "Enter") continuarAlPago(); }}
           />
 
+          {/* Código de descuento */}
+          {promoApplied ? (
+            <div className="ck-promo-ok">
+              <span>🎟️ Código <b>{DISCOUNT_CODE}</b> aplicado — {DISCOUNT_PCT}% OFF el primer mes</span>
+              <button onClick={() => { setPromoApplied(false); setPromoInput(""); }} className="ck-promo-remove">Quitar</button>
+            </div>
+          ) : (
+            <div className="ck-promo-row">
+              <input
+                className="ck-input" style={{ marginBottom: 0, flex: 1 }} type="text"
+                placeholder="¿Tenés un código?" value={promoInput}
+                onChange={(e) => { setPromoInput(e.target.value); if (promoError) setPromoError(false); }}
+                onKeyDown={(e) => { if (e.key === "Enter") applyPromo(); }}
+              />
+              <button type="button" className="ck-promo-apply" onClick={applyPromo}>Aplicar</button>
+            </div>
+          )}
+          {promoError && <div className="ck-promo-err">Ese código no es válido.</div>}
+
+          {/* Resumen de precio */}
+          <div className="ck-price">
+            {promoApplied ? (
+              <>
+                <span className="ck-price-now">Primer mes: <b>{fmt(PRO_PRICE_DISCOUNTED)}</b></span>
+                <span className="ck-price-then">luego {fmt(PRO_PRICE_ARS)}/mes</span>
+              </>
+            ) : (
+              <span className="ck-price-now"><b>{fmt(PRO_PRICE_ARS)}</b>/mes</span>
+            )}
+          </div>
+
           <div className="ck-info">
             {CUENTA_INFO.map((it) => (
               <div key={it.title} className="ck-info-item">
@@ -166,7 +210,8 @@ export function EmbeddedCheckout({ initialEmail = "" }: { initialEmail?: string 
             {!ready && <div style={{ position: "absolute", inset: 0, zIndex: 2 }}><FormSkeleton /></div>}
             <div style={{ opacity: processing ? 0.5 : 1, pointerEvents: processing ? "none" : "auto", transition: "opacity .2s" }}>
               <CardPayment
-                initialization={{ amount: PRO_PRICE_ARS, payer: { email } }}
+                key={amount}
+                initialization={{ amount, payer: { email } }}
                 customization={{
                   paymentMethods: { maxInstallments: 1 },
                   visual: {
@@ -207,6 +252,15 @@ const CK_CSS = `
 .ck-info-ic{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:#7c3aed;background:#fff;border:1px solid rgba(139,92,246,.16)}
 .ck-info-title{font-family:var(--po);font-weight:700;font-size:13px;color:var(--ink);margin-bottom:1px}
 .ck-info-body{font-size:12px;color:var(--muted);line-height:1.4}
+.ck-promo-row{display:flex;gap:8px;margin-bottom:6px}
+.ck-promo-apply{flex:none;padding:0 16px;border:1.5px solid #8b5cf6;border-radius:12px;background:#fff;color:#7c3aed;font-weight:700;font-size:13.5px;cursor:pointer;transition:.15s}
+.ck-promo-apply:hover{background:#f4f2ff}
+.ck-promo-ok{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(52,199,120,.10);border:1px solid rgba(52,199,120,.28);border-radius:12px;padding:10px 13px;font-size:12.5px;color:#2f7a4f;margin-bottom:6px}
+.ck-promo-remove{background:none;border:none;color:#2f7a4f;font-weight:700;font-size:12px;cursor:pointer;text-decoration:underline;white-space:nowrap}
+.ck-promo-err{font-size:12px;color:#d63a52;font-weight:600;margin-bottom:6px}
+.ck-price{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:6px 0 16px;font-size:14px;color:var(--ink)}
+.ck-price-now b{font-family:var(--po);font-weight:800;font-size:18px}
+.ck-price-then{font-size:12.5px;color:var(--muted)}
 .ck-cta{width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#8b5cf6,#4f7dff);color:#fff;font-family:var(--po);font-weight:700;font-size:15.5px;cursor:pointer;box-shadow:0 10px 24px rgba(124,58,237,.30);transition:transform .12s,box-shadow .12s}
 .ck-cta:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 30px rgba(124,58,237,.42)}
 .ck-cta:disabled{opacity:.7;cursor:default}

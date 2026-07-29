@@ -4,7 +4,6 @@ import { syncUserToSupabase } from "@/lib/sync-user";
 import { checkEmailAllowed } from "@/lib/anti-fraude";
 import { applyReferral } from "@/lib/api/referrals";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { sendWelcomeEmail, scheduleNudgeEmails } from "@/lib/email/resend";
 import { recordFunnelEvent } from "@/lib/api/funnel";
 
 interface Props {
@@ -39,11 +38,8 @@ export default async function OnboardingPage({ searchParams }: Props) {
     offer_started_at: new Date().toISOString(),
   }).eq("clerk_user_id", userId);
 
-  // Emails de bienvenida y nurture
-  if (user.email) {
-    await sendWelcomeEmail(user.email, user.full_name);
-    await scheduleNudgeEmails(user.email, user.full_name);
-  }
+  // (Los mails de bienvenida/nurture del free se rehacen desde cero en el nuevo
+  // email marketing — el flujo viejo se retiró.)
 
   const planParam = sp.plan && ["semanal", "mensual", "trimestral"].includes(sp.plan)
     ? sp.plan

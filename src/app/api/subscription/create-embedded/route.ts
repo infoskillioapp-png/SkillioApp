@@ -9,10 +9,10 @@ import { ensureAccountForPaidAnon } from "@/lib/claim";
 import { isDisposableEmail } from "@/lib/anti-fraude";
 import { recordFunnelEvent, recordFunnelEventForUser } from "@/lib/api/funnel";
 import { sendProWelcomeEmail } from "@/lib/email/resend";
+import { PRO_PRICE_ARS, PRO_PRICE_DISCOUNTED, isValidDiscountCode } from "@/lib/pricing";
 
 const ANON_COOKIE = "skillio_anon";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PRO_PRICE_ARS = 15900;
 const PRO_CREDITS = 500;
 
 // back_url para MP. MP valida el back_url de la preapproval y RECHAZA los
@@ -42,6 +42,11 @@ export async function POST(req: Request) {
     // Teléfono capturado en el paso 1 (ya validado ahí). Se guarda al activar
     // para que el gate de /completar-telefono no se dispare tras el pago.
     const phone = (typeof body.phone === "string" ? body.phone : "").replace(/[^\d+]/g, "").slice(0, 20);
+    // Código de descuento (SKILLIO25): SOLO primer mes. El monto del primer
+    // cobro baja a PRO_PRICE_DISCOUNTED y el webhook lo sube a PRO_PRICE_ARS
+    // tras ese primer pago (mpUpdateSubscriptionAmount).
+    const applyDiscount = isValidDiscountCode(body.promo);
+    const amount = applyDiscount ? PRO_PRICE_DISCOUNTED : PRO_PRICE_ARS;
 
     if (!cardToken) return NextResponse.json({ error: "missing_card_token" }, { status: 400 });
     if (!EMAIL_RE.test(email) || isDisposableEmail(email))
@@ -93,17 +98,15 @@ export async function POST(req: Request) {
         externalRef,
         payerEmail: email,
         cardTokenId: cardToken,
-        amount: PRO_PRICE_ARS,
+        amount,
         backUrl,
       });
     } catch (e) {
-      // El error de mpFetch trae el body crudo de MP (con el motivo real del
-      // rechazo). Lo devolvemos como `detail` TEMPORALMENTE para diagnosticar
-      // el flujo real de pago — hay que sacarlo cuando el checkout esté validado.
+      // El motivo real de MP queda en el log/Sentry (no se expone al cliente).
       const raw = e instanceof Error ? e.message : String(e);
       console.error("[create-embedded] MP rechazó la suscripción:", raw);
       Sentry.captureException(e, { tags: { step: "create-embedded:mp" } });
-      return NextResponse.json({ error: "card_declined", detail: raw }, { status: 402 });
+      return NextResponse.json({ error: "card_declined" }, { status: 402 });
     }
 
     // Funnel: llegó al checkout (y lo pagó, a confirmar por status).
