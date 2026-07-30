@@ -128,7 +128,7 @@ export async function POST(req: Request) {
             updated_at: new Date().toISOString(),
           })
           .eq("id", user.id);
-        if (planKind === "pro") await sendProWelcomeEmail(email);
+        await sendProWelcomeEmail(email, planKind);
       }
       return NextResponse.json({ ok: true, plan: planKind });
     }
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
     // /completar-telefono tras el pago).
     if (phone) await sb.from("users").update({ phone }).eq("clerk_user_id", clerkUserId);
 
-    if (planKind === "pro") await sendProWelcomeEmail(email);
+    await sendProWelcomeEmail(email, planKind);
 
     const client = await clerkClient();
     const token = await client.signInTokens.createSignInToken({

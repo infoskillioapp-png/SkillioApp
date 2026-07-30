@@ -141,6 +141,13 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = 
 
       {step === "datos" ? (
         <div className="ck-datos">
+          {promoApplied && (
+            <div className="ck-pb">
+              <div className="ck-pb-top">🎟️ Tenés {DISCOUNT_PCT}% OFF en tu primer mes</div>
+              <div className="ck-pb-price"><s>{fmt(PRO_PRICE_ARS)}</s> <b>{fmt(PRO_PRICE_DISCOUNTED)}</b> primer mes · luego {fmt(PRO_PRICE_ARS)}/mes</div>
+              <div className="ck-pb-cta">Completá tus datos y el descuento se aplica automáticamente.</div>
+            </div>
+          )}
           <label className="ck-label">Tu mail</label>
           <input
             className="ck-input" type="email" inputMode="email" autoComplete="email"
@@ -256,6 +263,12 @@ const CK_CSS = `
 .ck-info-ic{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:#7c3aed;background:#fff;border:1px solid rgba(139,92,246,.16)}
 .ck-info-title{font-family:var(--po);font-weight:700;font-size:13px;color:var(--ink);margin-bottom:1px}
 .ck-info-body{font-size:12px;color:var(--muted);line-height:1.4}
+.ck-pb{background:linear-gradient(135deg,#f3f0ff,#eef2ff);border:1.5px solid #c4b5fd;border-radius:14px;padding:13px 15px;margin-bottom:16px}
+.ck-pb-top{font-family:var(--po);font-weight:800;font-size:14px;color:#7c3aed;margin-bottom:3px}
+.ck-pb-price{font-size:13px;color:var(--ink)}
+.ck-pb-price s{color:var(--muted)}
+.ck-pb-price b{font-family:var(--po);font-weight:800;font-size:16px}
+.ck-pb-cta{font-weight:800;font-size:12.5px;color:#1f2347;margin-top:7px}
 .ck-promo-row{display:flex;gap:8px;margin-bottom:6px}
 .ck-promo-apply{flex:none;padding:0 16px;border:1.5px solid #8b5cf6;border-radius:12px;background:#fff;color:#7c3aed;font-weight:700;font-size:13.5px;cursor:pointer;transition:.15s}
 .ck-promo-apply:hover{background:#f4f2ff}

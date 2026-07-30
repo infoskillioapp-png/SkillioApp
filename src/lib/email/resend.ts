@@ -2,6 +2,7 @@ import "server-only";
 import { Resend } from "resend";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { buildUnsubscribeUrl } from "./unsubscribe";
+import { PLANS, type PlanKind } from "@/lib/pricing";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -244,23 +245,26 @@ export async function sendDiscountEmail(to: string, code: string, pct: number): 
 // Transaccional: bienvenida PRO (tras un pago exitoso en el checkout embebido)
 // ---------------------------------------------------------------------------
 
-/** Se dispara al activar el plan pago: confirma la suscripción y explica el acceso. */
-export async function sendProWelcomeEmail(to: string, name?: string | null): Promise<void> {
+/** Se dispara al activar CUALQUIER plan pago: confirma la suscripción y explica el acceso. */
+export async function sendProWelcomeEmail(to: string, planKind: PlanKind = "pro", name?: string | null): Promise<void> {
   const n = firstName(name);
+  const spec = PLANS[planKind];
+  const precio = `$${spec.amount.toLocaleString("es-AR")}`;
+  const periodo = planKind === "semanal" ? "cada semana" : planKind === "trimestral" ? "cada 3 meses" : "cada mes";
   await send({
     to,
     subject: "🎉 ¡Ya sos PRO! Tu suscripción está activa",
     html: wrap({
       preview: "Tu pago se acreditó. Ya tenés todo Skillio sin límites.",
       heading: `¡Bienvenido a PRO, ${n}! 🎉`,
-      body: `Tu pago se acreditó y tu <b>suscripción Mensual PRO</b> ya está activa. Desde ahora tenés:<br><br>
+      body: `Tu pago se acreditó y tu <b>plan ${spec.label}</b> ya está activo. Desde ahora tenés:<br><br>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr><td style="padding:3px 0;font-size:14px;color:#3b3558;">✅ Resúmenes, tarjetas, simulacros y juegos sin límites</td></tr>
           <tr><td style="padding:3px 0;font-size:14px;color:#3b3558;">✅ El modelo de IA de máxima calidad en tus resúmenes</td></tr>
           <tr><td style="padding:3px 0;font-size:14px;color:#3b3558;">✅ Acceso completo a todos tus apuntes, sin cortes</td></tr>
         </table><br>
         <b>¿Cómo entrás?</b> Sin contraseña: cada vez que quieras ingresar te mandamos un código a este mail.<br><br>
-        Se renueva automáticamente cada mes ($15.900). Podés cancelar cuando quieras desde tu perfil.<br><br>
+        Se renueva automáticamente ${periodo} (${precio}). Podés cancelar cuando quieras desde tu perfil.<br><br>
         ¿Alguna duda? Respondé este mail y te ayudamos — <b>soporte 24/7</b>. 💜`,
       ctaText: "Entrar a estudiar →",
       ctaPath: "/app",
