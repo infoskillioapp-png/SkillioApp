@@ -47,7 +47,12 @@ export async function resolveActor(): Promise<Actor> {
   }
 
   const anon = await getOrCreateAnonUser();
-  return { ...anon, isAnon: true };
+  // INVARIANTE: un actor anónimo (sin cuenta Clerk) es SIEMPRE free. El acceso
+  // pago requiere una cuenta — al pagar se crea la cuenta y se hace login, así
+  // que el plan pago se lee por la rama Clerk. Si una fila anónima quedó con
+  // plan pago (estado inválido: p.ej. webhook activando la sesión sin
+  // reclamarla), no le damos acceso pro sin login.
+  return { ...anon, plan: "free", expires_at: null, isAnon: true };
 }
 
 /**
@@ -76,5 +81,8 @@ export async function getActorReadonly(): Promise<Actor | null> {
     .select(COLS)
     .eq("anon_session_id", session)
     .maybeSingle();
-  return data ? { ...(data as Omit<Actor, "isAnon">), isAnon: true } : null;
+  // INVARIANTE: un actor anónimo es SIEMPRE free (ver resolveActor). El acceso
+  // pago se lee por la rama Clerk; una fila anónima con plan pago es un estado
+  // inválido y no debe dar acceso pro sin login.
+  return data ? { ...(data as Omit<Actor, "isAnon">), plan: "free", expires_at: null, isAnon: true } : null;
 }
