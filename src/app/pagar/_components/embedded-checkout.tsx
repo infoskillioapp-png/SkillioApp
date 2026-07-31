@@ -55,21 +55,17 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = 
   const [phone, setPhone] = useState("");
   const [savingLead, setSavingLead] = useState(false);
 
-  // Código de descuento (25% OFF primer mes, solo pro). Arranca aplicado si
-  // vino por el link del mail (?promo=SKILLIO25).
+  // Código de descuento (25% OFF primer mes, solo pro). `promoApplied` es
+  // DERIVADO del código escrito: apenas es válido se aplica solo, sin depender
+  // de tocar ningún botón (antes un código escrito-pero-no-aplicado cobraba full).
   const [promoInput, setPromoInput] = useState(initialPromo);
-  const [promoApplied, setPromoApplied] = useState(canDiscount && isValidDiscountCode(initialPromo));
-  const [promoError, setPromoError] = useState(false);
+  const promoApplied = canDiscount && isValidDiscountCode(promoInput);
+  const promoTyped = promoInput.trim().length > 0;
   const amount = promoApplied ? PRO_PRICE_DISCOUNTED : spec.amount;
 
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function applyPromo() {
-    if (isValidDiscountCode(promoInput)) { setPromoApplied(true); setPromoError(false); }
-    else { setPromoApplied(false); setPromoError(true); }
-  }
 
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
@@ -187,24 +183,20 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = 
             <button onClick={() => { setStep("datos"); setReady(false); }} className="ck-change">Cambiar</button>
           </div>
 
-          {/* Código de descuento (solo Mensual) + resumen de precio */}
+          {/* Código de descuento (solo Mensual) — se aplica solo al ser válido */}
           {canDiscount && (promoApplied ? (
             <div className="ck-promo-ok">
               <span>🎟️ Código <b>{DISCOUNT_CODE}</b> aplicado — {DISCOUNT_PCT}% OFF el primer mes</span>
-              <button onClick={() => { setPromoApplied(false); setPromoInput(""); }} className="ck-promo-remove">Quitar</button>
+              <button onClick={() => setPromoInput("")} className="ck-promo-remove">Quitar</button>
             </div>
           ) : (
-            <div className="ck-promo-row">
-              <input
-                className="ck-input" style={{ marginBottom: 0, flex: 1 }} type="text"
-                placeholder="¿Tenés un código?" value={promoInput}
-                onChange={(e) => { setPromoInput(e.target.value); if (promoError) setPromoError(false); }}
-                onKeyDown={(e) => { if (e.key === "Enter") applyPromo(); }}
-              />
-              <button type="button" className="ck-promo-apply" onClick={applyPromo}>Aplicar</button>
-            </div>
+            <input
+              className="ck-input" style={{ marginBottom: 6 }} type="text"
+              placeholder="¿Tenés un código de descuento?" value={promoInput}
+              onChange={(e) => setPromoInput(e.target.value)}
+            />
           ))}
-          {promoError && <div className="ck-promo-err">Ese código no es válido.</div>}
+          {canDiscount && promoTyped && !promoApplied && <div className="ck-promo-err">Ese código no es válido.</div>}
 
           <div className="ck-price">
             {promoApplied ? (
