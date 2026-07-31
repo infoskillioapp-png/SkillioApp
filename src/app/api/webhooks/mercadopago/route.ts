@@ -276,9 +276,10 @@ async function handlePreapproval(subscriptionId: string) {
         .update({ mp_subscription_id: subscription.id })
         .eq("id", user.id);
     }
-    // Descuento primer-mes: el 1er cobro (con card_token) ya se hizo al crear
-    // la sub; subimos el monto para que el 2º mes salga full.
-    await bumpDiscountedAmountIfNeeded(subscription);
+    // OJO: NO subir el monto acá. MP cobra el 1er pago DIFERIDO (no al crear la
+    // sub); si subimos el monto en el alta, el 1er cobro sale full. El bump del
+    // descuento va SOLO tras el primer cobro real (handleAuthorizedPayment /
+    // handlePayment).
   } else if (subscription.status === "cancelled" || subscription.status === "paused") {
     const { user, matchedBy } = await findUser(sb, lookup);
     if (!user) {
