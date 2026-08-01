@@ -65,10 +65,10 @@ export function TtsPlayer({
     else { a.pause(); setPlaying(false); }
   }
 
-  function pickVoice(v: Voice) {
-    if (v === voice) return;
-    setVoice(v);
-    if (status === "ready" || status === "loading") generate(v); // otra voz = otro audio
+  function reset() {
+    const a = audioRef.current;
+    if (a) { a.pause(); a.removeAttribute("src"); }
+    setPlaying(false); setCur(0); setDur(0); setStatus("idle");
   }
 
   function setSpeed(r: number) {
@@ -99,18 +99,30 @@ export function TtsPlayer({
       <audio ref={audioRef} preload="none" />
 
       {status === "idle" || status === "error" ? (
-        <button
-          onClick={() => generate(voice)}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
-            width: "100%", padding: "13px 16px", borderRadius: 14, border: "none", cursor: "pointer",
-            background: accent, color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
-            boxShadow: "0 6px 18px rgba(124,58,237,.30)",
-          }}
-        >
-          🎧 Escuchar el resumen
-          <span style={{ fontWeight: 500, opacity: .85, fontSize: 12 }}>· estudiá con los oídos</span>
-        </button>
+        <div style={{
+          borderRadius: 16, padding: "13px 14px",
+          background: "linear-gradient(135deg,rgba(139,92,246,.08),rgba(124,58,237,.05))",
+          border: "1.5px solid rgba(139,92,246,.2)",
+        }}>
+          {/* Elegí la voz ANTES de generar → se sintetiza una sola vez */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 11 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#6d28d9", fontFamily: "var(--po)", marginRight: 2 }}>Voz:</span>
+            <button onClick={() => setVoice("f")} style={chip(voice === "f")}>👩 Femenina</button>
+            <button onClick={() => setVoice("m")} style={chip(voice === "m")}>👨 Masculina</button>
+          </div>
+          <button
+            onClick={() => generate(voice)}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+              width: "100%", padding: "13px 16px", borderRadius: 12, border: "none", cursor: "pointer",
+              background: accent, color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+              boxShadow: "0 6px 18px rgba(124,58,237,.30)",
+            }}
+          >
+            🎧 Escuchar el resumen
+            <span style={{ fontWeight: 500, opacity: .85, fontSize: 12 }}>· estudiá con los oídos</span>
+          </button>
+        </div>
       ) : (
         <div style={{
           borderRadius: 18, padding: "14px 16px",
@@ -154,14 +166,18 @@ export function TtsPlayer({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
-            {/* velocidad */}
+            {/* velocidad (del navegador, sin costo) */}
             {RATES.map((r) => (
               <button key={r} onClick={() => setSpeed(r)} style={chip(rate === r)}>{r}x</button>
             ))}
             <span style={{ width: 1, height: 18, background: "rgba(139,92,246,.25)", margin: "0 2px" }} />
-            {/* voz */}
-            <button onClick={() => pickVoice("f")} style={chip(voice === "f")}>👩 Femenina</button>
-            <button onClick={() => pickVoice("m")} style={chip(voice === "m")}>👨 Masculina</button>
+            {/* voz elegida + cambiar (vuelve a la selección) */}
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#6d28d9", fontFamily: "var(--po)" }}>
+              {voice === "f" ? "👩 Femenina" : "👨 Masculina"}
+            </span>
+            <button onClick={reset} disabled={status === "loading"} style={{ ...chip(false), border: "1.5px solid rgba(139,92,246,.25)", opacity: status === "loading" ? .5 : 1 }}>
+              ↩ Cambiar voz
+            </button>
           </div>
         </div>
       )}
