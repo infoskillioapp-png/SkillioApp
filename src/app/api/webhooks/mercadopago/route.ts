@@ -66,9 +66,10 @@ type MatchedUser = {
   referred_by: string | null;
   mp_subscription_id: string | null;
   expires_at: string | null;
+  clerk_user_id: string | null;
 };
 
-const USER_COLS = "id, email, plan, credits, referred_by, mp_subscription_id, expires_at";
+const USER_COLS = "id, email, plan, credits, referred_by, mp_subscription_id, expires_at, clerk_user_id";
 
 async function findUser(
   sb: Sb,
@@ -91,15 +92,18 @@ async function findUser(
     if (data) return { user: data as MatchedUser, matchedBy: "external_reference" };
   }
   // Registro diferido: el external_reference de una sesión anónima es su
-  // anon_session_id (UUID, sin prefijo user_). Activa el plan sobre esa fila; la
-  // cuenta Clerk se crea al confirmar el mail en /pago-exitoso.
+  // anon_session_id (UUID, sin prefijo user_). En el checkout embebido la fila
+  // se RECLAMA (clerk_user_id) en create-embedded de forma síncrona, antes de
+  // que llegue el webhook. Por eso solo activamos si la fila YA es una cuenta
+  // (tiene clerk_user_id): una fila anónima pura no debe quedar con plan pago
+  // (evita el bug "anónimo con PRO" — ver invariante en actor.ts).
   if (opts.externalRef && !looksLikeClerkId(opts.externalRef)) {
     const { data } = await sb
       .from("users")
       .select(USER_COLS)
       .eq("anon_session_id", opts.externalRef)
       .maybeSingle();
-    if (data) return { user: data as MatchedUser, matchedBy: "anon_session_id" };
+    if (data && data.clerk_user_id) return { user: data as MatchedUser, matchedBy: "anon_session_id" };
   }
   if (opts.payerEmail) {
     const { data } = await sb
