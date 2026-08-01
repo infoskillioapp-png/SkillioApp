@@ -11,7 +11,8 @@ export const maxDuration = 60;
 
 const BUCKET = "tts";
 // Bumpear si cambia la lógica de SSML/narración (invalida el cache anterior).
-const TTS_VERSION = "v1";
+// v2: marcas SSML + timepoints para subtítulos.
+const TTS_VERSION = "v2";
 // Neural2/Wavenet: US$16 por 1M de caracteres (para reportar costo real).
 const USD_PER_MILLION = 16;
 
@@ -58,27 +59,29 @@ export async function POST(req: Request) {
     // Cache: el audio de un resumen es determinístico. Key = hash(md+voz+ver).
     const hash = createHash("sha256").update(`${TTS_VERSION}|${gender}|${md}`).digest("hex").slice(0, 16);
     const path = `${actor.id}/${noteId}.${gender}.${hash}.mp3`;
+    const cuesPath = `${actor.id}/${noteId}.${gender}.${hash}.cues.json`;
 
     const { data: cached } = await sb.storage.from(BUCKET).createSignedUrl(path, 60 * 60);
     if (cached?.signedUrl) {
-      return NextResponse.json({ url: cached.signedUrl, cached: true });
+      let cues: unknown = [];
+      const dl = await sb.storage.from(BUCKET).download(cuesPath);
+      if (dl.data) { try { cues = JSON.parse(await dl.data.text()); } catch { /* sin cues */ } }
+      return NextResponse.json({ url: cached.signedUrl, cached: true, cues });
     }
 
     // Generar.
-    const { mp3, chars, chunks } = await synthesizeSummary(md, gender);
+    const { mp3, chars, chunks, cues } = await synthesizeSummary(md, gender);
     const estCostUsd = +(chars / 1_000_000 * USD_PER_MILLION).toFixed(4);
-    console.log(`[tts] note=${noteId} voz=${gender} chunks=${chunks} chars=${chars} ~US$${estCostUsd}`);
+    console.log(`[tts] note=${noteId} voz=${gender} chunks=${chunks} chars=${chars} cues=${cues.length} ~US$${estCostUsd}`);
 
-    const up = await sb.storage.from(BUCKET).upload(path, mp3, {
-      contentType: "audio/mpeg",
-      upsert: true,
-    });
+    const up = await sb.storage.from(BUCKET).upload(path, mp3, { contentType: "audio/mpeg", upsert: true });
     if (up.error) throw new Error(`upload: ${up.error.message}`);
+    await sb.storage.from(BUCKET).upload(cuesPath, Buffer.from(JSON.stringify(cues)), { contentType: "application/json", upsert: true });
 
     const { data: signed } = await sb.storage.from(BUCKET).createSignedUrl(path, 60 * 60);
     if (!signed?.signedUrl) throw new Error("no se pudo firmar la URL del audio");
 
-    return NextResponse.json({ url: signed.signedUrl, cached: false, chars, estCostUsd });
+    return NextResponse.json({ url: signed.signedUrl, cached: false, chars, estCostUsd, cues });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";
     console.error("[api/ai/tts]", e);

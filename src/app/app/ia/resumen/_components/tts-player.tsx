@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+type Cue = { t: number; text: string };
 
 // Reproductor del resumen en audio (Google TTS). Versión funcional para testear
 // y medir costo; la UI "tope de gama" (Booki animado + waveform de Claude
@@ -33,7 +35,20 @@ export function TtsPlayer({
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
   const [rate, setRate] = useState(1);
+  const [cues, setCues] = useState<Cue[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const activeRef = useRef<HTMLButtonElement | null>(null);
+
+  // Frase activa: la última cue cuyo tiempo ya pasó.
+  const activeIdx = useMemo(() => {
+    let idx = -1;
+    for (let i = 0; i < cues.length; i++) { if (cues[i].t <= cur + 0.12) idx = i; else break; }
+    return idx;
+  }, [cues, cur]);
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeIdx]);
 
   async function generate(v: Voice) {
     if (!isPro) { onUpsell(); return; }
@@ -47,6 +62,7 @@ export function TtsPlayer({
       if (res.status === 402) { onUpsell(); setStatus("idle"); return; }
       const j = await res.json();
       if (!res.ok || !j.url) throw new Error(j.error || "No se pudo generar el audio");
+      setCues(Array.isArray(j.cues) ? j.cues : []);
       const a = audioRef.current!;
       a.src = j.url;
       a.playbackRate = rate;
@@ -68,7 +84,7 @@ export function TtsPlayer({
   function reset() {
     const a = audioRef.current;
     if (a) { a.pause(); a.removeAttribute("src"); }
-    setPlaying(false); setCur(0); setDur(0); setStatus("idle");
+    setPlaying(false); setCur(0); setDur(0); setCues([]); setStatus("idle");
   }
 
   function setSpeed(r: number) {
@@ -164,6 +180,38 @@ export function TtsPlayer({
               </div>
             </div>
           </div>
+
+          {/* transcripción que sigue el audio (subtítulos) */}
+          {cues.length > 0 && (
+            <>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#8b5cf6", fontFamily: "var(--po)", textTransform: "uppercase", letterSpacing: ".04em", margin: "12px 0 5px" }}>
+                Subtítulos · tocá una línea para saltar
+              </div>
+              <div style={{ maxHeight: 170, overflowY: "auto", borderRadius: 12, background: "rgba(255,255,255,.55)", border: "1px solid rgba(139,92,246,.15)", padding: "6px 4px" }}>
+                {cues.map((c, i) => (
+                  <button
+                    key={i}
+                    ref={i === activeIdx ? activeRef : null}
+                    onClick={() => {
+                      const a = audioRef.current;
+                      if (!a) return;
+                      a.currentTime = c.t; setCur(c.t);
+                      if (a.paused) { void a.play(); setPlaying(true); }
+                    }}
+                    style={{
+                      display: "block", width: "100%", textAlign: "left", border: "none", cursor: "pointer",
+                      background: i === activeIdx ? "linear-gradient(135deg,rgba(139,92,246,.18),rgba(124,58,237,.10))" : "transparent",
+                      color: i === activeIdx ? "#4c1d95" : "var(--muted)",
+                      fontWeight: i === activeIdx ? 700 : 500, fontSize: 13, lineHeight: 1.5,
+                      padding: "5px 9px", borderRadius: 8, transition: "background .15s, color .15s",
+                    }}
+                  >
+                    {c.text}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
             {/* velocidad (del navegador, sin costo) */}

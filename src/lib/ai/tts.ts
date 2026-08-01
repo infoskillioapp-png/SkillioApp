@@ -5,11 +5,15 @@ import { parseSummaryMarkdown } from "@/lib/notes/summary-markdown";
 // key propia AIza — la de Gemini es formato AQ. y NO sirve para TTS). Se eligió
 // REST + fetch (no @google-cloud/text-to-speech) para no meter una dependencia
 // pesada y no depender de credenciales de service account en Vercel.
+//
+// Usamos v1beta1 porque expone `enableTimePointing` con marcas SSML <mark>: la
+// MISMA llamada del audio devuelve el tiempo de cada frase → subtítulos tipo
+// karaoke SIN costo de generación extra (solo unas marcas mínimas en el texto).
 
-const TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1/text:synthesize";
+const TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1beta1/text:synthesize";
 
 // es-AR no tiene voces dedicadas en Google: la cubre con es-US (español latino
-// neutro). Neural2 soporta SSML (necesario para las pausas pedagógicas).
+// neutro). Neural2 soporta SSML y timepoints (verificado en vivo).
 export type VoiceGender = "f" | "m";
 const VOICE: Record<VoiceGender, string> = {
   f: "es-US-Neural2-A", // femenina
@@ -19,7 +23,7 @@ const LANGUAGE_CODE = "es-US";
 
 // La API corta en 5000 bytes de input por request (SSML incluido). Dejamos
 // margen: si un resumen supera esto, se parte en varios requests y se
-// concatenan los MP3.
+// concatenan los MP3 (los timepoints se corrigen con el offset acumulado).
 const MAX_SSML_BYTES = 4200;
 
 const bytes = (s: string) => Buffer.byteLength(s, "utf8");
@@ -52,75 +56,78 @@ function stripMarkdown(md: string): string {
     .trim();
 }
 
-// Divide un texto largo en oraciones (para partir un párrafo gigante que solo
-// no entre en el límite de bytes).
+// Divide un texto en oraciones (unidad de subtítulo). Corta oraciones muy
+// largas (>~180 chars) en el borde de una coma para que ninguna unidad pase el
+// límite de bytes y el subtítulo no sea un bloque gigante.
 function splitSentences(text: string): string[] {
-  const parts = text.match(/[^.!?]+[.!?]*\s*/g);
-  return (parts ?? [text]).map((s) => s.trim()).filter(Boolean);
+  const raw = text.match(/[^.!?]+[.!?]*\s*/g) ?? [text];
+  const out: string[] = [];
+  for (const s of raw.map((x) => x.trim()).filter(Boolean)) {
+    if (bytes(s) <= 180) { out.push(s); continue; }
+    let buf = "";
+    for (const part of s.split(/,\s*/)) {
+      const piece = buf ? `${buf}, ${part}` : part;
+      if (bytes(piece) > 180 && buf) { out.push(buf); buf = part; }
+      else buf = piece;
+    }
+    if (buf) out.push(buf);
+  }
+  return out;
 }
 
-type Piece = { ssml: string }; // fragmento ya escapado, con su pausa incluida
+// Unidad narrable = una frase/encabezado con su pausa. `text` es el subtítulo.
+type Unit = { text: string; breakMs: number };
 
-// Construye los fragmentos SSML del resumen con ritmo pedagógico: pausa larga
-// tras cada título de sección, pausa media entre párrafos.
-function buildPieces(markdown: string, opts: { firstSectionOnly?: boolean }): Piece[] {
+function extractUnits(markdown: string, opts: { firstSectionOnly?: boolean }): Unit[] {
   const parsed = parseSummaryMarkdown(markdown);
-  const pieces: Piece[] = [];
-
-  const pushParagraphs = (raw: string, breakMs: number) => {
+  const units: Unit[] = [];
+  const pushText = (raw: string, breakMs: number) => {
     const clean = stripMarkdown(raw);
     if (!clean) return;
     for (const para of clean.split(/\n{2,}|\n/).map((p) => p.trim()).filter(Boolean)) {
-      pieces.push({ ssml: `${escapeXml(para)}<break time="${breakMs}ms"/>` });
+      const sents = splitSentences(para);
+      sents.forEach((s, i) => units.push({ text: s, breakMs: i === sents.length - 1 ? breakMs : 250 }));
     }
   };
 
-  if (parsed.title) pieces.push({ ssml: `${escapeXml(parsed.title)}<break time="900ms"/>` });
-  if (parsed.intro) pushParagraphs(parsed.intro, 500);
+  if (parsed.title) units.push({ text: parsed.title, breakMs: 900 });
+  if (parsed.intro) pushText(parsed.intro, 500);
 
   const sections = opts.firstSectionOnly ? parsed.sections.slice(0, 1) : parsed.sections;
   for (const sec of sections) {
-    if (sec.heading) pieces.push({ ssml: `${escapeXml(sec.heading)}.<break time="800ms"/>` });
-    pushParagraphs(sec.markdown, 450);
-    pieces.push({ ssml: `<break time="700ms"/>` });
+    if (sec.heading) units.push({ text: sec.heading, breakMs: 800 });
+    pushText(sec.markdown, 650);
   }
-  return pieces;
+  return units;
 }
 
-// Empaqueta los fragmentos en chunks <speak>…</speak> que no superen el límite
-// de bytes. Un fragmento suelto que ya lo supere se parte por oraciones.
-function packChunks(pieces: Piece[]): string[] {
-  const wrap = (body: string) => `<speak>${body}</speak>`;
+// Empaqueta unidades en chunks <speak> con una <mark> antes de cada una (para el
+// timepoint) y un mark "__end" al final (para medir la duración del chunk y
+// corregir el offset al concatenar).
+type Chunk = { ssml: string; unitIdxs: number[] };
+function packChunks(units: Unit[]): Chunk[] {
+  const wrap = (body: string) => `<speak>${body}<mark name="__end"/></speak>`;
   const overhead = bytes(wrap(""));
-  const chunks: string[] = [];
-  let cur = "";
+  const chunks: Chunk[] = [];
+  let curBody = "";
+  let curIdxs: number[] = [];
 
-  const flush = () => { if (cur) { chunks.push(wrap(cur)); cur = ""; } };
-
-  const add = (frag: string) => {
-    if (overhead + bytes(cur) + bytes(frag) <= MAX_SSML_BYTES) {
-      cur += frag;
-      return;
-    }
-    flush();
-    if (overhead + bytes(frag) <= MAX_SSML_BYTES) {
-      cur = frag;
-      return;
-    }
-    // Fragmento gigante: partir por oraciones.
-    for (const sent of splitSentences(frag.replace(/<break[^>]*>/g, ""))) {
-      const sFrag = `${sent} `;
-      if (overhead + bytes(cur) + bytes(sFrag) > MAX_SSML_BYTES) flush();
-      cur += sFrag;
-    }
+  const flush = () => {
+    if (curIdxs.length) { chunks.push({ ssml: wrap(curBody), unitIdxs: curIdxs }); curBody = ""; curIdxs = []; }
   };
 
-  for (const p of pieces) add(p.ssml);
+  units.forEach((u, i) => {
+    const frag = `<mark name="u${i}"/>${escapeXml(u.text)}<break time="${u.breakMs}ms"/>`;
+    if (curIdxs.length && overhead + bytes(curBody) + bytes(frag) > MAX_SSML_BYTES) flush();
+    curBody += frag;
+    curIdxs.push(i);
+  });
   flush();
   return chunks;
 }
 
-async function synthesizeChunk(ssml: string, voiceName: string, apiKey: string): Promise<Buffer> {
+type Timepoint = { markName?: string; timeSeconds?: number };
+async function synthesizeChunk(ssml: string, voiceName: string, apiKey: string): Promise<{ audio: Buffer; timepoints: Timepoint[] }> {
   const res = await fetch(`${TTS_ENDPOINT}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -128,21 +135,23 @@ async function synthesizeChunk(ssml: string, voiceName: string, apiKey: string):
       input: { ssml },
       voice: { languageCode: LANGUAGE_CODE, name: voiceName },
       audioConfig: { audioEncoding: "MP3", speakingRate: 1.0, pitch: 0 },
+      enableTimePointing: ["SSML_MARK"],
     }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(`TTS ${res.status}: ${err?.error?.message || "error de síntesis"}`);
   }
-  const json = (await res.json()) as { audioContent?: string };
+  const json = (await res.json()) as { audioContent?: string; timepoints?: Timepoint[] };
   if (!json.audioContent) throw new Error("TTS: respuesta sin audio");
-  return Buffer.from(json.audioContent, "base64");
+  return { audio: Buffer.from(json.audioContent, "base64"), timepoints: json.timepoints ?? [] };
 }
 
-export type SynthResult = { mp3: Buffer; chars: number; chunks: number };
+// Cue de subtítulo: texto de la frase + segundo en que arranca en el audio final.
+export type Cue = { t: number; text: string };
+export type SynthResult = { mp3: Buffer; chars: number; chunks: number; cues: Cue[] };
 
-// Sintetiza el resumen completo (markdown) a un único MP3. Devuelve también la
-// cantidad de caracteres facturables para medir el costo real.
+// Sintetiza el resumen completo a un único MP3 + los cues de subtítulos.
 export async function synthesizeSummary(
   markdown: string,
   gender: VoiceGender,
@@ -151,16 +160,32 @@ export async function synthesizeSummary(
   const apiKey = process.env.GOOGLE_TTS_API_KEY;
   if (!apiKey) throw new Error("Falta GOOGLE_TTS_API_KEY");
 
-  const pieces = buildPieces(markdown, opts);
-  const chunks = packChunks(pieces);
+  const units = extractUnits(markdown, opts);
+  const chunks = packChunks(units);
   if (chunks.length === 0) throw new Error("Resumen vacío: nada para narrar");
 
   const voiceName = VOICE[gender];
   const buffers: Buffer[] = [];
+  const cues: Cue[] = [];
   let chars = 0;
-  for (const ssml of chunks) {
-    chars += ssml.length;
-    buffers.push(await synthesizeChunk(ssml, voiceName, apiKey));
+  let offset = 0; // segundos acumulados de los chunks anteriores
+
+  for (const chunk of chunks) {
+    chars += chunk.ssml.length;
+    const { audio, timepoints } = await synthesizeChunk(chunk.ssml, voiceName, apiKey);
+    buffers.push(audio);
+
+    let chunkEnd = 0;
+    for (const tp of timepoints) {
+      const t = tp.timeSeconds ?? 0;
+      if (tp.markName === "__end") { chunkEnd = t; continue; }
+      const idx = Number((tp.markName ?? "u0").slice(1));
+      const u = units[idx];
+      if (u) cues.push({ t: +(offset + t).toFixed(2), text: u.text });
+    }
+    offset += chunkEnd || 0;
   }
-  return { mp3: Buffer.concat(buffers), chars, chunks: chunks.length };
+
+  cues.sort((a, b) => a.t - b.t);
+  return { mp3: Buffer.concat(buffers), chars, chunks: chunks.length, cues };
 }
