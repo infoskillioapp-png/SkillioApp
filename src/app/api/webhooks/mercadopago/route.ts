@@ -312,18 +312,11 @@ async function handlePreapproval(subscriptionId: string) {
 async function handleAuthorizedPayment(authPaymentId: string) {
   const ap = await mpGetAuthorizedPayment(authPaymentId);
   const paid = ap.status === "processed" || ap.payment?.status === "approved";
-  if (!paid) {
-    console.log(`[webhook/authpay] ${authPaymentId} no aprobado (status=${ap.status})`);
-    return;
-  }
   const sb = supabaseAdmin();
 
-  // Traemos la suscripción ANTES de buscar el usuario: además de servir para
-  // detectar el tipo de plan, da external_reference/payer_email como fallback
-  // de matching. El primer ciclo de una suscripción a veces llega sin que
-  // mp_subscription_id haya quedado guardado en la fila del usuario (el
-  // webhook "payment" inicial suele traer preapproval_id null) — sin este
-  // fallback la renovación se pierde en silencio aunque MP sí cobró.
+  // Traemos la suscripción ANTES de buscar el usuario: sirve para detectar el
+  // tipo de plan, da external_reference/payer_email como fallback de matching,
+  // y su `last_charged_date` nos dice si ya cobró (para la salvaguarda de abajo).
   let subscription: MpSubscription | null = null;
   if (ap.preapproval_id) {
     try {
@@ -338,6 +331,27 @@ async function handleAuthorizedPayment(authPaymentId: string) {
     externalRef: subscription?.external_reference,
     payerEmail: subscription?.payer_email,
   });
+
+  // SALVAGUARDA: activamos el plan de forma optimista en el alta (MP cobra el
+  // 1er pago DIFERIDO). Si ese PRIMER cobro se RECHAZA (la sub nunca cobró:
+  // last_charged_date null), el usuario tendría PRO sin haber pagado → lo
+  // revertimos a free. Una renovación rechazada (ya cobró antes) NO se toca:
+  // MP reintenta y el usuario ya pagó períodos previos.
+  if (!paid) {
+    const nuncaCobro = subscription ? !subscription.summarized?.last_charged_date : true;
+    if (user && user.plan !== "free" && nuncaCobro) {
+      await sb.from("users").update({
+        plan: "free", credits: 0, expires_at: null, mp_subscription_id: null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      await recordFunnelEventForUser(user.id, "pago_rechazado", "1er_cobro_revertido");
+      console.warn(`[webhook/authpay] 1er cobro RECHAZADO → ${user.email} revertido a free (authpay=${authPaymentId})`);
+    } else {
+      console.log(`[webhook/authpay] ${authPaymentId} no aprobado (status=${ap.status}) — sin reversión`);
+    }
+    return;
+  }
+
   if (!user) {
     console.warn(`[webhook/authpay] SIN MATCH preapproval=${ap.preapproval_id}`);
     return;

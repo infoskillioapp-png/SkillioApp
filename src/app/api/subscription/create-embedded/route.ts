@@ -46,8 +46,6 @@ export async function POST(req: Request) {
     // monto del 1er cobro baja y el webhook lo sube al normal tras ese pago.
     const applyDiscount = planKind === "pro" && isValidDiscountCode(body.promo);
     const amount = applyDiscount ? PRO_PRICE_DISCOUNTED : spec.amount;
-    // TEMPORAL (diagnóstico del descuento): registrar qué llegó y qué se cobra.
-    console.log(`[create-embedded] plan=${planKind} promo=${JSON.stringify(body.promo)} applyDiscount=${applyDiscount} amount=${amount}`);
     const expiresAt = spec.expiresDays == null ? null : new Date(Date.now() + spec.expiresDays * DAY).toISOString();
 
     if (!cardToken) return NextResponse.json({ error: "missing_card_token" }, { status: 400 });
