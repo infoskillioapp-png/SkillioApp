@@ -782,6 +782,39 @@ export function EspacioClient({ note, generating, fileName, isPro = false, giftB
             </span>
           </ModoWrapper>
 
+          {/* Banner: Escuchá tu resumen (audio TTS con Booki) */}
+          <Link
+            href={note.summaryCount ? `/app/ia/escuchar?note_id=${note.id}` : `/app/ia/resumen?note_id=${note.id}`}
+            className="in"
+            style={{
+              display: "flex", alignItems: "center", gap: 16, marginTop: 14, padding: "16px 20px",
+              borderRadius: 20, textDecoration: "none", position: "relative", overflow: "hidden",
+              background: "linear-gradient(160deg,#4c1d95 0%,#7c3aed 45%,#d946ef 100%)",
+              boxShadow: "0 12px 40px rgba(124,58,237,.35), 0 0 0 1px rgba(255,255,255,.05) inset",
+              animationDelay: ".32s",
+            }}
+          >
+            <style>{`@keyframes espBar{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}`}</style>
+            <div style={{ position: "relative", width: 56, height: 56, flexShrink: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 4 }}>
+              {[0.5, 0.8, 1, 0.7, 0.5].map((h, i) => (
+                <span key={i} style={{ width: 5, height: 42 * h, borderRadius: 3, background: "rgba(255,255,255,.8)", transformOrigin: "bottom", animation: `espBar ${0.9 + i * 0.12}s ease-in-out infinite`, animationDelay: `${-i * 0.15}s` }} />
+              ))}
+              <Image src="/booki-3.png" alt="Booki" width={30} height={30} style={{ position: "absolute", left: "50%", top: "36%", transform: "translate(-50%,-50%)", width: 30, height: 30, objectFit: "contain", filter: "drop-shadow(0 3px 8px rgba(0,0,0,.3))" }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: ".08em", color: "#f5e9ff", background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.25)", borderRadius: 999, padding: "2px 9px", marginBottom: 6 }}>
+                NUEVO · AUDIO{!isPro ? " · PRO" : ""}
+              </div>
+              <div className="po" style={{ color: "#fff", fontWeight: 800, fontSize: 17, lineHeight: 1.2 }}>🎧 Escuchá tu resumen</div>
+              <div style={{ color: "rgba(255,255,255,.8)", fontSize: 13, marginTop: 2 }}>
+                {note.summaryCount ? "Estudiá con los oídos: en el bondi o descansando la vista" : "Generá el resumen y escuchalo con la voz de Booki"}
+              </div>
+            </div>
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, flexShrink: 0, borderRadius: 14, background: "rgba(255,255,255,.2)", boxShadow: "0 6px 20px rgba(0,0,0,.15)" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
+            </span>
+          </Link>
+
           {/* mapa del tema */}
           <div className="sectit">
             <svg className="star" viewBox="0 0 24 24" fill="none" stroke="#4f7dff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
