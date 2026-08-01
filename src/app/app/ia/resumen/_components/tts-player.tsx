@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// Reproductor del resumen en audio (Google TTS). Solo audio + controles; los
-// subtítulos viven en la pantalla dedicada "Escuchar Resumen" (Claude Design).
+// Reproductor del resumen en audio (Google TTS, voz masculina es-US-Neural2-B).
+// Solo audio + controles; los subtítulos viven en la pantalla dedicada
+// "Escuchar Resumen" (Claude Design).
 
 type Status = "idle" | "loading" | "ready" | "error";
-type Voice = "f" | "m";
 const RATES = [1, 1.25, 1.5, 2] as const;
 
 function fmt(s: number): string {
@@ -27,21 +27,20 @@ export function TtsPlayer({
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string>("");
-  const [voice, setVoice] = useState<Voice>("f");
   const [playing, setPlaying] = useState(false);
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
   const [rate, setRate] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  async function generate(v: Voice) {
+  async function generate() {
     if (!isPro) { onUpsell(); return; }
     setStatus("loading"); setError("");
     try {
       const res = await fetch("/api/ai/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noteId, voice: v }),
+        body: JSON.stringify({ noteId }),
       });
       if (res.status === 402) { onUpsell(); setStatus("idle"); return; }
       const j = await res.json();
@@ -62,12 +61,6 @@ export function TtsPlayer({
     if (!a) return;
     if (a.paused) { void a.play(); setPlaying(true); }
     else { a.pause(); setPlaying(false); }
-  }
-
-  function reset() {
-    const a = audioRef.current;
-    if (a) { a.pause(); a.removeAttribute("src"); }
-    setPlaying(false); setCur(0); setDur(0); setStatus("idle");
   }
 
   function setSpeed(r: number) {
@@ -98,30 +91,18 @@ export function TtsPlayer({
       <audio ref={audioRef} preload="none" />
 
       {status === "idle" || status === "error" ? (
-        <div style={{
-          borderRadius: 16, padding: "13px 14px",
-          background: "linear-gradient(135deg,rgba(139,92,246,.08),rgba(124,58,237,.05))",
-          border: "1.5px solid rgba(139,92,246,.2)",
-        }}>
-          {/* Elegí la voz ANTES de generar → se sintetiza una sola vez */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 11 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#6d28d9", fontFamily: "var(--po)", marginRight: 2 }}>Voz:</span>
-            <button onClick={() => setVoice("f")} style={chip(voice === "f")}>👩 Femenina</button>
-            <button onClick={() => setVoice("m")} style={chip(voice === "m")}>👨 Masculina</button>
-          </div>
-          <button
-            onClick={() => generate(voice)}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
-              width: "100%", padding: "13px 16px", borderRadius: 12, border: "none", cursor: "pointer",
-              background: accent, color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
-              boxShadow: "0 6px 18px rgba(124,58,237,.30)",
-            }}
-          >
-            🎧 Escuchar el resumen
-            <span style={{ fontWeight: 500, opacity: .85, fontSize: 12 }}>· estudiá con los oídos</span>
-          </button>
-        </div>
+        <button
+          onClick={generate}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+            width: "100%", padding: "13px 16px", borderRadius: 14, border: "none", cursor: "pointer",
+            background: accent, color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
+            boxShadow: "0 6px 18px rgba(124,58,237,.30)",
+          }}
+        >
+          🎧 Escuchar el resumen
+          <span style={{ fontWeight: 500, opacity: .85, fontSize: 12 }}>· estudiá con los oídos</span>
+        </button>
       ) : (
         <div style={{
           borderRadius: 18, padding: "14px 16px",
@@ -169,14 +150,6 @@ export function TtsPlayer({
             {RATES.map((r) => (
               <button key={r} onClick={() => setSpeed(r)} style={chip(rate === r)}>{r}x</button>
             ))}
-            <span style={{ width: 1, height: 18, background: "rgba(139,92,246,.25)", margin: "0 2px" }} />
-            {/* voz elegida + cambiar (vuelve a la selección) */}
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#6d28d9", fontFamily: "var(--po)" }}>
-              {voice === "f" ? "👩 Femenina" : "👨 Masculina"}
-            </span>
-            <button onClick={reset} disabled={status === "loading"} style={{ ...chip(false), border: "1.5px solid rgba(139,92,246,.25)", opacity: status === "loading" ? .5 : 1 }}>
-              ↩ Cambiar voz
-            </button>
           </div>
         </div>
       )}

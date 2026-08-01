@@ -30,9 +30,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "pro_required" }, { status: 402 });
     }
 
-    const body = (await req.json().catch(() => ({}))) as { noteId?: string; voice?: string };
+    const body = (await req.json().catch(() => ({}))) as { noteId?: string };
     const noteId = typeof body.noteId === "string" ? body.noteId : "";
-    const gender: VoiceGender = body.voice === "m" ? "m" : "f";
+    const gender: VoiceGender = "m"; // solo voz masculina (es-US-Neural2-B)
     if (!noteId) return NextResponse.json({ error: "note_id_requerido" }, { status: 400 });
 
     const sb = supabaseAdmin();

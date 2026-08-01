@@ -10,7 +10,6 @@ import { useRouter } from "next/navigation";
 
 type Cue = { t: number; text: string };
 type PlayState = "preparing" | "playing" | "paused" | "error";
-type Voice = "f" | "m";
 const SPEEDS = [1, 1.5, 2] as const;
 
 function fmt(sec: number): string {
@@ -83,7 +82,6 @@ function Booki({ mood, blink, mouthOpen }: { mood: PlayState; blink: boolean; mo
 export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLabel: string }) {
   const router = useRouter();
   const [playState, setPlayState] = useState<PlayState>("preparing");
-  const [voice, setVoice] = useState<Voice>("f");
   const [speed, setSpeed] = useState<number>(1);
   const [elapsed, setElapsed] = useState(0);
   const [total, setTotal] = useState(0);
@@ -105,12 +103,12 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
     return text;
   }, [cues, elapsed]);
 
-  async function generate(v: Voice) {
+  async function generate() {
     setPlayState("preparing"); setErrorMsg(""); setElapsed(0); setCues([]);
     try {
       const res = await fetch("/api/ai/tts", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noteId, voice: v }),
+        body: JSON.stringify({ noteId }),
       });
       if (res.status === 402) { setNeedsPro(true); setPlayState("error"); return; }
       const j = await res.json();
@@ -128,7 +126,7 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
   }
 
   // Auto-genera al abrir la pantalla.
-  useEffect(() => { generate("f"); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { generate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   // Eventos del audio.
   useEffect(() => {
@@ -173,7 +171,7 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
 
   function togglePlay() {
     if (playState === "preparing") return;
-    if (playState === "error") { generate(voice); return; }
+    if (playState === "error") { generate(); return; }
     const a = audioRef.current;
     if (!a) return;
     if (playState === "playing") { a.pause(); setPlayState("paused"); }
@@ -183,12 +181,6 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
   function pickSpeed(s: number) {
     setSpeed(s);
     if (audioRef.current) audioRef.current.playbackRate = s;
-  }
-
-  function pickVoice(v: Voice) {
-    if (v === voice) return;
-    setVoice(v);
-    generate(v); // otra voz = otro audio (cacheado por voz)
   }
 
   function goBack() {
@@ -207,11 +199,6 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
     backdropFilter: "blur(10px) saturate(180%)", WebkitBackdropFilter: "blur(10px) saturate(180%)",
     border: active ? "1px solid rgba(124,58,237,.6)" : "1px solid rgba(124,58,237,.22)",
     boxShadow: active ? "inset 1.5px 1.5px 1px rgba(255,255,255,.35), 0 4px 12px -2px rgba(124,58,237,.4)" : "inset 1.5px 1.5px 1px rgba(255,255,255,.5)",
-  });
-  const chip = (active: boolean): React.CSSProperties => ({
-    padding: "10px 16px", borderRadius: 999, fontFamily: "var(--po)", fontWeight: 600, fontSize: 13,
-    cursor: "pointer", transition: "all .15s ease", background: active ? "#7c3aed" : "rgba(124,58,237,.08)",
-    color: active ? "#fff" : "#5b21b6", border: active ? "none" : "1px solid rgba(124,58,237,.18)",
   });
 
   return (
@@ -294,10 +281,6 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
                 {SPEEDS.map((s) => (
                   <div key={s} onClick={() => pickSpeed(s)} style={glassChip(speed === s)}>{s}x</div>
                 ))}
-              </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-                <div onClick={() => pickVoice("f")} style={chip(voice === "f")}>Femenina</div>
-                <div onClick={() => pickVoice("m")} style={chip(voice === "m")}>Masculina</div>
               </div>
             </>
           )}
