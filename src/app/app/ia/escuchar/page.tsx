@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getActorReadonly } from "@/lib/actor";
+import { isPaidPlan } from "@/lib/ai/claude";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { readSummaryMarkdown } from "@/lib/notes/summary-markdown";
 import { EscucharClient } from "./_components/escuchar-client";
@@ -35,6 +36,7 @@ export default async function EscucharPage({ searchParams }: { searchParams: Sea
     ? (await sb.from("subjects").select("name").eq("id", note.subject_id).single()).data?.name
     : null;
   const topicLabel = subjectName && subjectName !== "Sin materia" ? subjectName : note.title;
+  const isPro = isPaidPlan(actor.plan, actor.expires_at);
 
-  return <EscucharClient noteId={note.id} topicLabel={topicLabel} />;
+  return <EscucharClient noteId={note.id} topicLabel={topicLabel} isPro={isPro} />;
 }

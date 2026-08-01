@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { QuickPaywall } from "@/components/quick-paywall";
 
 // Pantalla inmersiva "Escuchar resumen" (portada de Claude Design "Reproductor
 // de audio Skillio Booki"). Booki en CSS: antena con glow, ojos que parpadean,
@@ -79,9 +80,9 @@ function Booki({ mood, blink, mouthOpen }: { mood: PlayState; blink: boolean; mo
   );
 }
 
-export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLabel: string }) {
+export function EscucharClient({ noteId, topicLabel, isPro }: { noteId: string; topicLabel: string; isPro: boolean }) {
   const router = useRouter();
-  const [playState, setPlayState] = useState<PlayState>("preparing");
+  const [playState, setPlayState] = useState<PlayState>(isPro ? "preparing" : "paused");
   const [speed, setSpeed] = useState<number>(1);
   const [elapsed, setElapsed] = useState(0);
   const [total, setTotal] = useState(0);
@@ -89,8 +90,9 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
   const [blink, setBlink] = useState(false);
   const [mouthOpen, setMouthOpen] = useState(0.2);
   const [errorMsg, setErrorMsg] = useState("");
-  const [needsPro, setNeedsPro] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const barRef = useRef<HTMLDivElement | null>(null);
 
   const stateLabel = playState === "preparing" ? "Preparando tu audio…"
     : playState === "playing" ? "Reproduciendo"
@@ -110,7 +112,7 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ noteId }),
       });
-      if (res.status === 402) { setNeedsPro(true); setPlayState("error"); return; }
+      if (res.status === 402) { setShowPaywall(true); setPlayState("paused"); return; }
       const j = await res.json();
       if (!res.ok || !j.url) throw new Error(j.error || "Error");
       setCues(Array.isArray(j.cues) ? j.cues : []);
@@ -127,8 +129,9 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
     }
   }
 
-  // Prepara el audio al abrir la pantalla (sin reproducir todavía).
-  useEffect(() => { generate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // Prepara el audio al abrir la pantalla (sin reproducir todavía). Free: ni
+  // siquiera pega al endpoint — el gate ya se resolvió en el server (isPro).
+  useEffect(() => { if (isPro) generate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   // Eventos del audio.
   useEffect(() => {
@@ -183,6 +186,27 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
   function pickSpeed(s: number) {
     setSpeed(s);
     if (audioRef.current) audioRef.current.playbackRate = s;
+  }
+
+  function seekTo(t: number) {
+    const a = audioRef.current;
+    if (!a) return;
+    const clamped = Math.max(0, Math.min(total || a.duration || 0, t));
+    a.currentTime = clamped;
+    setElapsed(clamped);
+  }
+
+  function skip(delta: number) {
+    if (playState === "preparing") return;
+    seekTo(elapsed + delta);
+  }
+
+  function seekFromPointer(e: React.PointerEvent<HTMLDivElement>) {
+    const el = barRef.current;
+    if (!el || !total) return;
+    const rect = el.getBoundingClientRect();
+    const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+    seekTo((x / rect.width) * total);
   }
 
   function goBack() {
@@ -244,8 +268,8 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
           </div>
           {/* subtítulo en vivo */}
           <div style={{ minHeight: 44, maxWidth: 320, textAlign: "center", padding: "0 4px", display: "flex", alignItems: "center" }}>
-            {needsPro ? (
-              <span style={{ fontFamily: "var(--po)", fontSize: 13.5, color: "#7c6f94" }}>El audio del resumen es una función PRO.</span>
+            {!isPro ? (
+              <span style={{ fontFamily: "var(--po)", fontSize: 13.5, color: "#7c6f94" }}>🔒 El audio del resumen es una función PRO.</span>
             ) : playState === "error" ? (
               <span style={{ fontFamily: "var(--po)", fontSize: 13, color: "#dc2626" }}>{errorMsg || "Error"}. Tocá play para reintentar.</span>
             ) : activeCue ? (
@@ -256,26 +280,42 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
 
         {/* controles */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {needsPro ? (
-            <button onClick={() => router.push(`/app/ia/resumen?note_id=${noteId}`)} style={{ width: "100%", padding: "14px", borderRadius: 14, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#8b5cf6,#7c3aed)", color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, boxShadow: "0 8px 20px rgba(124,58,237,.3)" }}>
+          {!isPro ? (
+            <button onClick={() => setShowPaywall(true)} style={{ width: "100%", padding: "14px", borderRadius: 14, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#8b5cf6,#7c3aed)", color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 14, boxShadow: "0 8px 20px rgba(124,58,237,.3)" }}>
               ⚡ Desbloquear con PRO
             </button>
           ) : (
             <>
-              <button onClick={togglePlay} aria-label={isPlaying ? "Pausar" : "Reproducir"} style={{ width: 76, height: 76, borderRadius: "50%", border: "none", cursor: "pointer", alignSelf: "center", background: "linear-gradient(145deg,#c4b5fd,#7c3aed 55%,#5b21b6)", boxShadow: "0 10px 24px -6px rgba(124,58,237,.7),inset 0 1px 2px rgba(255,255,255,.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {playState === "preparing" ? (
-                  <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff", animation: "ecDot 1s ease-in-out infinite" }} />
-                ) : isPlaying ? (
-                  <div style={{ display: "flex", gap: 6 }}><div style={{ width: 7, height: 26, borderRadius: 3, background: "#fff" }} /><div style={{ width: 7, height: 26, borderRadius: 3, background: "#fff" }} /></div>
-                ) : (
-                  <div style={{ width: 0, height: 0, borderStyle: "solid", borderWidth: "13px 0 13px 20px", borderColor: "transparent transparent transparent #fff", marginLeft: 4 }} />
-                )}
-              </button>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 22 }}>
+                <button onClick={() => skip(-10)} aria-label="Retroceder 10 segundos" style={{ width: 46, height: 46, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(124,58,237,.10)", color: "#5b21b6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /></svg>
+                </button>
+                <button onClick={togglePlay} aria-label={isPlaying ? "Pausar" : "Reproducir"} style={{ width: 76, height: 76, borderRadius: "50%", border: "none", cursor: "pointer", background: "linear-gradient(145deg,#c4b5fd,#7c3aed 55%,#5b21b6)", boxShadow: "0 10px 24px -6px rgba(124,58,237,.7),inset 0 1px 2px rgba(255,255,255,.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {playState === "preparing" ? (
+                    <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff", animation: "ecDot 1s ease-in-out infinite" }} />
+                  ) : isPlaying ? (
+                    <div style={{ display: "flex", gap: 6 }}><div style={{ width: 7, height: 26, borderRadius: 3, background: "#fff" }} /><div style={{ width: 7, height: 26, borderRadius: 3, background: "#fff" }} /></div>
+                  ) : (
+                    <div style={{ width: 0, height: 0, borderStyle: "solid", borderWidth: "13px 0 13px 20px", borderColor: "transparent transparent transparent #fff", marginLeft: 4 }} />
+                  )}
+                </button>
+                <button onClick={() => skip(10)} aria-label="Adelantar 10 segundos" style={{ width: 46, height: 46, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(124,58,237,.10)", color: "#5b21b6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 4v5h-5" /></svg>
+                </button>
+              </div>
               <div>
-                <div style={{ width: "100%", height: 6, borderRadius: 6, background: "rgba(124,58,237,.12)", overflow: "hidden" }}>
-                  <div style={{ height: "100%", borderRadius: 6, background: "linear-gradient(90deg,#a855f7,#7c3aed)", width: `${progressPct}%`, transition: "width .3s linear" }} />
+                <div
+                  ref={barRef}
+                  onPointerDown={(e) => { seekFromPointer(e); (e.target as HTMLElement).setPointerCapture(e.pointerId); }}
+                  onPointerMove={(e) => { if (e.buttons === 1) seekFromPointer(e); }}
+                  style={{ width: "100%", height: 24, display: "flex", alignItems: "center", cursor: "pointer", touchAction: "none" }}
+                >
+                  <div style={{ width: "100%", height: 6, borderRadius: 6, background: "rgba(124,58,237,.12)", overflow: "hidden", position: "relative" }}>
+                    <div style={{ height: "100%", borderRadius: 6, background: "linear-gradient(90deg,#a855f7,#7c3aed)", width: `${progressPct}%` }} />
+                    <div style={{ position: "absolute", top: "50%", left: `${progressPct}%`, transform: "translate(-50%,-50%)", width: 14, height: 14, borderRadius: "50%", background: "#fff", border: "2.5px solid #7c3aed", boxShadow: "0 2px 6px rgba(0,0,0,.25)" }} />
+                  </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: "var(--po)", fontSize: 11.5, color: "#7c6f94" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2, fontFamily: "var(--po)", fontSize: 11.5, color: "#7c6f94" }}>
                   <span>{fmt(elapsed)}</span><span>{fmt(total)}</span>
                 </div>
               </div>
@@ -288,6 +328,8 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
           )}
         </div>
       </div>
+
+      {showPaywall && <QuickPaywall ctx="escuchar_resumen" onClose={() => setShowPaywall(false)} />}
     </div>
   );
 }
