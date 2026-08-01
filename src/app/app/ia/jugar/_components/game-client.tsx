@@ -277,21 +277,21 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
         {phase === "intro" && <IntroScreen key="intro" noteTitle={noteTitle} bestScore={bestScore} onStart={start} reduce={!!reduce} />}
 
         {phase === "playing" && q && (
-          <div key="play" style={{ position: "absolute", inset: 0, zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto" }}>
-            <div style={{ width: "100%", maxWidth: 600, padding: "60px 16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div key="play" style={{ position: "absolute", inset: 0, zIndex: 2, width: "100%", maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8, padding: "calc(50px + env(safe-area-inset-top)) 12px max(8px, env(safe-area-inset-bottom))", overflow: "hidden" }}>
+            <div style={{ display: "contents" }}>
 
               {/* HUD */}
-              <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 22, background: "linear-gradient(140deg,rgba(255,255,255,.15),rgba(255,255,255,.05))", border: "1px solid rgba(255,255,255,.18)", backdropFilter: "blur(12px)", boxShadow: "0 12px 28px rgba(20,0,50,.4)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 12px 5px 6px", borderRadius: 999, background: "rgba(0,0,0,.26)" }}>
-                  <Coin3D size={26} />
-                  <motion.div key={score} initial={{ scale: 1.3 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 320, damping: 14 }} style={{ fontFamily: F, fontWeight: 800, fontSize: 19, lineHeight: 1, minWidth: 38 }}>{score.toLocaleString("es-AR")}</motion.div>
+              <div style={{ position: "relative", flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "7px 9px", borderRadius: 18, background: "linear-gradient(140deg,rgba(255,255,255,.15),rgba(255,255,255,.05))", border: "1px solid rgba(255,255,255,.18)", backdropFilter: "blur(12px)", boxShadow: "0 12px 28px rgba(20,0,50,.4)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 9px 4px 5px", borderRadius: 999, background: "rgba(0,0,0,.26)", flexShrink: 0 }}>
+                  <Coin3D size={22} />
+                  <motion.div key={score} initial={{ scale: 1.3 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 320, damping: 14 }} style={{ fontFamily: F, fontWeight: 800, fontSize: 18, lineHeight: 1, minWidth: 34 }}>{score.toLocaleString("es-AR")}</motion.div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.3px", color: "rgba(255,255,255,.55)" }}>VIDAS</div>
-                  <div style={{ display: "flex", gap: 2, flexWrap: "nowrap" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: "1.1px", color: "rgba(255,255,255,.55)" }}>VIDAS</div>
+                  <div style={{ display: "flex", gap: 1, flexWrap: "nowrap", overflow: "hidden" }}>
                     {Array.from({ length: LIVES }).map((_, i) => {
                       const alive = i < lives;
-                      return <span key={i} style={{ fontSize: 15, lineHeight: 1, color: alive ? "#ff4d79" : "#5b2f6b", textShadow: alive ? "0 2px 8px rgba(255,77,121,.6)" : "none", opacity: alive ? 1 : 0.38, animation: (!alive && lostIndex === i) ? "gcHeartOut .55s cubic-bezier(.3,1.4,.4,1) both" : "none" }}>♥</span>;
+                      return <span key={i} style={{ fontSize: 13, lineHeight: 1, color: alive ? "#ff4d79" : "#5b2f6b", textShadow: alive ? "0 2px 8px rgba(255,77,121,.6)" : "none", opacity: alive ? 1 : 0.38, animation: (!alive && lostIndex === i) ? "gcHeartOut .55s cubic-bezier(.3,1.4,.4,1) both" : "none" }}>♥</span>;
                     })}
                   </div>
                 </div>
@@ -312,8 +312,8 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
               </div>
 
               {/* timer */}
-              <div style={{ position: "relative" }}>
-                <div style={{ height: 16, borderRadius: 999, background: "rgba(0,0,0,.32)", overflow: "hidden", border: "1px solid rgba(255,255,255,.14)", boxShadow: "inset 0 2px 6px rgba(0,0,0,.35)" }}>
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <div style={{ height: 14, borderRadius: 999, background: "rgba(0,0,0,.32)", overflow: "hidden", border: "1px solid rgba(255,255,255,.14)", boxShadow: "inset 0 2px 6px rgba(0,0,0,.35)" }}>
                   <div style={{ height: "100%", width: locked ? `${timePct}%` : `${timePct}%`, borderRadius: 999, background: low ? "linear-gradient(90deg,#f97316,#ef4444)" : "linear-gradient(90deg,#8b5cf6,#4f7dff 55%,#22d3ee)", boxShadow: `0 0 16px ${low ? "rgba(239,68,68,.75)" : "rgba(139,92,246,.8)"}`, transition: "width .1s linear", animation: (low && !locked && !reduce) ? "gcLowTime .7s ease-in-out infinite" : "none" }} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 5, padding: "0 3px" }}>
@@ -323,23 +323,23 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
               </div>
 
               {/* Booki + bocadillo */}
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 10, minHeight: 118 }}>
-                <Booki mood={isCorrect ? "good" : isWrong ? "bad" : "idle"} />
-                <div key={bookiLine} style={{ flex: 1, padding: "12px 16px", borderRadius: "18px 18px 18px 4px", background: "rgba(255,255,255,.94)", color: "#2b1055", fontFamily: F, fontWeight: 700, fontSize: "clamp(14px,4vw,17px)", lineHeight: 1.2, boxShadow: "0 10px 24px rgba(20,0,50,.35)", animation: "gcPopIn .35s cubic-bezier(.22,1.5,.4,1) both" }}>{bookiLine}</div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                <div style={{ marginBottom: -4 }}><Booki mood={isCorrect ? "good" : isWrong ? "bad" : "idle"} scale={0.66} /></div>
+                <div key={bookiLine} style={{ flex: 1, padding: "9px 13px", borderRadius: "16px 16px 16px 4px", background: "rgba(255,255,255,.94)", color: "#2b1055", fontFamily: F, fontWeight: 700, fontSize: "clamp(12.5px,3.6vw,15px)", lineHeight: 1.18, boxShadow: "0 8px 20px rgba(20,0,50,.32)", animation: "gcPopIn .35s cubic-bezier(.22,1.5,.4,1) both" }}>{bookiLine}</div>
               </div>
 
               {/* pregunta */}
-              <div style={{ position: "relative", padding: "20px 18px", borderRadius: 26, background: "linear-gradient(140deg,rgba(255,255,255,.17),rgba(255,255,255,.06))", border: "1px solid rgba(255,255,255,.22)", backdropFilter: "blur(14px)", boxShadow: "0 18px 44px rgba(20,0,50,.45)", overflow: "hidden" }}>
+              <div style={{ position: "relative", flexShrink: 0, padding: "12px 14px", borderRadius: 18, background: "linear-gradient(140deg,rgba(255,255,255,.17),rgba(255,255,255,.06))", border: "1px solid rgba(255,255,255,.22)", backdropFilter: "blur(14px)", boxShadow: "0 14px 34px rgba(20,0,50,.4)", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, width: "38%", height: "100%", background: "linear-gradient(100deg,transparent,rgba(255,255,255,.13),transparent)", animation: reduce ? "none" : "gcSheen 4.5s ease-in-out infinite", pointerEvents: "none" }} />
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <div style={{ padding: "5px 11px", borderRadius: 999, background: "linear-gradient(90deg,#6d3bf2,#c1338f)", fontSize: 11, fontWeight: 700, letterSpacing: ".6px" }}>Pregunta {qIndex + 1} de {questions.length}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div style={{ padding: "4px 10px", borderRadius: 999, background: "linear-gradient(90deg,#6d3bf2,#c1338f)", fontSize: 10.5, fontWeight: 700, letterSpacing: ".5px", whiteSpace: "nowrap" }}>Pregunta {qIndex + 1} de {questions.length}</div>
                   <div style={{ flex: 1, height: 4, borderRadius: 4, background: "rgba(255,255,255,.16)", overflow: "hidden" }}><div style={{ height: "100%", width: `${(qIndex / questions.length) * 100}%`, background: "rgba(255,255,255,.75)", borderRadius: 4, transition: "width .4s cubic-bezier(.22,1.4,.4,1)" }} /></div>
                 </div>
-                <div style={{ fontFamily: F, fontWeight: 700, fontSize: "clamp(20px,5.4vw,27px)", lineHeight: 1.22, letterSpacing: "-.2px" }}>{q.question}</div>
+                <div style={{ fontFamily: F, fontWeight: 700, fontSize: "clamp(15.5px,4.3vw,21px)", lineHeight: 1.2, letterSpacing: "-.2px" }}>{q.question}</div>
               </div>
 
               {/* opciones */}
-              <div style={{ display: "grid", gridTemplateColumns: q.options.length <= 2 ? "1fr" : "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 7, flex: 1, minHeight: 0 }}>
                 {q.options.map((opt, i) => {
                   const sp = SHAPES[i % 4];
                   const right = i === q.correctIndex, isChosen = i === chosen, revealed = locked;
@@ -351,12 +351,12 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
                   }
                   return (
                     <button key={i} className="gc-opt gc-btn" disabled={locked} onClick={() => handleAnswer(i)}
-                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 14px", minHeight: 64, borderRadius: 20, border: "1px solid rgba(255,255,255,.22)", background: bg, boxShadow: shadow, color: "#fff", opacity, animation: anim, transition: "opacity .25s ease, background .25s ease, transform .16s cubic-bezier(.22,1.5,.4,1)", cursor: revealed ? "default" : "pointer" }}>
-                      <span style={{ flex: "none", width: 34, height: 34, borderRadius: 11, background: "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <span style={{ width: 17, height: 17, background: "#fff", clipPath: sp.clip === "none" ? undefined : sp.clip, borderRadius: sp.r, display: "block" }} />
+                      style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", minHeight: 0, flex: 1, borderRadius: 15, border: "1px solid rgba(255,255,255,.22)", background: bg, boxShadow: shadow, color: "#fff", opacity, animation: anim, transition: "opacity .25s ease, background .25s ease, transform .16s cubic-bezier(.22,1.5,.4,1)", cursor: revealed ? "default" : "pointer", overflow: "hidden" }}>
+                      <span style={{ flex: "none", width: 28, height: 28, borderRadius: 9, background: "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ width: 14, height: 14, background: "#fff", clipPath: sp.clip === "none" ? undefined : sp.clip, borderRadius: sp.r, display: "block" }} />
                       </span>
-                      <span style={{ flex: 1, textAlign: "left", fontFamily: F, fontWeight: 700, fontSize: "clamp(15px,4.2vw,18px)", lineHeight: 1.15 }}>{opt}</span>
-                      <span style={{ flex: "none", width: 24, height: 24, borderRadius: 8, background: "rgba(0,0,0,.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, opacity: 0.85 }}>{["A", "B", "C", "D"][i]}</span>
+                      <span style={{ flex: 1, textAlign: "left", fontFamily: F, fontWeight: 700, fontSize: "clamp(13px,3.7vw,16px)", lineHeight: 1.12, overflow: "hidden" }}>{opt}</span>
+                      <span style={{ flex: "none", width: 22, height: 22, borderRadius: 7, background: "rgba(0,0,0,.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, opacity: 0.85 }}>{["A", "B", "C", "D"][i]}</span>
                     </button>
                   );
                 })}
