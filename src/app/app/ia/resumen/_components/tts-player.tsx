@@ -84,7 +84,7 @@ export function TtsPlayer({
     };
   }, []);
 
-  const accent = "linear-gradient(135deg,#8b5cf6,#7c3aed)";
+  const accent = "linear-gradient(135deg,#4f7dff,#3d63e0)"; // azul: distinto de Tarjetas (violeta)
 
   return (
     <div style={{ margin: "0 0 16px" }}>
@@ -97,7 +97,7 @@ export function TtsPlayer({
             display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
             width: "100%", padding: "13px 16px", borderRadius: 14, border: "none", cursor: "pointer",
             background: accent, color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 13.5,
-            boxShadow: "0 6px 18px rgba(124,58,237,.30)",
+            boxShadow: "0 6px 18px rgba(79,125,255,.30)",
           }}
         >
           🎧 Escuchar el resumen
@@ -106,8 +106,8 @@ export function TtsPlayer({
       ) : (
         <div style={{
           borderRadius: 18, padding: "14px 16px",
-          background: "linear-gradient(135deg,rgba(139,92,246,.10),rgba(124,58,237,.06))",
-          border: "1.5px solid rgba(139,92,246,.22)",
+          background: "linear-gradient(135deg,rgba(79,125,255,.10),rgba(61,99,224,.06))",
+          border: "1.5px solid rgba(79,125,255,.22)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
@@ -118,7 +118,7 @@ export function TtsPlayer({
                 flexShrink: 0, width: 48, height: 48, borderRadius: "50%", border: "none",
                 cursor: status === "loading" ? "default" : "pointer", background: accent, color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 6px 16px rgba(124,58,237,.35)",
+                boxShadow: "0 6px 16px rgba(79,125,255,.35)",
               }}
             >
               {status === "loading" ? (
@@ -137,7 +137,7 @@ export function TtsPlayer({
               <input
                 type="range" min={0} max={dur || 0} step={0.1} value={cur}
                 onChange={(e) => { const t = +e.target.value; if (audioRef.current) audioRef.current.currentTime = t; setCur(t); }}
-                style={{ width: "100%", accentColor: "#7c3aed", cursor: "pointer" }}
+                style={{ width: "100%", accentColor: "#4f7dff", cursor: "pointer" }}
               />
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
                 <span>{fmt(cur)}</span><span>{fmt(dur)}</span>
@@ -165,8 +165,8 @@ export function TtsPlayer({
 function chip(active: boolean): React.CSSProperties {
   return {
     padding: "5px 10px", borderRadius: 999, cursor: "pointer",
-    border: active ? "1.5px solid #7c3aed" : "1.5px solid rgba(139,92,246,.25)",
-    background: active ? "linear-gradient(135deg,#8b5cf6,#7c3aed)" : "#fff",
-    color: active ? "#fff" : "#6d28d9", fontFamily: "var(--po)", fontWeight: 700, fontSize: 11.5,
+    border: active ? "1.5px solid #4f7dff" : "1.5px solid rgba(79,125,255,.25)",
+    background: active ? "linear-gradient(135deg,#4f7dff,#3d63e0)" : "#fff",
+    color: active ? "#fff" : "#3d63e0", fontFamily: "var(--po)", fontWeight: 700, fontSize: 11.5,
   };
 }
