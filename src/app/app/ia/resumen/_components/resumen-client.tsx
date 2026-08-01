@@ -10,6 +10,7 @@ import "katex/dist/katex.min.css";
 import { SalePopup } from "@/components/sale-popup";
 import { GiftPopup } from "@/components/gift-popup";
 import { OnboardingTour, useTourRequired, TourIconBook } from "../../../_components/onboarding-tour";
+import { TtsPlayer } from "./tts-player";
 
 // El resumen es Markdown. Cada sección (un '## ' del documento) es una unidad
 // navegable: se muestra de a una, con su propio progreso ("dominado"). El
@@ -382,6 +383,10 @@ export function ResumenClient({
               📝 Hacer Simulacro
             </Link>
           </div>
+
+          {!isDemo && (
+            <TtsPlayer noteId={data.noteId} isPro={isPro} onUpsell={() => setShowPaywall(true)} />
+          )}
 
           {!isDemo && (() => {
             const pdfStyle = {
