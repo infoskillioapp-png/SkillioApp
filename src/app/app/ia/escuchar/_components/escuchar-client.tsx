@@ -117,15 +117,17 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
       const a = audioRef.current!;
       a.src = j.url;
       a.playbackRate = speed;
-      await a.play();
-      setPlayState("playing");
+      // NO autoplay: en iOS Safari, play() sin un gesto directo del usuario
+      // (acá hay un fetch async de por medio, que rompe la cadena de gesto)
+      // tira NotAllowedError. Dejamos el audio listo y esperamos el tap.
+      setPlayState("paused");
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "Error");
       setPlayState("error");
     }
   }
 
-  // Auto-genera al abrir la pantalla.
+  // Prepara el audio al abrir la pantalla (sin reproducir todavía).
   useEffect(() => { generate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   // Eventos del audio.
@@ -202,7 +204,7 @@ export function EscucharClient({ noteId, topicLabel }: { noteId: string; topicLa
   });
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50, overflow: "hidden", background: "#FBFAFF" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 500, overflow: "hidden", background: "#FBFAFF" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap');
         @keyframes ecAura{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-3%,2%) scale(1.06)}100%{transform:translate(0,0) scale(1)}}
