@@ -12,8 +12,13 @@ const NAV = [
   { href: "/app/comunidad", tip: "Comunidad", img: "/comunidad_t.png", alt: "Comunidad" },
 ];
 
+// Rutas donde el sidebar mobile no aporta (tapa contenido en pantallas
+// angostas: el resumen ya tiene su propia navegación arriba).
+const HIDDEN_ON = ["/app/ia/resumen"];
+
 export function Sidebar({ initial }: { initial: string }) {
   const pathname = usePathname();
+  if (HIDDEN_ON.some((p) => pathname.startsWith(p))) return null;
 
   return (
     <nav className="sidebar">
