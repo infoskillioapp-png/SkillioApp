@@ -7,11 +7,13 @@
 
 let muted = false;
 
+// Nombres ASCII sin espacios: nombres con espacios/acentos daban problemas de
+// carga en producción (CDN) y el audio no sonaba en mobile.
 const FILES: Record<string, string> = {
-  correct: "/efectos de sonido/respuesta correcta.wav",
-  wrong: "/efectos de sonido/respuesta incorrecta.wav",
-  points: "/efectos de sonido/cuando suma puntos.wav",
-  win: "/efectos de sonido/mixkit-game-level-completed-2059.wav",
+  correct: "/efectos de sonido/correct.wav",
+  wrong: "/efectos de sonido/wrong.wav",
+  points: "/efectos de sonido/points.wav",
+  win: "/efectos de sonido/win.wav",
 };
 const VOL: Record<string, number> = { correct: 0.8, wrong: 0.75, points: 0.75, win: 0.7 };
 
@@ -40,7 +42,7 @@ function play(key: string) {
 function musicEl(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
   if (!music) {
-    music = new Audio(encodeURI("/efectos de sonido/musica de fondo juego.mp3"));
+    music = new Audio(encodeURI("/efectos de sonido/music.mp3"));
     music.loop = true;
     music.volume = 0.3;
   }
@@ -55,8 +57,12 @@ export function initAudio() {
     const a = el(k);
     if (a) a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
   });
-  // también prepara la música (se reproduce con startMusic dentro del gesto)
-  musicEl();
+  // Desbloquear la música también dentro del gesto (si aún no la queremos
+  // sonando, la pausamos; startMusic la retoma).
+  const m = musicEl();
+  if (m) m.play().then(() => { if (!musicWanted) { m.pause(); m.currentTime = 0; } }).catch(() => {});
+  // Resume del AudioContext para los beeps sintetizados (tick / game over).
+  getCtx();
 }
 
 export function setMuted(m: boolean) {
