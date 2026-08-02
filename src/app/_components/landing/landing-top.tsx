@@ -331,7 +331,7 @@ function HeroTitle() {
 
   return (
     <div style={{ position: "relative", minHeight: minH }}>
-      <h1 className="h-display" style={{ ...titleStyle, color: "var(--ink)", position: "relative", zIndex: 1 }}>
+      <h1 className="h-display" style={{ ...titleStyle, color: "#fff", position: "relative", zIndex: 1 }}>
         Aprobá tu parcial<br />estudiando <HeroTypewriter />.
       </h1>
       <div aria-hidden style={{ position: "absolute", inset: 0, visibility: "hidden", pointerEvents: "none", zIndex: -1 }}>
@@ -461,11 +461,55 @@ function HeroCardStack() {
   );
 }
 
+// Fondos animados importados de Claude Design (proyecto "Hero Fondos v2",
+// variantes 4b desktop / 4c mobile). Solo la capa decorativa — el
+// contenido (título, subtítulo, tarjetas, CTAs) no cambia; sí se recolorea
+// el texto suelto (título/subtítulo/riel) a blanco porque el fondo pasó de
+// claro a oscuro y el ink oscuro quedaría ilegible.
+function HeroBackground() {
+  return (
+    <>
+      {/* 4b — Cámara iridiscente (desktop): halo cónico girando detrás del
+         mazo + 2 esferas 3D con specular + orbe lejano difuminado. */}
+      <div className="sk2-bg sk2-bg-d" aria-hidden>
+        <div className="sk2-halo" />
+        <div className="sk2-halo-mask" />
+        <div className="sk2-halo-ring" />
+        <div className="sk2-sphere sk2-sphere-v" />
+        <div className="sk2-sphere sk2-sphere-t" />
+        <div className="sk2-orb-far" />
+        <div className="sk2-vignette" />
+      </div>
+
+      {/* 4c — Cristal bajo el agua (mobile): cáusticas SVG + arcos de
+         vidrio en profundidad + neblina violeta. */}
+      <div className="sk2-bg sk2-bg-m" aria-hidden>
+        <svg className="sk2-caustic-svg" viewBox="0 0 1500 900" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="sk2cg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#c0abfc" />
+              <stop offset="50%" stopColor="#5eead4" />
+              <stop offset="100%" stopColor="#4f7dff" />
+            </linearGradient>
+          </defs>
+          <g fill="none" stroke="url(#sk2cg)" strokeWidth="4">
+            <path d="M-40 200C220 120 340 320 620 250 880 184 1000 360 1300 280" />
+            <path d="M-40 400C240 320 360 520 640 450 900 384 1020 560 1320 480" />
+            <path d="M-40 620C220 540 380 740 660 670 920 604 1040 780 1340 700" />
+          </g>
+        </svg>
+        <div className="sk2-orb-m1" />
+        <div className="sk2-glassring" />
+        <div className="sk2-vignette" />
+      </div>
+    </>
+  );
+}
+
 export function HeroText({ onCTA }: { onCTA: () => void }) {
   return (
     <section id="top" className="sk2-hero">
-      {/* Textura de fondo liviana (puntos + veo del mesh global de la página) */}
-      <div className="sk2-dots" aria-hidden />
+      <HeroBackground />
 
       <div className="container-x sk2-grid">
         <div className="sk2-copy">
@@ -502,23 +546,68 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         .hero-tw-cursor { animation: heroCursorBlink 0.75s step-end infinite; color: rgba(166,126,255,0.85); font-weight: 300; }
         @media (prefers-reduced-motion: reduce) { .hero-tw-cursor { animation: none !important; } }
 
-        .sk2-hero { position: relative; padding: 40px 0 48px; overflow: hidden; }
-        .sk2-dots {
-          position: absolute; inset: 0; z-index: 0; opacity: .55; pointer-events: none;
-          background-image: radial-gradient(rgba(150,85,229,.28) 1.3px, transparent 1.3px);
-          background-size: 24px 24px;
-          -webkit-mask-image: radial-gradient(ellipse 75% 65% at 72% 40%, #000, transparent 75%);
-          mask-image: radial-gradient(ellipse 75% 65% at 72% 40%, #000, transparent 75%);
+        .sk2-hero {
+          position: relative; padding: 40px 0 48px; overflow: hidden;
+          background: radial-gradient(100% 90% at 50% 110%, #2b1560 0%, #170f38 50%, #0b0820 100%);
         }
+        .sk2-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        .sk2-bg-m { display: none; }
+        .sk2-vignette { position: absolute; inset: 0; background: radial-gradient(90% 70% at 30% 30%, rgba(11,8,32,0), rgba(11,8,32,.55)); }
+
+        /* 4b — desktop */
+        .sk2-halo {
+          position: absolute; right: 100px; top: 40px; width: 660px; height: 660px; border-radius: 50%;
+          background: conic-gradient(from 0deg,#8b5cf6,#4f7dff,#5eead4,#f9435f,#ffc93c,#8b5cf6);
+          filter: blur(72px); opacity: .5; animation: sk2-conic 46s linear infinite;
+        }
+        .sk2-halo-mask { position: absolute; right: 210px; top: 150px; width: 440px; height: 440px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, rgba(11,8,32,.95) 52%, rgba(11,8,32,0) 72%); }
+        .sk2-halo-ring { position: absolute; right: 210px; top: 150px; width: 440px; height: 440px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); box-shadow: inset 0 0 60px rgba(255,255,255,.1), 0 0 90px rgba(139,92,246,.28); }
+        .sk2-sphere-v {
+          position: absolute; left: 80px; bottom: 70px; width: 132px; height: 132px; border-radius: 50%;
+          background: radial-gradient(circle at 32% 28%,#ffffff 0%,#c0abfc 22%,#7c3aed 62%,#3a1c78 100%);
+          box-shadow: 0 30px 60px rgba(0,0,0,.5), inset -14px -18px 34px rgba(0,0,0,.35);
+          animation: sk2-orb 22s ease-in-out infinite;
+        }
+        .sk2-sphere-t {
+          position: absolute; left: 250px; bottom: 180px; width: 62px; height: 62px; border-radius: 50%;
+          background: radial-gradient(circle at 32% 28%,#ffffff 0%,#a7f3ea 24%,#0e9e91 66%,#06403c 100%);
+          box-shadow: 0 18px 34px rgba(0,0,0,.5), inset -8px -10px 20px rgba(0,0,0,.35);
+          animation: sk2-orb2 18s ease-in-out infinite;
+        }
+        .sk2-orb-far {
+          position: absolute; left: -60px; top: 120px; width: 300px; height: 300px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(79,125,255,.5), rgba(79,125,255,0) 70%);
+          filter: blur(44px); animation: sk2-orb2 26s ease-in-out infinite;
+        }
+
+        /* 4c — mobile */
+        .sk2-caustic-svg { position: absolute; inset: -15% -30%; width: 160%; height: 130%; opacity: .3; animation: sk2-caustic 26s ease-in-out infinite alternate; }
+        .sk2-orb-m1 {
+          position: absolute; left: -30%; top: -22%; width: 108%; height: 55%; border-radius: 50%;
+          background: radial-gradient(circle, rgba(139,92,246,.5), rgba(139,92,246,0) 68%);
+          filter: blur(42px); animation: sk2-orb 24s ease-in-out infinite;
+        }
+        .sk2-glassring {
+          position: absolute; right: -30%; top: 20%; width: 85%; height: 40%; border-radius: 50%;
+          border: 1.5px solid rgba(255,255,255,.14);
+          background: linear-gradient(140deg, rgba(255,255,255,.12), rgba(255,255,255,.02));
+          backdrop-filter: blur(18px); box-shadow: inset 0 2px 0 rgba(255,255,255,.3);
+        }
+
+        @keyframes sk2-orb { 0%,100% { transform: translate3d(0,0,0) scale(1); } 33% { transform: translate3d(40px,-30px,0) scale(1.08); } 66% { transform: translate3d(-26px,26px,0) scale(.94); } }
+        @keyframes sk2-orb2 { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-46px,32px,0) scale(1.12); } }
+        @keyframes sk2-conic { to { transform: rotate(360deg); } }
+        @keyframes sk2-caustic { 0% { transform: translate(0,0) rotate(0deg); } 100% { transform: translate(-60px,40px) rotate(-8deg); } }
+
         .sk2-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.05fr .95fr; gap: 36px; align-items: start; padding-top: 12px; }
         .sk2-copy { display: flex; flex-direction: column; gap: 20px; }
-        .sk2-sub { margin: 0; font-size: 17.5px; line-height: 1.6; color: var(--ink-soft); max-width: 460px; }
+        .sk2-sub { margin: 0; font-size: 17.5px; line-height: 1.6; color: rgba(255,255,255,.72); max-width: 460px; }
         .sk2-ctas { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .sk2-trust { display: flex; align-items: center; gap: 12px; }
         .sk2-avatars { display: flex; }
         .sk2-avatars span { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; margin-left: -9px; }
         .sk2-avatars span:first-child { margin-left: 0; }
-        .sk2-trust span:last-child { font-size: 13px; color: var(--ink-softer); }
+        .sk2-trust span:last-child { font-size: 13px; color: rgba(255,255,255,.6); }
 
         .sk2-visual { position: relative; }
         .sk2-stackwrap { display: flex; flex-direction: column; align-items: center; gap: 24px; }
@@ -539,8 +628,8 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         @keyframes sk2-pop { 0%,100% { transform: scale(1); } 45% { transform: scale(1.12); } }
         .sk2-heartpop { display: inline-block; animation: sk2-pop 1.8s ease-in-out infinite; }
 
-        .sk2-rail { display: flex; gap: 7px; padding: 6px; background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.9); border-radius: 999px; backdrop-filter: blur(8px); max-width: 100%; overflow-x: auto; }
-        .sk2-pill { position: relative; overflow: hidden; flex: none; font-size: 12px; font-weight: 600; padding: 8px 13px; border-radius: 999px; color: var(--ink-softer); animation: sk2-rail 14s linear infinite; }
+        .sk2-rail { display: flex; gap: 7px; padding: 6px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); border-radius: 999px; backdrop-filter: blur(10px); max-width: 100%; overflow-x: auto; }
+        .sk2-pill { position: relative; overflow: hidden; flex: none; font-size: 12px; font-weight: 600; padding: 8px 13px; border-radius: 999px; color: rgba(255,255,255,.5); animation: sk2-rail 14s linear infinite; }
         .sk2-pill i { position: absolute; left: 0; bottom: 0; height: 2.5px; width: 0; border-radius: 2px; animation: sk2-railbar 14s linear infinite; animation-delay: inherit; }
 
         @keyframes sk2-stack {
@@ -555,9 +644,9 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         }
         @keyframes sk2-sheen { 0%,70% { transform: translateX(-140%) skewX(-18deg); } 100% { transform: translateX(240%) skewX(-18deg); } }
         @keyframes sk2-rail {
-          0%,16% { background: #fff; color: var(--ink); box-shadow: 0 8px 20px rgba(31,35,71,.14); }
-          20%,96% { background: rgba(255,255,255,0); color: var(--ink-softer); box-shadow: none; }
-          100% { background: #fff; color: var(--ink); box-shadow: 0 8px 20px rgba(31,35,71,.14); }
+          0%,16% { background: rgba(255,255,255,.2); color: #fff; }
+          20%,96% { background: rgba(255,255,255,.05); color: rgba(255,255,255,.5); }
+          100% { background: rgba(255,255,255,.2); color: #fff; }
         }
         @keyframes sk2-railbar { 0% { width: 0; } 16% { width: 100%; } 20%,100% { width: 0; } }
 
@@ -588,6 +677,9 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
           .sk2-cardtitle { font-size: 22px; margin-top: 4px; }
           .sk2-cardcta { left: 22px; right: 22px; bottom: 22px; height: 44px; font-size: 14px; }
           .sk2-rail { max-width: calc(100vw - 40px); }
+          .sk2-hero { background: linear-gradient(165deg, #1d1348 0%, #2e1a63 40%, #120d2e 100%); }
+          .sk2-bg-d { display: none; }
+          .sk2-bg-m { display: block; }
         }
       `}</style>
     </section>
