@@ -174,39 +174,18 @@ export const SkillioMark = ({ color = "var(--ink)", size = 26 }: { color?: strin
 // NAVBAR
 // ============================================================
 export function Navbar({ onCTA }: { onCTA: () => void }) {
-  const [scrolled, setScrolled] = useState(false);
-
-  // El hero (id="top") tiene fondo OSCURO; el resto de la página es claro.
-  // En vez de un umbral fijo de scroll (que disparaba el cambio a los 8px,
-  // todavia sobre el hero oscuro -> corte brusco), se usa un
-  // IntersectionObserver sobre el propio hero: el navbar solo pasa a modo
-  // "claro" cuando el hero deja de estar debajo de él (rootMargin resta la
-  // altura del propio navbar sticky), sincronizado con lo que hay atrás.
-  useEffect(() => {
-    const hero = document.getElementById("top");
-    if (!hero) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => setScrolled(!entry.isIntersecting),
-      { rootMargin: "-64px 0px 0px 0px" }
-    );
-    obs.observe(hero);
-    return () => obs.disconnect();
-  }, []);
-
   // Nav minimal: logo + "Iniciar sesión" (link discreto) + 1 único CTA primario.
   // Sin menú de secciones para no competir con la meta de conversión.
-  // SIEMPRE transparente — sin color propio, sin blur, sin borde: se ve
-  // exactamente lo que hay detrás en cualquier punto del scroll, sin
-  // aproximar ningún tono. Solo el texto cambia de color para seguir
-  // siendo legible (blanco sobre el hero oscuro, tinta oscura después).
+  // Violeta oscuro fijo (misma familia que el fondo del hero), siempre —
+  // sin lógica de scroll ni condicionales de color.
   return (
-    <header style={{ position: "sticky", top: 0, zIndex: 50, background: "transparent" }}>
+    <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#170f38" }}>
       <div className="container-x" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
         <a href="#top" style={{ textDecoration: "none" }}>
-          <SkillioMark color={scrolled ? "var(--ink)" : "#fff"} />
+          <SkillioMark color="#fff" />
         </a>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <Link href="/login" style={{ color: scrolled ? "var(--ink-soft)" : "rgba(255,255,255,.85)", fontSize: 14.5, fontWeight: 500, textDecoration: "none", transition: "color .2s" }}>
+          <Link href="/login" style={{ color: "rgba(255,255,255,.85)", fontSize: 14.5, fontWeight: 500, textDecoration: "none" }}>
             Iniciar sesión
           </Link>
           <button className="btn btn-primary" onClick={onCTA}>
