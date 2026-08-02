@@ -309,14 +309,6 @@ function HeroTypewriter() {
 // La pila de tarjetas (reemplaza al Ticker+Demo) es 100% CSS — sin video,
 // sin imágenes, animación por keyframes nada más.
 // ============================================================
-const HERO2_CARDS = [
-  { icon: IconDoc, tint: "violet", eyebrow: "PARA ENTENDER", title: <>Resúmenes<br />de IA</>, cta: "Ver resumen", pill: "Resúmenes" },
-  { icon: IconCube, tint: "blue", eyebrow: "PARA MEMORIA", title: <>Tarjetas<br />infinitas</>, cta: "Repasar", pill: "Tarjetas" },
-  { icon: IconTarget, tint: "coral", eyebrow: "PARA EL EXAMEN", title: <>Simulacro<br />de IA</>, cta: "Comenzar", pill: "Simulacro" },
-  { icon: IconGamepad, tint: "amber", eyebrow: "PARA ENGANCHARTE", title: <>Modo<br />juego</>, cta: "Jugar", pill: "Modo juego" },
-  { icon: IconHeadphones, tint: "teal", eyebrow: "PARA EL VIAJE", title: <>Escuchá tu<br />resumen</>, cta: "Escuchar", pill: "Audio" },
-] as const;
-
 const HERO2_TINTS: Record<string, { soft: string; ink: string; grad: string; glow: string }> = {
   violet: { soft: "#ece5fe", ink: "#7c3aed", grad: "linear-gradient(135deg,#865CB8,#9655E5)", glow: "rgba(150,85,229,.3)" },
   blue: { soft: "#dfe7ff", ink: "#3d63e0", grad: "linear-gradient(135deg,#6f97ff,#3d63e0)", glow: "rgba(61,99,224,.3)" },
@@ -325,6 +317,65 @@ const HERO2_TINTS: Record<string, { soft: string; ink: string; grad: string; glo
   teal: { soft: "#d9f7f2", ink: "#0e9e91", grad: "linear-gradient(135deg,#5eead4,#0e9e91)", glow: "rgba(14,158,145,.28)" },
 };
 
+// Vista previa dentro de cada tarjeta (lo que le daba densidad/diseño al
+// mockup original — sin esto las tarjetas quedan "vacías").
+function ResumenPreview() {
+  return (
+    <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 9 }}>
+      <i style={{ height: 9, borderRadius: 5, background: "#e7e8f3", width: "100%", display: "block" }} />
+      <i style={{ height: 9, borderRadius: 5, background: "#e7e8f3", width: "88%", display: "block" }} />
+      <i style={{ height: 9, borderRadius: 5, background: "#d9cdfd", width: "62%", display: "block" }} />
+    </div>
+  );
+}
+function TarjetasPreview() {
+  return (
+    <div style={{ marginTop: 18, border: "1.5px dashed #c1d0ff", borderRadius: 18, padding: 16, fontSize: 14, color: "#5c6089", lineHeight: 1.5 }}>
+      ¿Qué es la mitosis?<br /><b style={{ color: "#3d63e0" }}>Tocá para revelar</b>
+    </div>
+  );
+}
+function SimulacroPreview() {
+  return (
+    <div style={{ marginTop: 18, display: "flex", gap: 12 }}>
+      <div style={{ flex: 1, background: "#f4f5fb", borderRadius: 16, padding: 12 }}>
+        <div style={{ fontSize: 11, color: "#8487a6" }}>Preguntas</div>
+        <div style={{ fontFamily: "var(--font-jakarta)", fontWeight: 700, fontSize: 25, color: "var(--ink)" }}>50</div>
+      </div>
+      <div style={{ flex: 1, background: "#f4f5fb", borderRadius: 16, padding: 12 }}>
+        <div style={{ fontSize: 11, color: "#8487a6" }}>Precisión</div>
+        <div style={{ fontFamily: "var(--font-jakarta)", fontWeight: 700, fontSize: 25, color: "#e4264f" }}>90%</div>
+      </div>
+    </div>
+  );
+}
+function JuegoPreview() {
+  return (
+    <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 10 }}>
+      <span className="sk2-heartpop" style={{ fontSize: 21 }}>❤️❤️🤍</span>
+      <span style={{ background: "#fff3d6", color: "#e2921a", padding: "5px 13px", borderRadius: 999, fontWeight: 700, fontSize: 15 }}>🔥 racha 7</span>
+    </div>
+  );
+}
+function AudioPreview() {
+  const heights = [0.5, 0.8, 1, 0.9, 0.6, 0.75, 0.4];
+  return (
+    <div style={{ marginTop: 22, display: "flex", alignItems: "flex-end", gap: 4, height: 48 }}>
+      {heights.map((h, i) => (
+        <i key={i} className="sk2-wavebar" style={{ flex: 1, background: i % 2 ? "#2dd4bf" : "#5eead4", height: `${h * 100}%`, animationDelay: `${i * 0.15}s` }} />
+      ))}
+    </div>
+  );
+}
+
+const HERO2_CARDS = [
+  { icon: IconDoc, tint: "violet", eyebrow: "PARA ENTENDER", title: <>Resúmenes<br />de IA</>, cta: "Ver resumen", pill: "Resúmenes", Preview: ResumenPreview },
+  { icon: IconCube, tint: "blue", eyebrow: "PARA MEMORIA", title: <>Tarjetas<br />infinitas</>, cta: "Repasar", pill: "Tarjetas", Preview: TarjetasPreview },
+  { icon: IconTarget, tint: "coral", eyebrow: "PARA EL EXAMEN", title: <>Simulacro<br />de IA</>, cta: "Comenzar", pill: "Simulacro", Preview: SimulacroPreview },
+  { icon: IconGamepad, tint: "amber", eyebrow: "PARA ENGANCHARTE", title: <>Modo<br />juego</>, cta: "Jugar", pill: "Modo juego", Preview: JuegoPreview },
+  { icon: IconHeadphones, tint: "teal", eyebrow: "PARA EL VIAJE", title: <>Podcast<br />del resumen</>, cta: "Escuchar", pill: "Podcast", Preview: AudioPreview },
+] as const;
+
 function HeroCardStack() {
   return (
     <div className="sk2-stackwrap" aria-hidden>
@@ -332,12 +383,14 @@ function HeroCardStack() {
         {HERO2_CARDS.map((c, i) => {
           const t = HERO2_TINTS[c.tint];
           const Icon = c.icon;
+          const Preview = c.Preview;
           return (
             <div key={i} className="sk2-card" style={{ animationDelay: `${-i * 2.8}s` }}>
               {i === 0 && <div className="sk2-sheen" />}
-              <div className="sk2-cardicon" style={{ background: t.soft, color: t.ink }}><Icon size={23} /></div>
+              <div className="sk2-cardicon" style={{ background: t.soft, color: t.ink }}><Icon size={26} /></div>
               <div className="sk2-eyebrow" style={{ color: t.ink }}>{c.eyebrow}</div>
               <div className="sk2-cardtitle">{c.title}</div>
+              <Preview />
               <div className="sk2-cardcta" style={{ background: t.grad, boxShadow: `0 10px 22px ${t.glow}` }}>{c.cta}</div>
             </div>
           );
@@ -363,11 +416,6 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
 
       <div className="container-x sk2-grid">
         <div className="sk2-copy">
-          <div className="sk2-badge">
-            <span className="sk2-badge-n">5</span>
-            herramientas, un solo apunte
-          </div>
-
           <h1 className="h-display" style={{ margin: 0, color: "var(--ink)" }}>
             Aprobá tu parcial<br />estudiando <HeroTypewriter />.
           </h1>
@@ -409,7 +457,7 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         .hero-tw-cursor { animation: heroCursorBlink 0.75s step-end infinite; color: rgba(166,126,255,0.85); font-weight: 300; }
         @media (prefers-reduced-motion: reduce) { .hero-tw-cursor { animation: none !important; } }
 
-        .sk2-hero { position: relative; padding: clamp(88px,14vh,132px) 0 48px; overflow: hidden; }
+        .sk2-hero { position: relative; padding: 40px 0 48px; overflow: hidden; }
         .sk2-dots {
           position: absolute; inset: 0; z-index: 0; opacity: .55; pointer-events: none;
           background-image: radial-gradient(rgba(150,85,229,.28) 1.3px, transparent 1.3px);
@@ -419,15 +467,6 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         }
         .sk2-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.05fr .95fr; gap: 36px; align-items: center; }
         .sk2-copy { display: flex; flex-direction: column; gap: 20px; }
-        .sk2-badge {
-          display: inline-flex; align-self: flex-start; align-items: center; gap: 9px;
-          background: #fff; border: 1px solid rgba(150,85,229,.18); padding: 7px 15px 7px 7px; border-radius: 999px;
-          box-shadow: 0 6px 18px rgba(31,35,71,.07); font-size: 12.5px; font-weight: 600; color: var(--accent-deep);
-        }
-        .sk2-badge-n {
-          width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center;
-          background: linear-gradient(135deg,#865CB8,#9655E5); color: #fff; font-size: 11px; font-weight: 700;
-        }
         .sk2-sub { margin: 0; font-size: 17.5px; line-height: 1.6; color: var(--ink-soft); max-width: 460px; }
         .sk2-ctas { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .sk2-trust { display: flex; align-items: center; gap: 12px; }
@@ -437,19 +476,23 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         .sk2-trust span:last-child { font-size: 13px; color: var(--ink-softer); }
 
         .sk2-visual { position: relative; }
-        .sk2-stackwrap { display: flex; flex-direction: column; align-items: center; gap: 22px; }
-        .sk2-stack { position: relative; width: 336px; height: 340px; perspective: 1500px; perspective-origin: 60% 40%; }
+        .sk2-stackwrap { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+        .sk2-stack { position: relative; width: 460px; height: 480px; perspective: 1700px; perspective-origin: 60% 40%; }
         .sk2-card {
-          position: absolute; inset: 0; width: 100%; border-radius: 26px; background: #fff;
-          box-shadow: 0 26px 60px rgba(63,25,117,.22); padding: 24px; box-sizing: border-box; overflow: hidden;
+          position: absolute; inset: 0; width: 100%; border-radius: 28px; background: #fff;
+          box-shadow: 0 30px 70px rgba(63,25,117,.24); padding: 32px; box-sizing: border-box; overflow: hidden;
           transform: rotateY(-14deg) rotateX(5deg);
           animation: sk2-stack 14s cubic-bezier(.65,.02,.25,1) infinite;
         }
-        .sk2-sheen { position: absolute; top: 0; left: 0; width: 60px; height: 200%; background: linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent); animation: sk2-sheen 14s ease-in-out infinite; }
-        .sk2-cardicon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
-        .sk2-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .09em; margin-top: 18px; }
-        .sk2-cardtitle { font-family: var(--font-jakarta); font-weight: 700; font-size: 27px; color: var(--ink); margin-top: 6px; line-height: 1.14; }
-        .sk2-cardcta { position: absolute; left: 24px; right: 24px; bottom: 24px; height: 46px; border-radius: 999px; color: #fff; font-family: var(--font-jakarta); font-weight: 600; font-size: 14.5px; display: flex; align-items: center; justify-content: center; }
+        .sk2-sheen { position: absolute; top: 0; left: 0; width: 70px; height: 200%; background: linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent); animation: sk2-sheen 14s ease-in-out infinite; }
+        .sk2-cardicon { width: 56px; height: 56px; border-radius: 17px; display: flex; align-items: center; justify-content: center; }
+        .sk2-eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: .09em; margin-top: 22px; }
+        .sk2-cardtitle { font-family: var(--font-jakarta); font-weight: 700; font-size: 34px; color: var(--ink); margin-top: 8px; line-height: 1.14; }
+        .sk2-cardcta { position: absolute; left: 32px; right: 32px; bottom: 32px; height: 52px; border-radius: 999px; color: #fff; font-family: var(--font-jakarta); font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+        @keyframes sk2-wave { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+        .sk2-wavebar { border-radius: 3px; transform-origin: bottom; animation: sk2-wave 1.1s ease-in-out infinite; }
+        @keyframes sk2-pop { 0%,100% { transform: scale(1); } 45% { transform: scale(1.12); } }
+        .sk2-heartpop { display: inline-block; animation: sk2-pop 1.8s ease-in-out infinite; }
 
         .sk2-rail { display: flex; gap: 7px; padding: 6px; background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.9); border-radius: 999px; backdrop-filter: blur(8px); max-width: 100%; overflow-x: auto; }
         .sk2-pill { position: relative; overflow: hidden; flex: none; font-size: 12px; font-weight: 600; padding: 8px 13px; border-radius: 999px; color: var(--ink-softer); animation: sk2-rail 14s linear infinite; }
@@ -480,13 +523,20 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         }
 
         @media (max-width: 900px) {
-          .sk2-grid { grid-template-columns: 1fr; gap: 26px; }
+          .sk2-hero { padding: 14px 0 28px; }
+          .sk2-grid { grid-template-columns: 1fr; gap: 14px; }
+          .sk2-copy { gap: 10px; }
           .sk2-sub { display: none; }
           .sk2-ctas { display: none; }
           .sk2-trust { display: none; }
-          .sk2-stack { width: min(280px, 72vw); height: 300px; margin: 0 auto; }
-          .sk2-cardtitle { font-size: 22px; }
-          .sk2-mobile-cta { display: block; margin-top: 4px; }
+          .sk2-stackwrap { gap: 14px; }
+          .sk2-stack { width: min(300px, 78vw); height: 330px; margin: 0 auto; }
+          .sk2-card { padding: 22px; }
+          .sk2-cardicon { width: 42px; height: 42px; border-radius: 13px; }
+          .sk2-eyebrow { margin-top: 14px; font-size: 10px; }
+          .sk2-cardtitle { font-size: 22px; margin-top: 4px; }
+          .sk2-cardcta { left: 22px; right: 22px; bottom: 22px; height: 44px; font-size: 14px; }
+          .sk2-mobile-cta { display: block; margin-top: 2px; }
         }
       `}</style>
     </section>
