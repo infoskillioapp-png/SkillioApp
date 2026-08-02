@@ -4,33 +4,9 @@ import "./landing.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar, HeroText, IconArrow, CTAMicro } from "./landing-top";
-import { HowItWorks, Demo } from "./landing-mid";
+import { HowItWorks } from "./landing-mid";
 import { Pricing, FAQ, FinalCTA, Footer, Testimonios } from "./landing-bottom";
 import MeshBackground from "./MeshBackground";
-
-// ============================================================
-// TICKER — franja de texto deslizante
-// ============================================================
-function Ticker() {
-  const items = ["Sin tarjeta", "IA en segundos", "Ya aprobaron +1.200 estudiantes", "Cancelas cuando quieras", "Resumenes al instante", "Flashcards automaticas", "Simulacro de parcial"];
-  return (
-    <div style={{ overflow: "hidden", background: "var(--accent)", padding: "10px 0" }}>
-      <div className="ticker-track" aria-hidden>
-        {[...items, ...items].map((item, i) => (
-          <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 16, whiteSpace: "nowrap" }}>
-            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>&#x2726;</span>
-            <span>{item}</span>
-          </span>
-        ))}
-      </div>
-      <style>{`
-        @keyframes tickerRun { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .ticker-track { display: flex; gap: 36px; width: max-content; animation: tickerRun 22s linear infinite; color: #fff; font-weight: 600; font-size: 13px; letter-spacing: 0.01em; padding: 0 18px; }
-        @media (prefers-reduced-motion: reduce) { .ticker-track { animation: none !important; } }
-      `}</style>
-    </div>
-  );
-}
 
 // ============================================================
 // CUSTOM CURSOR — solo desktop (pointer: fine)
@@ -172,10 +148,6 @@ export function LandingPage() {
       <div className="hero-content">
         <Navbar onCTA={onCTA} />
         <HeroText onCTA={onCTA} />
-        <Ticker />
-        <Demo />
-        {/* Color morph: aurora oscuro → lavanda claro */}
-        <div aria-hidden style={{ height: 60, background: "linear-gradient(to bottom, #1a0f38, #F0EDFF)", pointerEvents: "none" }} />
         <CTAPost onCTA={onCTA} />
         <HowItWorks />
         <Testimonios />

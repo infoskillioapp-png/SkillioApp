@@ -108,6 +108,29 @@ export const IconX = ({ size = 12, stroke = 2.5 }: IconProps) => (
     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
+export const IconCube = ({ size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" />
+  </svg>
+);
+export const IconTarget = ({ size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+    <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+  </svg>
+);
+export const IconGamepad = ({ size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 8h10a5 5 0 0 1 5 5v2a3 3 0 0 1-5.2 2L15 15H9l-1.8 2A3 3 0 0 1 2 15v-2a5 5 0 0 1 5-5Z" />
+    <line x1="7.5" y1="11.5" x2="7.5" y2="14.5" /><line x1="6" y1="13" x2="9" y2="13" />
+    <circle cx="15.5" cy="11.5" r="0.6" fill="currentColor" /><circle cx="17.5" cy="13.5" r="0.6" fill="currentColor" />
+  </svg>
+);
+export const IconHeadphones = ({ size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 13a9 9 0 0 1 18 0" />
+    <rect x="2.5" y="13" width="5" height="7" rx="2" /><rect x="16.5" y="13" width="5" height="7" rx="2" />
+  </svg>
+);
 
 // ============================================================
 // SKILLIO WORDMARK
@@ -279,61 +302,192 @@ function HeroTypewriter() {
 }
 
 // ============================================================
-// HERO TEXT (seccion 1)
+// HERO (seccion 1) — sin video de fondo (pesaba la carga inicial). El
+// título es EL MISMO de siempre (mismo texto, mismo mecanismo de
+// typewriter, misma clase .h-display), solo se recolorea a tinta oscura
+// porque el fondo ya no es un video oscuro sino el mesh claro del sitio.
+// La pila de tarjetas (reemplaza al Ticker+Demo) es 100% CSS — sin video,
+// sin imágenes, animación por keyframes nada más.
 // ============================================================
+const HERO2_CARDS = [
+  { icon: IconDoc, tint: "violet", eyebrow: "PARA ENTENDER", title: <>Resúmenes<br />de IA</>, cta: "Ver resumen", pill: "Resúmenes" },
+  { icon: IconCube, tint: "blue", eyebrow: "PARA MEMORIA", title: <>Tarjetas<br />infinitas</>, cta: "Repasar", pill: "Tarjetas" },
+  { icon: IconTarget, tint: "coral", eyebrow: "PARA EL EXAMEN", title: <>Simulacro<br />de IA</>, cta: "Comenzar", pill: "Simulacro" },
+  { icon: IconGamepad, tint: "amber", eyebrow: "PARA ENGANCHARTE", title: <>Modo<br />juego</>, cta: "Jugar", pill: "Modo juego" },
+  { icon: IconHeadphones, tint: "teal", eyebrow: "PARA EL VIAJE", title: <>Escuchá tu<br />resumen</>, cta: "Escuchar", pill: "Audio" },
+] as const;
+
+const HERO2_TINTS: Record<string, { soft: string; ink: string; grad: string; glow: string }> = {
+  violet: { soft: "#ece5fe", ink: "#7c3aed", grad: "linear-gradient(135deg,#865CB8,#9655E5)", glow: "rgba(150,85,229,.3)" },
+  blue: { soft: "#dfe7ff", ink: "#3d63e0", grad: "linear-gradient(135deg,#6f97ff,#3d63e0)", glow: "rgba(61,99,224,.3)" },
+  coral: { soft: "#ffe1e6", ink: "#e4264f", grad: "linear-gradient(135deg,#ff6b81,#e4264f)", glow: "rgba(228,38,79,.28)" },
+  amber: { soft: "#fff3d6", ink: "#e2921a", grad: "linear-gradient(135deg,#ffd873,#ffb020)", glow: "rgba(255,176,32,.25)" },
+  teal: { soft: "#d9f7f2", ink: "#0e9e91", grad: "linear-gradient(135deg,#5eead4,#0e9e91)", glow: "rgba(14,158,145,.28)" },
+};
+
+function HeroCardStack() {
+  return (
+    <div className="sk2-stackwrap" aria-hidden>
+      <div className="sk2-stack">
+        {HERO2_CARDS.map((c, i) => {
+          const t = HERO2_TINTS[c.tint];
+          const Icon = c.icon;
+          return (
+            <div key={i} className="sk2-card" style={{ animationDelay: `${-i * 2.8}s` }}>
+              {i === 0 && <div className="sk2-sheen" />}
+              <div className="sk2-cardicon" style={{ background: t.soft, color: t.ink }}><Icon size={23} /></div>
+              <div className="sk2-eyebrow" style={{ color: t.ink }}>{c.eyebrow}</div>
+              <div className="sk2-cardtitle">{c.title}</div>
+              <div className="sk2-cardcta" style={{ background: t.grad, boxShadow: `0 10px 22px ${t.glow}` }}>{c.cta}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="sk2-rail">
+        {HERO2_CARDS.map((c, i) => (
+          <span key={i} className="sk2-pill" style={{ animationDelay: `${-i * 2.8}s` }}>
+            {c.pill}
+            <i style={{ background: HERO2_TINTS[c.tint].ink, animationDelay: `${-i * 2.8}s` }} />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function HeroText({ onCTA }: { onCTA: () => void }) {
   return (
-    <section
-      id="top"
-      style={{
-        position: "relative",
-        height: "100svh",
-        maxHeight: "100svh",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        overflow: "hidden",
-        paddingTop: "clamp(72px, 16svh, 160px)",
-      }}
-    >
-      {/* Video de fondo */}
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      <video
-        src="/fondo%20hero%201%20mobile.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{
-          position: "absolute", inset: 0,
-          width: "100%", height: "100%",
-          objectFit: "cover", objectPosition: "center",
-          zIndex: 0,
-        }}
-      />
+    <section id="top" className="sk2-hero">
+      {/* Textura de fondo liviana (puntos + veo del mesh global de la página) */}
+      <div className="sk2-dots" aria-hidden />
 
-      {/* Velo oscuro para legibilidad del título */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none",
-          background: "linear-gradient(180deg, rgba(26,15,56,0.35) 0%, rgba(26,15,56,0.20) 50%, rgba(26,15,56,0.50) 100%)",
-        }}
-      />
+      <div className="container-x sk2-grid">
+        <div className="sk2-copy">
+          <div className="sk2-badge">
+            <span className="sk2-badge-n">5</span>
+            herramientas, un solo apunte
+          </div>
 
-      {/* Título */}
-      <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "0 24px" }}>
-        <h1
-          className="h-display"
-          style={{ margin: "0 auto", maxWidth: 860, color: "#ffffff", textShadow: "0 2px 24px rgba(26,15,56,0.5)" }}
-        >
-          Aprobá tu parcial<br />estudiando <HeroTypewriter />.
-        </h1>
+          <h1 className="h-display" style={{ margin: 0, color: "var(--ink)" }}>
+            Aprobá tu parcial<br />estudiando <HeroTypewriter />.
+          </h1>
+
+          <p className="sk2-sub">
+            Un apunte adentro, cinco formas de estudiarlo afuera. Sin copiar, sin resumir a mano, sin quedarte hasta las 4&nbsp;AM.
+          </p>
+
+          <div className="sk2-ctas">
+            <button className="btn btn-primary btn-lg btn-pulse" onClick={onCTA}>
+              Empezá gratis <IconArrow size={18} />
+            </button>
+            <a href="#como" className="btn btn-ghost btn-lg">Ver cómo funciona</a>
+          </div>
+
+          <div className="sk2-trust">
+            <div className="sk2-avatars">
+              <span style={{ background: "#865CB8" }} />
+              <span style={{ background: "#A67EFF" }} />
+              <span style={{ background: "#9655E5" }} />
+            </div>
+            <span>+1.200 estudiantes ya rinden con Skillio</span>
+          </div>
+        </div>
+
+        <div className="sk2-visual">
+          <HeroCardStack />
+          <div className="sk2-mobile-cta">
+            <button className="btn btn-primary" onClick={onCTA} style={{ width: "100%", fontSize: 16, padding: "14px 22px" }}>
+              Empezá gratis <IconArrow size={16} />
+            </button>
+            <CTAMicro />
+          </div>
+        </div>
       </div>
+
       <style>{`
         @keyframes heroCursorBlink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
         .hero-tw-cursor { animation: heroCursorBlink 0.75s step-end infinite; color: rgba(166,126,255,0.85); font-weight: 300; }
         @media (prefers-reduced-motion: reduce) { .hero-tw-cursor { animation: none !important; } }
+
+        .sk2-hero { position: relative; padding: clamp(88px,14vh,132px) 0 48px; overflow: hidden; }
+        .sk2-dots {
+          position: absolute; inset: 0; z-index: 0; opacity: .55; pointer-events: none;
+          background-image: radial-gradient(rgba(150,85,229,.28) 1.3px, transparent 1.3px);
+          background-size: 24px 24px;
+          -webkit-mask-image: radial-gradient(ellipse 75% 65% at 72% 40%, #000, transparent 75%);
+          mask-image: radial-gradient(ellipse 75% 65% at 72% 40%, #000, transparent 75%);
+        }
+        .sk2-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.05fr .95fr; gap: 36px; align-items: center; }
+        .sk2-copy { display: flex; flex-direction: column; gap: 20px; }
+        .sk2-badge {
+          display: inline-flex; align-self: flex-start; align-items: center; gap: 9px;
+          background: #fff; border: 1px solid rgba(150,85,229,.18); padding: 7px 15px 7px 7px; border-radius: 999px;
+          box-shadow: 0 6px 18px rgba(31,35,71,.07); font-size: 12.5px; font-weight: 600; color: var(--accent-deep);
+        }
+        .sk2-badge-n {
+          width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg,#865CB8,#9655E5); color: #fff; font-size: 11px; font-weight: 700;
+        }
+        .sk2-sub { margin: 0; font-size: 17.5px; line-height: 1.6; color: var(--ink-soft); max-width: 460px; }
+        .sk2-ctas { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .sk2-trust { display: flex; align-items: center; gap: 12px; }
+        .sk2-avatars { display: flex; }
+        .sk2-avatars span { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; margin-left: -9px; }
+        .sk2-avatars span:first-child { margin-left: 0; }
+        .sk2-trust span:last-child { font-size: 13px; color: var(--ink-softer); }
+
+        .sk2-visual { position: relative; }
+        .sk2-stackwrap { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+        .sk2-stack { position: relative; width: 336px; height: 340px; perspective: 1500px; perspective-origin: 60% 40%; }
+        .sk2-card {
+          position: absolute; inset: 0; width: 100%; border-radius: 26px; background: #fff;
+          box-shadow: 0 26px 60px rgba(63,25,117,.22); padding: 24px; box-sizing: border-box; overflow: hidden;
+          transform: rotateY(-14deg) rotateX(5deg);
+          animation: sk2-stack 14s cubic-bezier(.65,.02,.25,1) infinite;
+        }
+        .sk2-sheen { position: absolute; top: 0; left: 0; width: 60px; height: 200%; background: linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent); animation: sk2-sheen 14s ease-in-out infinite; }
+        .sk2-cardicon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+        .sk2-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .09em; margin-top: 18px; }
+        .sk2-cardtitle { font-family: var(--font-jakarta); font-weight: 700; font-size: 27px; color: var(--ink); margin-top: 6px; line-height: 1.14; }
+        .sk2-cardcta { position: absolute; left: 24px; right: 24px; bottom: 24px; height: 46px; border-radius: 999px; color: #fff; font-family: var(--font-jakarta); font-weight: 600; font-size: 14.5px; display: flex; align-items: center; justify-content: center; }
+
+        .sk2-rail { display: flex; gap: 7px; padding: 6px; background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.9); border-radius: 999px; backdrop-filter: blur(8px); max-width: 100%; overflow-x: auto; }
+        .sk2-pill { position: relative; overflow: hidden; flex: none; font-size: 12px; font-weight: 600; padding: 8px 13px; border-radius: 999px; color: var(--ink-softer); animation: sk2-rail 14s linear infinite; }
+        .sk2-pill i { position: absolute; left: 0; bottom: 0; height: 2.5px; width: 0; border-radius: 2px; animation: sk2-railbar 14s linear infinite; animation-delay: inherit; }
+        .sk2-mobile-cta { display: none; }
+
+        @keyframes sk2-stack {
+          0%,16% { transform: translateY(0) rotateY(-14deg) rotateX(5deg) scale(1); opacity: 1; z-index: 5; }
+          19.5% { transform: translateY(-64px) rotateY(-14deg) rotateX(5deg) scale(.97); opacity: 0; z-index: 5; }
+          19.6%,20% { transform: translateY(88px) rotateY(-14deg) rotateX(5deg) scale(.8); opacity: 0; z-index: 1; }
+          24%,36% { transform: translateY(88px) rotateY(-14deg) rotateX(5deg) scale(.8); opacity: .3; z-index: 1; }
+          40%,56% { transform: translateY(66px) rotateY(-14deg) rotateX(5deg) scale(.85); opacity: .5; z-index: 2; }
+          60%,76% { transform: translateY(44px) rotateY(-14deg) rotateX(5deg) scale(.9); opacity: .7; z-index: 3; }
+          80%,96% { transform: translateY(22px) rotateY(-14deg) rotateX(5deg) scale(.95); opacity: .88; z-index: 4; }
+          100% { transform: translateY(0) rotateY(-14deg) rotateX(5deg) scale(1); opacity: 1; z-index: 5; }
+        }
+        @keyframes sk2-sheen { 0%,70% { transform: translateX(-140%) skewX(-18deg); } 100% { transform: translateX(240%) skewX(-18deg); } }
+        @keyframes sk2-rail {
+          0%,16% { background: #fff; color: var(--ink); box-shadow: 0 8px 20px rgba(31,35,71,.14); }
+          20%,96% { background: rgba(255,255,255,0); color: var(--ink-softer); box-shadow: none; }
+          100% { background: #fff; color: var(--ink); box-shadow: 0 8px 20px rgba(31,35,71,.14); }
+        }
+        @keyframes sk2-railbar { 0% { width: 0; } 16% { width: 100%; } 20%,100% { width: 0; } }
+
+        @media (prefers-reduced-motion: reduce) {
+          .sk2-card, .sk2-sheen, .sk2-pill, .sk2-pill i { animation: none !important; }
+          .sk2-card:not(:first-child) { display: none; }
+        }
+
+        @media (max-width: 900px) {
+          .sk2-grid { grid-template-columns: 1fr; gap: 26px; }
+          .sk2-sub { display: none; }
+          .sk2-ctas { display: none; }
+          .sk2-trust { display: none; }
+          .sk2-stack { width: min(280px, 72vw); height: 300px; margin: 0 auto; }
+          .sk2-cardtitle { font-size: 22px; }
+          .sk2-mobile-cta { display: block; margin-top: 4px; }
+        }
       `}</style>
     </section>
   );
