@@ -195,14 +195,12 @@ export function Navbar({ onCTA }: { onCTA: () => void }) {
 
   // Nav minimal: logo + "Iniciar sesión" (link discreto) + 1 único CTA primario.
   // Sin menú de secciones para no competir con la meta de conversión.
+  // SIEMPRE transparente — sin color propio, sin blur, sin borde: se ve
+  // exactamente lo que hay detrás en cualquier punto del scroll, sin
+  // aproximar ningún tono. Solo el texto cambia de color para seguir
+  // siendo legible (blanco sobre el hero oscuro, tinta oscura después).
   return (
-    <header style={{
-      position: "sticky", top: 0, zIndex: 50,
-      background: scrolled ? "rgba(240,237,255,0.92)" : "transparent",
-      backdropFilter: scrolled ? "saturate(140%) blur(10px)" : "none",
-      borderBottom: scrolled ? "1px solid rgba(53,56,49,0.06)" : "1px solid transparent",
-      transition: "background .2s, border-color .2s",
-    }}>
+    <header style={{ position: "sticky", top: 0, zIndex: 50, background: "transparent" }}>
       <div className="container-x" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
         <a href="#top" style={{ textDecoration: "none" }}>
           <SkillioMark color={scrolled ? "var(--ink)" : "#fff"} />
