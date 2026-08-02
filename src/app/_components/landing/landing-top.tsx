@@ -323,9 +323,15 @@ function HeroTitle() {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
+  // overflowWrap:"anywhere" en TODO el título (visible y probes) — si algún
+  // largo de frase + cursor no encuentra un espacio donde cortar antes del
+  // borde de la columna, esto lo obliga a partir ahí en vez de desbordar
+  // horizontalmente fuera de la pantalla.
+  const titleStyle: React.CSSProperties = { margin: 0, overflowWrap: "anywhere" };
+
   return (
     <div style={{ position: "relative", minHeight: minH }}>
-      <h1 className="h-display" style={{ margin: 0, color: "var(--ink)", position: "relative", zIndex: 1 }}>
+      <h1 className="h-display" style={{ ...titleStyle, color: "var(--ink)", position: "relative", zIndex: 1 }}>
         Aprobá tu parcial<br />estudiando <HeroTypewriter />.
       </h1>
       <div aria-hidden style={{ position: "absolute", inset: 0, visibility: "hidden", pointerEvents: "none", zIndex: -1 }}>
@@ -334,9 +340,13 @@ function HeroTitle() {
             key={p}
             ref={(el) => { probeRefs.current[i] = el; }}
             className="h-display"
-            style={{ margin: 0, position: "absolute", top: 0, left: 0, width: "100%" }}
+            style={{ ...titleStyle, position: "absolute", top: 0, left: 0, width: "100%" }}
           >
-            Aprobá tu parcial<br />estudiando {p}.
+            {/* Mismo marcado que el título real (span del gradiente + cursor)
+               para que la medición sea exacta: el cursor "|" pegado sin
+               espacio a la frase puede empujar un salto de línea extra que
+               una medición sin cursor no detectaría. */}
+            Aprobá tu parcial<br />estudiando <span className="gradient-text">{p}</span><span className="hero-tw-cursor">|</span>.
           </h1>
         ))}
       </div>
@@ -512,11 +522,11 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
 
         .sk2-visual { position: relative; }
         .sk2-stackwrap { display: flex; flex-direction: column; align-items: center; gap: 24px; }
-        .sk2-stack { position: relative; width: 460px; height: 480px; perspective: 1700px; perspective-origin: 60% 40%; }
+        .sk2-stack { position: relative; width: 460px; height: 480px; perspective: 1700px; perspective-origin: 60% 40%; --tiltY: -14deg; --tiltX: 5deg; }
         .sk2-card {
           position: absolute; inset: 0; width: 100%; border-radius: 28px; background: #fff;
           box-shadow: 0 30px 70px rgba(63,25,117,.24); padding: 32px; box-sizing: border-box; overflow: hidden;
-          transform: rotateY(-14deg) rotateX(5deg);
+          transform: rotateY(var(--tiltY)) rotateX(var(--tiltX));
           animation: sk2-stack 14s cubic-bezier(.65,.02,.25,1) infinite;
         }
         .sk2-sheen { position: absolute; top: 0; left: 0; width: 70px; height: 200%; background: linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent); animation: sk2-sheen 14s ease-in-out infinite; }
@@ -534,14 +544,14 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         .sk2-pill i { position: absolute; left: 0; bottom: 0; height: 2.5px; width: 0; border-radius: 2px; animation: sk2-railbar 14s linear infinite; animation-delay: inherit; }
 
         @keyframes sk2-stack {
-          0%,16% { transform: translateY(0) rotateY(-14deg) rotateX(5deg) scale(1); opacity: 1; z-index: 5; }
-          19.5% { transform: translateY(-64px) rotateY(-14deg) rotateX(5deg) scale(.97); opacity: 0; z-index: 5; }
-          19.6%,20% { transform: translateY(88px) rotateY(-14deg) rotateX(5deg) scale(.8); opacity: 0; z-index: 1; }
-          24%,36% { transform: translateY(88px) rotateY(-14deg) rotateX(5deg) scale(.8); opacity: .3; z-index: 1; }
-          40%,56% { transform: translateY(66px) rotateY(-14deg) rotateX(5deg) scale(.85); opacity: .5; z-index: 2; }
-          60%,76% { transform: translateY(44px) rotateY(-14deg) rotateX(5deg) scale(.9); opacity: .7; z-index: 3; }
-          80%,96% { transform: translateY(22px) rotateY(-14deg) rotateX(5deg) scale(.95); opacity: .88; z-index: 4; }
-          100% { transform: translateY(0) rotateY(-14deg) rotateX(5deg) scale(1); opacity: 1; z-index: 5; }
+          0%,16% { transform: translateY(0) rotateY(var(--tiltY)) rotateX(var(--tiltX)) scale(1); opacity: 1; z-index: 5; }
+          19.5% { transform: translateY(-64px) rotateY(var(--tiltY)) rotateX(var(--tiltX)) scale(.97); opacity: 0; z-index: 5; }
+          19.6%,20% { transform: translateY(88px) rotateY(var(--tiltY)) rotateX(var(--tiltX)) scale(.8); opacity: 0; z-index: 1; }
+          24%,36% { transform: translateY(88px) rotateY(var(--tiltY)) rotateX(var(--tiltX)) scale(.8); opacity: .3; z-index: 1; }
+          40%,56% { transform: translateY(66px) rotateY(var(--tiltY)) rotateX(var(--tiltX)) scale(.85); opacity: .5; z-index: 2; }
+          60%,76% { transform: translateY(44px) rotateY(var(--tiltY)) rotateX(var(--tiltX)) scale(.9); opacity: .7; z-index: 3; }
+          80%,96% { transform: translateY(22px) rotateY(var(--tiltY)) rotateX(var(--tiltX)) scale(.95); opacity: .88; z-index: 4; }
+          100% { transform: translateY(0) rotateY(var(--tiltY)) rotateX(var(--tiltX)) scale(1); opacity: 1; z-index: 5; }
         }
         @keyframes sk2-sheen { 0%,70% { transform: translateX(-140%) skewX(-18deg); } 100% { transform: translateX(240%) skewX(-18deg); } }
         @keyframes sk2-rail {
@@ -557,14 +567,19 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         }
 
         @media (max-width: 900px) {
-          .sk2-hero { padding: 14px 0 28px; }
+          /* padding-bottom extra: el StickyMobileCTA global es fixed y tapaba
+             el riel de pastillas si el hero terminaba justo contra el borde */
+          .sk2-hero { padding: 14px 0 118px; }
           .sk2-grid { grid-template-columns: 1fr; gap: 14px; }
           .sk2-copy { gap: 10px; }
           .sk2-sub { display: none; }
           .sk2-ctas { display: none; }
           .sk2-trust { display: none; }
           .sk2-stackwrap { gap: 14px; }
-          .sk2-stack { width: min(300px, 78vw); height: 330px; margin: 0 auto; }
+          /* Sin tilt 3D en mobile: con perspectiva + rotacion, el borde de la
+             tarjeta se proyectaba mas ancho que su caja y se recortaba contra
+             el borde de la pantalla (overflow-x). Plana, no se sale nunca. */
+          .sk2-stack { width: min(300px, 78vw); height: 330px; margin: 0 auto; --tiltY: 0deg; --tiltX: 0deg; }
           .sk2-card { padding: 22px; }
           .sk2-cardicon { width: 42px; height: 42px; border-radius: 13px; }
           .sk2-eyebrow { margin-top: 14px; font-size: 10px; }
