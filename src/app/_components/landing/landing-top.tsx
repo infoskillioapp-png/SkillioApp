@@ -575,16 +575,19 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
           .sk2-sub { display: none; }
           .sk2-ctas { display: none; }
           .sk2-trust { display: none; }
-          .sk2-stackwrap { gap: 14px; }
-          /* Sin tilt 3D en mobile: con perspectiva + rotacion, el borde de la
-             tarjeta se proyectaba mas ancho que su caja y se recortaba contra
-             el borde de la pantalla (overflow-x). Plana, no se sale nunca. */
-          .sk2-stack { width: min(300px, 78vw); height: 330px; margin: 0 auto; --tiltY: 0deg; --tiltX: 0deg; }
+          .sk2-stackwrap { gap: 14px; max-width: 100vw; }
+          /* Mismo tilt 3D que desktop (no se toca --tiltY/--tiltX): la
+             tarjeta mantiene el mismo giro y la misma calidad. El overflow
+             real era el riel de pastillas de abajo, que no tenía un limite
+             de ancho firme en mobile y se salía del viewport en vez de
+             quedarse contenido con scroll lateral (como esta pensado). */
+          .sk2-stack { width: min(300px, 78vw); max-width: calc(100vw - 40px); height: 330px; margin: 0 auto; }
           .sk2-card { padding: 22px; }
           .sk2-cardicon { width: 42px; height: 42px; border-radius: 13px; }
           .sk2-eyebrow { margin-top: 14px; font-size: 10px; }
           .sk2-cardtitle { font-size: 22px; margin-top: 4px; }
           .sk2-cardcta { left: 22px; right: 22px; bottom: 22px; height: 44px; font-size: 14px; }
+          .sk2-rail { max-width: calc(100vw - 40px); }
         }
       `}</style>
     </section>
