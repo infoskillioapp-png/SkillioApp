@@ -3,7 +3,7 @@
 import "./landing.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Navbar, HeroText, IconArrow, CTAMicro } from "./landing-top";
+import { Navbar, HeroText, IconArrow } from "./landing-top";
 import { HowItWorks } from "./landing-mid";
 import { Pricing, FAQ, FinalCTA, Footer, Testimonios } from "./landing-bottom";
 import MeshBackground from "./MeshBackground";
@@ -85,17 +85,6 @@ function useReveal() {
   }, []);
 }
 
-function CTAPost({ onCTA }: { onCTA: () => void }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 24px 52px" }}>
-      <button className="btn btn-primary btn-lg btn-pulse" onClick={onCTA} style={{ fontSize: 17 }}>
-        Empezá gratis <IconArrow size={18} />
-      </button>
-      <CTAMicro />
-    </div>
-  );
-}
-
 // Barra CTA fija en mobile — siempre visible mientras scrollea
 function StickyMobileCTA({ onCTA }: { onCTA: () => void }) {
   return (
@@ -148,7 +137,6 @@ export function LandingPage() {
       <div className="hero-content">
         <Navbar onCTA={onCTA} />
         <HeroText onCTA={onCTA} />
-        <CTAPost onCTA={onCTA} />
         <HowItWorks />
         <Testimonios />
         {/* Color morph: lavanda → pricing oscuro */}

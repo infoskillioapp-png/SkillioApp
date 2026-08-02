@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 
 // ============================================================
@@ -301,6 +301,49 @@ function HeroTypewriter() {
   );
 }
 
+// El título tiene el mismo texto/mecanismo de siempre, pero las frases del
+// typewriter tienen largos MUY distintos ("con IA" vs "sin releer todo") y
+// eso hace que el h1 envuelva en más o menos líneas según la frase — sin
+// esto, toda la columna (y con align-items:center, la fila entera) se
+// corría verticalmente cada vez que cambiaba de frase. Se mide en un probe
+// invisible la altura de CADA frase posible y se reserva la más alta, así
+// el contenedor nunca cambia de tamaño.
+function HeroTitle() {
+  const probeRefs = useRef<(HTMLHeadingElement | null)[]>([]);
+  const [minH, setMinH] = useState<number | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    function measure() {
+      let max = 0;
+      probeRefs.current.forEach((el) => { if (el) max = Math.max(max, el.offsetHeight); });
+      if (max > 0) setMinH(max);
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  return (
+    <div style={{ position: "relative", minHeight: minH }}>
+      <h1 className="h-display" style={{ margin: 0, color: "var(--ink)", position: "relative", zIndex: 1 }}>
+        Aprobá tu parcial<br />estudiando <HeroTypewriter />.
+      </h1>
+      <div aria-hidden style={{ position: "absolute", inset: 0, visibility: "hidden", pointerEvents: "none", zIndex: -1 }}>
+        {HERO_PHRASES.map((p, i) => (
+          <h1
+            key={p}
+            ref={(el) => { probeRefs.current[i] = el; }}
+            className="h-display"
+            style={{ margin: 0, position: "absolute", top: 0, left: 0, width: "100%" }}
+          >
+            Aprobá tu parcial<br />estudiando {p}.
+          </h1>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // HERO (seccion 1) — sin video de fondo (pesaba la carga inicial). El
 // título es EL MISMO de siempre (mismo texto, mismo mecanismo de
@@ -416,9 +459,7 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
 
       <div className="container-x sk2-grid">
         <div className="sk2-copy">
-          <h1 className="h-display" style={{ margin: 0, color: "var(--ink)" }}>
-            Aprobá tu parcial<br />estudiando <HeroTypewriter />.
-          </h1>
+          <HeroTitle />
 
           <p className="sk2-sub">
             Un apunte adentro, cinco formas de estudiarlo afuera. Sin copiar, sin resumir a mano, sin quedarte hasta las 4&nbsp;AM.
@@ -443,12 +484,6 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
 
         <div className="sk2-visual">
           <HeroCardStack />
-          <div className="sk2-mobile-cta">
-            <button className="btn btn-primary" onClick={onCTA} style={{ width: "100%", fontSize: 16, padding: "14px 22px" }}>
-              Empezá gratis <IconArrow size={16} />
-            </button>
-            <CTAMicro />
-          </div>
         </div>
       </div>
 
@@ -465,7 +500,7 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
           -webkit-mask-image: radial-gradient(ellipse 75% 65% at 72% 40%, #000, transparent 75%);
           mask-image: radial-gradient(ellipse 75% 65% at 72% 40%, #000, transparent 75%);
         }
-        .sk2-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.05fr .95fr; gap: 36px; align-items: center; }
+        .sk2-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.05fr .95fr; gap: 36px; align-items: start; padding-top: 12px; }
         .sk2-copy { display: flex; flex-direction: column; gap: 20px; }
         .sk2-sub { margin: 0; font-size: 17.5px; line-height: 1.6; color: var(--ink-soft); max-width: 460px; }
         .sk2-ctas { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -497,7 +532,6 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
         .sk2-rail { display: flex; gap: 7px; padding: 6px; background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.9); border-radius: 999px; backdrop-filter: blur(8px); max-width: 100%; overflow-x: auto; }
         .sk2-pill { position: relative; overflow: hidden; flex: none; font-size: 12px; font-weight: 600; padding: 8px 13px; border-radius: 999px; color: var(--ink-softer); animation: sk2-rail 14s linear infinite; }
         .sk2-pill i { position: absolute; left: 0; bottom: 0; height: 2.5px; width: 0; border-radius: 2px; animation: sk2-railbar 14s linear infinite; animation-delay: inherit; }
-        .sk2-mobile-cta { display: none; }
 
         @keyframes sk2-stack {
           0%,16% { transform: translateY(0) rotateY(-14deg) rotateX(5deg) scale(1); opacity: 1; z-index: 5; }
@@ -536,7 +570,6 @@ export function HeroText({ onCTA }: { onCTA: () => void }) {
           .sk2-eyebrow { margin-top: 14px; font-size: 10px; }
           .sk2-cardtitle { font-size: 22px; margin-top: 4px; }
           .sk2-cardcta { left: 22px; right: 22px; bottom: 22px; height: 44px; font-size: 14px; }
-          .sk2-mobile-cta { display: block; margin-top: 2px; }
         }
       `}</style>
     </section>
