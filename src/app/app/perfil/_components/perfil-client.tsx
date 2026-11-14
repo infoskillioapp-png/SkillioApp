@@ -24,6 +24,8 @@ const PLAN_ICONS: Record<string, string> = {
   free: "🆓",
   semanal: "⚡",
   pro: "🌟",
+  pase: "🎓",
+  trimestral: "🌟",
   free_trial: "⏳",
 };
 
@@ -61,7 +63,8 @@ function UsageBarRow({ label, bar }: { label: string; bar: UsageBar }) {
 export function PerfilClient({ name, email, plan, planLabel, expiresAt, memberSince, stats, usage }: Props) {
   const { signOut } = useClerk();
   const initial = name.trim().charAt(0).toUpperCase();
-  const isPro = plan === "pro" || plan === "semanal" || plan === "free_trial";
+  const isPro = ["pro", "semanal", "trimestral", "pase", "free_trial"].includes(plan);
+  // El Pase es pago único: no hay débito que cancelar.
   const canCancel = plan === "pro" || plan === "semanal";
   const [cancelling, setCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);

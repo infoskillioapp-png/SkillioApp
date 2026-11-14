@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { IconArrow, IconCheck, IconHeart, SkillioMark, CTAMicro } from "./landing-top";
 import { SectionHeader } from "./landing-mid";
+import { PASE_ANCHOR_ARS, PASE_DAYS, PASE_MAX_INSTALLMENTS, PASE_PRICE_ARS, PASE_SAVING_ARS, PRO_PRICE_ARS, cuota, fmtARS } from "@/lib/pricing";
 
 // ============================================================
 // COMMUNITY
@@ -397,34 +398,45 @@ export function Transformacion() {
 // ============================================================
 // PRICING
 // ============================================================
-type PricingCycle = "semanal" | "mensual" | "trimestral";
+// Relanzamiento: 2 planes. Pase de cuatrimestre (pago único, destacado) y
+// Mensual (suscripción). Precios desde lib/pricing (fuente única).
+type PricingCycle = "pase" | "mensual";
 
 export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
-  const [cycle, setCycle] = useState<PricingCycle>("mensual");
+  const [cycle, setCycle] = useState<PricingCycle>("pase");
 
-  const plans: Record<PricingCycle, { price: string; period: string; label: string; saving: string | null }> = {
-    semanal:    { price: "$4.900",  period: "semana",    label: "Semanal",    saving: null },
-    mensual:    { price: "$15.900", period: "mes",       label: "Mensual",    saving: null },
-    trimestral: { price: "$34.900", period: "trimestre", label: "Trimestral", saving: "Ahorras $12.800" },
+  const plans: Record<PricingCycle, { price: string; period: string; label: string; note: string; anchor: string | null }> = {
+    pase: {
+      price: fmtARS(PASE_PRICE_ARS),
+      period: `pago único · ${PASE_MAX_INSTALLMENTS} cuotas sin interés de ${fmtARS(cuota(PASE_PRICE_ARS))}`,
+      label: "Pase de cuatrimestre",
+      note: "Cubrí todo tu cuatrimestre y salvá la materia",
+      anchor: `4 meses en mensual = ${fmtARS(PASE_ANCHOR_ARS)} · ahorrás ${fmtARS(PASE_SAVING_ARS)}`,
+    },
+    mensual: {
+      price: fmtARS(PRO_PRICE_ARS),
+      period: "por mes",
+      label: "Mensual",
+      note: "Débito automático · cancelás cuando quieras",
+      anchor: null,
+    },
   };
 
   const perks = [
     "Resumenes, flashcards y simulacros ilimitados",
     "Repeticion espaciada inteligente",
-    "Modelos avanzados de IA (Claude)",
+    "Modelos avanzados de IA",
     "Subi tus apuntes: PDF, foto o texto",
-    "Cancelas en cualquier momento",
+    cycle === "pase" ? "Pago unico: sin debito automatico" : "Cancelas en cualquier momento",
   ];
 
   const cycleGradients: Record<PricingCycle, string> = {
-    semanal:    "linear-gradient(145deg, #4F46E5 0%, #7C3AED 100%)",
-    mensual:    "linear-gradient(145deg, #7C3AED 0%, #9655E5 60%, #A855F7 100%)",
-    trimestral: "linear-gradient(145deg, #C026D3 0%, #DB2777 60%, #F43F5E 100%)",
+    pase: "linear-gradient(145deg, #C026D3 0%, #DB2777 60%, #F43F5E 100%)",
+    mensual: "linear-gradient(145deg, #7C3AED 0%, #9655E5 60%, #A855F7 100%)",
   };
   const cycleShadows: Record<PricingCycle, string> = {
-    semanal:    "0 10px 32px rgba(79,70,229,0.55)",
-    mensual:    "0 10px 32px rgba(124,58,237,0.60)",
-    trimestral: "0 10px 32px rgba(192,38,211,0.55)",
+    pase: "0 10px 32px rgba(192,38,211,0.55)",
+    mensual: "0 10px 32px rgba(124,58,237,0.60)",
   };
 
   const current = plans[cycle];
@@ -493,14 +505,22 @@ export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
             }}>
               {current.price}
             </div>
-            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.58)", marginTop: 4 }}>
-              por {current.period}
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.70)", marginTop: 6 }}>
+              {current.period}
             </div>
+            <div style={{ fontSize: 13.5, color: "#fff", fontWeight: 700, marginTop: 8 }}>
+              {current.note}
+            </div>
+            {current.anchor && (
+              <div style={{ display: "inline-block", fontSize: 12, fontWeight: 700, color: "#fff", marginTop: 10, background: "rgba(0,0,0,0.28)", borderRadius: 999, padding: "4px 12px" }}>
+                {current.anchor}
+              </div>
+            )}
           </div>
 
-          {/* Selector de ciclos */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 28 }}>
-            {(["semanal", "mensual", "trimestral"] as PricingCycle[]).map((key) => {
+          {/* Selector de planes */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 28 }}>
+            {(["pase", "mensual"] as PricingCycle[]).map((key) => {
               const p = plans[key];
               const isActive = cycle === key;
               return (
@@ -513,7 +533,7 @@ export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
                     borderRadius: 20, cursor: "pointer", textAlign: "center",
                     background: cycleGradients[key],
                     border: isActive ? "2px solid rgba(255,255,255,0.85)" : "2px solid rgba(255,255,255,0.12)",
-                    transform: isActive ? "scale(1.06)" : "scale(0.93)",
+                    transform: isActive ? "scale(1.04)" : "scale(0.95)",
                     opacity: isActive ? 1 : 0.68,
                     transition: "transform 260ms cubic-bezier(0.34,1.56,0.64,1), opacity 220ms ease, border-color 180ms ease, box-shadow 220ms ease",
                     boxShadow: isActive ? cycleShadows[key] : "0 2px 8px rgba(0,0,0,0.18)",
@@ -524,7 +544,7 @@ export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
                 >
                   <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: "48%", background: "linear-gradient(to bottom, rgba(255,255,255,0.22), transparent)", borderRadius: "20px 20px 0 0", pointerEvents: "none" }} />
 
-                  {key === "mensual" && (
+                  {key === "pase" && (
                     <span style={{
                       position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)",
                       background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)",
@@ -532,7 +552,7 @@ export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
                       padding: "3px 9px", borderRadius: "0 0 10px 10px", whiteSpace: "nowrap",
                       letterSpacing: "0.06em",
                     }}>
-                      MÁS ELEGIDO
+                      EL MÁS ELEGIDO
                     </span>
                   )}
 
@@ -547,18 +567,12 @@ export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
                     </span>
                   )}
 
-                  <div style={{ fontWeight: 800, fontSize: 13.5, color: "#fff", marginBottom: 5, position: "relative", zIndex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: 13.5, color: "#fff", marginBottom: 5, marginTop: key === "pase" ? 8 : 0, position: "relative", zIndex: 1 }}>
                     {p.label}
                   </div>
                   <div style={{ fontSize: 13, color: "rgba(255,255,255,0.90)", fontWeight: 700, position: "relative", zIndex: 1 }}>
-                    {p.price}
+                    {p.price}{key === "mensual" ? "/mes" : ""}
                   </div>
-
-                  {key === "trimestral" && p.saving && (
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "#fff", marginTop: 5, background: "rgba(0,0,0,0.28)", borderRadius: 8, padding: "2px 7px", position: "relative", zIndex: 1, whiteSpace: "nowrap" }}>
-                      {p.saving}
-                    </div>
-                  )}
                 </button>
               );
             })}
@@ -579,11 +593,11 @@ export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 14px 40px rgba(0,0,0,0.35)"; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 32px rgba(0,0,0,0.25)"; }}
           >
-            Continuar con el plan {current.label} · {current.price} <IconArrow size={18} />
+            Continuar · {current.price} <IconArrow size={18} />
           </button>
 
           <p style={{ textAlign: "center", fontSize: 12.5, color: "rgba(255,255,255,0.48)", margin: "12px 0 0" }}>
-            Pago seguro. Cancelas en cualquier momento.
+            {cycle === "pase" ? "Pago seguro. Tarjeta, debito, dinero en Mercado Pago o efectivo." : "Pago seguro. Cancelas en cualquier momento."}
           </p>
 
           {/* Divisor */}
@@ -627,11 +641,13 @@ export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
 // ============================================================
 export function FAQ() {
   const items = [
-    { q: "¿De verdad es gratis y sin tarjeta?", a: "Sí. Entrás, probás PRO y tenés 3 generaciones gratis sin poner ninguna tarjeta. Recién cuando se te acaban los intentos y querés seguir, pasás a PRO." },
+    { q: "¿De verdad es gratis y sin tarjeta?", a: "Sí. Entrás sin registrarte ni poner tarjeta, subís tu apunte y ves lo que arma Booki. Si querés el material completo y sin límites, pasás a PRO." },
     { q: "¿Mis apuntes y datos son seguros?", a: "Sí. Tus apuntes son privados por default. Nadie ve nada salvo que vos decidas compartirlo en la Comunidad. Usamos cifrado en tránsito y en reposo." },
     { q: "¿Qué tan precisa es la IA?", a: "Muy buena para resumir, generar flashcards y simulacros. Igual: siempre revisá los resultados. La IA es una copilota, no reemplaza estudiar." },
     { q: "¿Puedo subir cualquier formato?", a: "Sí: PDFs, fotos de pizarrón o apuntes, fotos de hojas escritas a mano. Si lo podés leer vos, lo puede leer Skillio." },
-    { q: "¿Cómo pago el plan PRO?", a: "A través de Mercado Pago con tarjeta de crédito o débito. Te adherís al débito automático y podés cancelar cuando quieras en 2 clicks." },
+    { q: "¿Qué es el Pase de cuatrimestre?", a: `Es PRO completo por ${PASE_DAYS} días (todo el cuatrimestre, finales incluidos) con un solo pago de ${fmtARS(PASE_PRICE_ARS)}, o en ${PASE_MAX_INSTALLMENTS} cuotas sin interés de ${fmtARS(cuota(PASE_PRICE_ARS))}. Te sale ${fmtARS(PASE_SAVING_ARS)} menos que 4 meses de Mensual.` },
+    { q: "¿El Pase se renueva solo?", a: "No. Es un pago único: no hay débito automático y no te cobramos nada más. Cuando se termina, si querés, lo comprás de nuevo." },
+    { q: "¿Cómo pago?", a: `Con Mercado Pago. El Pase lo pagás con tarjeta de crédito (hasta ${PASE_MAX_INSTALLMENTS} cuotas sin interés), débito, dinero en tu cuenta de Mercado Pago o efectivo. El Mensual (${fmtARS(PRO_PRICE_ARS)}/mes) es con tarjeta y débito automático: lo cancelás cuando quieras en 2 clicks.` },
     { q: "¿Sirve para mi carrera?", a: "Sí. Funciona para Medicina, Ingenierías, Derecho, Económicas, Psicología, profesorados, secundario. Cualquier materia que tenga texto." },
   ];
   return (

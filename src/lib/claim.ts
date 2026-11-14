@@ -56,19 +56,36 @@ export async function ensureAccountForPaidAnon(opts: {
   planKind?: PlanKind;
 }): Promise<ClaimResult> {
   const sb = supabaseAdmin();
-  const email = opts.email.trim().toLowerCase();
-  const norm = normalizeEmail(email);
   const { plan, expiresAt, credits } = opts.planKind
     ? planFromKind(opts.planKind)
     : planFromSubscription(opts.subscription);
 
-  const patch: Record<string, unknown> = {
+  const { clerkUserId, userId } = await claimAccountForAnon({ anonRowId: opts.anonRowId, email: opts.email });
+  await sb.from("users").update({
     plan,
     credits,
     expires_at: expiresAt,
     mp_subscription_id: opts.subscription.id,
     updated_at: new Date().toISOString(),
-  };
+  }).eq("id", userId);
+  return { clerkUserId, plan };
+}
+
+/**
+ * Resuelve (o crea) la CUENTA para una sesión anónima que pagó, SIN tocar el
+ * plan. Devuelve el clerk userId y el id de la fila de users donde hay que
+ * activar el plan. Idempotente. Reglas:
+ *  1. Si el mail ya pertenece a una cuenta registrada → esa cuenta.
+ *  2. Si la fila anónima ya fue reclamada → esa fila.
+ *  3. Si no → crea (o encuentra) el usuario de Clerk y reclama la fila anónima.
+ */
+export async function claimAccountForAnon(opts: {
+  anonRowId: string;
+  email: string;
+}): Promise<{ clerkUserId: string; userId: string }> {
+  const sb = supabaseAdmin();
+  const email = opts.email.trim().toLowerCase();
+  const norm = normalizeEmail(email);
 
   // 1) ¿El mail ya tiene cuenta registrada?
   const { data: existing } = await sb
@@ -79,8 +96,7 @@ export async function ensureAccountForPaidAnon(opts: {
     .neq("id", opts.anonRowId)
     .maybeSingle();
   if (existing?.clerk_user_id) {
-    await sb.from("users").update(patch).eq("id", existing.id);
-    return { clerkUserId: existing.clerk_user_id as string, plan };
+    return { clerkUserId: existing.clerk_user_id as string, userId: existing.id as string };
   }
 
   // 2) ¿La fila anónima ya fue reclamada?
@@ -90,8 +106,7 @@ export async function ensureAccountForPaidAnon(opts: {
     .eq("id", opts.anonRowId)
     .maybeSingle();
   if (anonRow?.clerk_user_id) {
-    await sb.from("users").update(patch).eq("id", opts.anonRowId);
-    return { clerkUserId: anonRow.clerk_user_id as string, plan };
+    return { clerkUserId: anonRow.clerk_user_id as string, userId: opts.anonRowId };
   }
 
   // 3) Crear (o encontrar) el usuario de Clerk y reclamar la fila anónima.
@@ -119,8 +134,8 @@ export async function ensureAccountForPaidAnon(opts: {
 
   await sb
     .from("users")
-    .update({ ...patch, clerk_user_id: clerkUserId, email, normalized_email: norm })
+    .update({ clerk_user_id: clerkUserId, email, normalized_email: norm, updated_at: new Date().toISOString() })
     .eq("id", opts.anonRowId);
 
-  return { clerkUserId, plan };
+  return { clerkUserId, userId: opts.anonRowId };
 }

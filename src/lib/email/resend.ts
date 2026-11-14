@@ -2,7 +2,7 @@ import "server-only";
 import { Resend } from "resend";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { buildUnsubscribeUrl } from "./unsubscribe";
-import { PLANS, type PlanKind } from "@/lib/pricing";
+import { PLANS, PRO_PRICE_ARS, PRO_PRICE_DISCOUNTED, PASE_PRICE_ARS, PASE_PRICE_DISCOUNTED, fmtARS, cuota, type PlanKind } from "@/lib/pricing";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -212,8 +212,18 @@ export async function sendBonusGenerationEmail(to: string): Promise<void> {
   });
 }
 
-/** Regalo #4: código de descuento para el lead caliente que cerró el paywall. */
+/** Regalo #4: código de descuento para el lead caliente que cerró el paywall.
+ * El usuario ELIGE dónde usarlo: Pase de cuatrimestre (destacado) o Mensual. */
 export async function sendDiscountEmail(to: string, code: string, pct: number): Promise<void> {
+  const box = (o: { star: boolean; title: string; old: number; now: number; tag: string; note: string }) => `
+          <tr>
+            <td style="background:${o.star ? "linear-gradient(135deg,#f3f0ff,#eef2ff)" : "#fafafe"};border:1.5px solid ${o.star ? "#8b5cf6" : "#e4e1f5"};border-radius:12px;padding:14px 18px;">
+              <div style="font-weight:700;font-size:14px;color:#8b5cf6;">${o.title}</div>
+              <div style="margin-top:4px;"><span style="font-size:14px;color:#9aa0b8;text-decoration:line-through;">${fmtARS(o.old)}</span> &nbsp;<span style="font-size:22px;font-weight:800;color:#1f2347;">${fmtARS(o.now)}</span> <span style="font-size:12px;color:#8b5cf6;font-weight:700;">${o.tag}</span></div>
+              <div style="font-size:12px;color:#9aa0b8;margin-top:4px;">${o.note}</div>
+            </td>
+          </tr>
+          <tr><td style="height:10px;"></td></tr>`;
   await send({
     to,
     subject: `🎁 Tu ${pct}% OFF te está esperando (código adentro)`,
@@ -222,21 +232,15 @@ export async function sendDiscountEmail(to: string, code: string, pct: number): 
       heading: `🎁 ${pct}% OFF, de regalo`,
       body: `Como te lo prometimos, acá está tu código de descuento:<br><br>
         <div style="text-align:center;margin:8px 0 4px;"><span style="display:inline-block;background:#f3f0ff;border:2px dashed #8b5cf6;border-radius:12px;padding:12px 24px;font-size:22px;font-weight:800;letter-spacing:2px;color:#6d28d9;">${code}</span></div>
-        <div style="text-align:center;color:#9aa0b8;font-size:12px;margin-bottom:16px;">${pct}% OFF en tu primer mes del plan Mensual PRO</div>
-        Con <b>Skillio PRO</b> generás sin límites, con el mejor modelo de IA.<br><br>
+        <div style="text-align:center;color:#9aa0b8;font-size:12px;margin-bottom:16px;">Elegí dónde usarlo 👇</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0;">
-          <tr>
-            <td style="background:linear-gradient(135deg,#f3f0ff,#eef2ff);border:1.5px solid #c4b5fd;border-radius:12px;padding:14px 18px;">
-              <div style="font-weight:700;font-size:14px;color:#8b5cf6;">⭐ Mensual PRO</div>
-              <div style="margin-top:4px;"><span style="font-size:14px;color:#9aa0b8;text-decoration:line-through;">$15.900</span> &nbsp;<span style="font-size:22px;font-weight:800;color:#1f2347;">$11.925</span> <span style="font-size:12px;color:#8b5cf6;font-weight:700;">primer mes</span></div>
-              <div style="font-size:12px;color:#9aa0b8;margin-top:4px;">Después se renueva a $15.900/mes. Cancelás cuando quieras.</div>
-            </td>
-          </tr>
+          ${box({ star: true, title: "⭐ Pase de cuatrimestre — el más elegido", old: PASE_PRICE_ARS, now: PASE_PRICE_DISCOUNTED, tag: "pago único", note: `Hasta 3 cuotas sin interés de ${fmtARS(cuota(PASE_PRICE_DISCOUNTED))}. 4 meses de acceso, sin renovación automática.` })}
+          ${box({ star: false, title: "Mensual PRO", old: PRO_PRICE_ARS, now: PRO_PRICE_DISCOUNTED, tag: "primer mes", note: `Después ${fmtARS(PRO_PRICE_ARS)}/mes. Cancelás cuando quieras.` })}
         </table>
         <div style="color:#9aa0b8;font-size:12px;">⏳ Válido por 48 horas.</div>`,
       ctaText: "Activar mi descuento →",
-      // Directo al checkout embebido con el código ya aplicado (25% OFF primer mes).
-      ctaPath: `/pagar?promo=${code}`,
+      // Directo al checkout con el código aplicado; el Pase arranca elegido.
+      ctaPath: `/pagar?plan=pase&promo=${code}`,
     }),
   });
 }
@@ -245,26 +249,38 @@ export async function sendDiscountEmail(to: string, code: string, pct: number): 
 // Transaccional: bienvenida PRO (tras un pago exitoso en el checkout embebido)
 // ---------------------------------------------------------------------------
 
-/** Se dispara al activar CUALQUIER plan pago: confirma la suscripción y explica el acceso. */
-export async function sendProWelcomeEmail(to: string, planKind: PlanKind = "pro", name?: string | null): Promise<void> {
+/** Se dispara al activar CUALQUIER plan pago: confirma el plan y explica el acceso. */
+export async function sendProWelcomeEmail(
+  to: string,
+  planKind: PlanKind = "pro",
+  name?: string | null,
+  opts: { expiresAt?: string | null } = {},
+): Promise<void> {
   const n = firstName(name);
   const spec = PLANS[planKind];
-  const precio = `$${spec.amount.toLocaleString("es-AR")}`;
+  const precio = fmtARS(spec.amount);
+  const isPase = planKind === "pase";
+  const hasta = opts.expiresAt
+    ? new Date(opts.expiresAt).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Argentina/Buenos_Aires" })
+    : null;
   const periodo = planKind === "semanal" ? "cada semana" : planKind === "trimestral" ? "cada 3 meses" : "cada mes";
+  const cierre = isPase
+    ? `Es un <b>pago único</b>: no se renueva solo y no te vamos a cobrar nada más.${hasta ? ` Tu acceso dura hasta el <b>${hasta}</b>.` : ""}`
+    : `Se renueva automáticamente ${periodo} (${precio}). Podés cancelar cuando quieras desde tu perfil.`;
   await send({
     to,
-    subject: "🎉 ¡Ya sos PRO! Tu suscripción está activa",
+    subject: isPase ? "🎉 ¡Ya tenés tu Pase de cuatrimestre!" : "🎉 ¡Ya sos PRO! Tu suscripción está activa",
     html: wrap({
       preview: "Tu pago se acreditó. Ya tenés todo Skillio sin límites.",
       heading: `¡Bienvenido a PRO, ${n}! 🎉`,
-      body: `Tu pago se acreditó y tu <b>plan ${spec.label}</b> ya está activo. Desde ahora tenés:<br><br>
+      body: `Tu pago se acreditó y tu <b>${isPase ? "Pase de cuatrimestre" : `plan ${spec.label}`}</b> ya está activo. Desde ahora tenés:<br><br>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr><td style="padding:3px 0;font-size:14px;color:#3b3558;">✅ Resúmenes, tarjetas, simulacros y juegos sin límites</td></tr>
           <tr><td style="padding:3px 0;font-size:14px;color:#3b3558;">✅ El modelo de IA de máxima calidad en tus resúmenes</td></tr>
           <tr><td style="padding:3px 0;font-size:14px;color:#3b3558;">✅ Acceso completo a todos tus apuntes, sin cortes</td></tr>
         </table><br>
         <b>¿Cómo entrás?</b> Sin contraseña: cada vez que quieras ingresar te mandamos un código a este mail.<br><br>
-        Se renueva automáticamente ${periodo} (${precio}). Podés cancelar cuando quieras desde tu perfil.<br><br>
+        ${cierre}<br><br>
         ¿Alguna duda? Respondé este mail y te ayudamos — <b>soporte 24/7</b>. 💜`,
       ctaText: "Entrar a estudiar →",
       ctaPath: "/app",

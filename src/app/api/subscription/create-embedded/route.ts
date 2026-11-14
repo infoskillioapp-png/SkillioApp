@@ -9,27 +9,16 @@ import { ensureAccountForPaidAnon } from "@/lib/claim";
 import { isDisposableEmail } from "@/lib/anti-fraude";
 import { recordFunnelEvent, recordFunnelEventForUser } from "@/lib/api/funnel";
 import { sendProWelcomeEmail } from "@/lib/email/resend";
-import { PLANS, PRO_PRICE_DISCOUNTED, isPlanKind, isValidDiscountCode, type PlanKind } from "@/lib/pricing";
+import { PLANS, PRO_PRICE_DISCOUNTED, isValidDiscountCode, type PlanKind } from "@/lib/pricing";
+import { getAppOrigin, metaBrowserContext } from "@/lib/checkout";
+import { isPaidPlan } from "@/lib/ai/claude";
 
 const ANON_COOKIE = "skillio_anon";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DAY = 24 * 60 * 60 * 1000;
 
-// back_url para MP. MP valida el back_url de la preapproval y RECHAZA los
-// dominios *.vercel.app (y valores sin protocolo) con "must be a valid URL" —
-// exige el dominio real verificado. Por eso lo forzamos a skillio.digital y
-// solo respetamos NEXT_PUBLIC_APP_URL si es https y NO es *.vercel.app.
-const PROD_ORIGIN = "https://skillio.digital";
-
-function getAppOrigin(): string {
-  const env = process.env.NEXT_PUBLIC_APP_URL;
-  if (env && /^https:\/\/.+/.test(env) && !env.includes(".vercel.app")) {
-    return env.replace(/\/+$/, "");
-  }
-  return PROD_ORIGIN;
-}
-
-// Checkout EMBEBIDO (Bricks) para los 3 planes. El front tokeniza la tarjeta en
+// Checkout EMBEBIDO (Bricks) del plan MENSUAL (suscripción). El Pase de
+// cuatrimestre (pago único) va por /api/checkout/pase. El front tokeniza la tarjeta en
 // el navegador y nos manda el card_token; acá creamos la suscripción con
 // status:"authorized" (MP cobra el primer pago al toque, sin redirigir) y
 // activamos el plan en el mismo request. La tarjeta NUNCA toca nuestro server.
@@ -39,7 +28,9 @@ export async function POST(req: Request) {
     const cardToken = typeof body.card_token === "string" ? body.card_token : "";
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const phone = (typeof body.phone === "string" ? body.phone : "").replace(/[^\d+]/g, "").slice(0, 20);
-    const planKind: PlanKind = isPlanKind(body.plan) ? body.plan : "pro";
+    // Solo se vende el Mensual por suscripción (Semanal/Trimestral retirados).
+    if (body.plan && body.plan !== "pro") return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
+    const planKind: PlanKind = "pro";
     const spec = PLANS[planKind];
 
     // Código de descuento (SKILLIO25): SOLO plan pro y SOLO primer mes. El
@@ -59,13 +50,15 @@ export async function POST(req: Request) {
     // clerk userId (con cuenta) o anon_session_id (registro diferido).
     let externalRef: string;
     let currentPlan: string;
+    let currentExpires: string | null = null;
     let anonRowId: string | null = null;
 
     if (userId) {
-      const { data: user } = await sb.from("users").select("id, plan").eq("clerk_user_id", userId).maybeSingle();
+      const { data: user } = await sb.from("users").select("id, plan, expires_at").eq("clerk_user_id", userId).maybeSingle();
       if (!user) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
       externalRef = userId;
       currentPlan = user.plan;
+      currentExpires = user.expires_at;
     } else {
       const anon = await getOrCreateAnonUser();
       const session = (await cookies()).get(ANON_COOKIE)?.value ?? "";
@@ -75,7 +68,9 @@ export async function POST(req: Request) {
       anonRowId = anon.id;
     }
 
-    if (currentPlan !== "free")
+    // Plan pago VIGENTE → no dejamos suscribirse de nuevo. Un plan vencido
+    // (ej. canceló el Mensual y ya pasó la fecha) sí puede volver a comprar.
+    if (isPaidPlan(currentPlan, currentExpires))
       return NextResponse.json({ error: "already_subscribed" }, { status: 400 });
 
     // OJO: MP valida el back_url de forma ultra-estricta y RECHAZA cualquier
@@ -104,8 +99,14 @@ export async function POST(req: Request) {
     }
 
     // Funnel: llegó al checkout (y lo pagó, a confirmar por status).
-    if (userId) await recordFunnelEvent("checkout_iniciado", planKind);
-    else if (anonRowId) await recordFunnelEventForUser(anonRowId, "checkout_iniciado", planKind);
+    const funnelStep = applyDiscount ? "pro_skillio25" : "pro";
+    if (userId) await recordFunnelEvent("checkout_iniciado", funnelStep);
+    else if (anonRowId) await recordFunnelEventForUser(anonRowId, "checkout_iniciado", funnelStep);
+
+    // Cookies de Meta: el Purchase del Mensual sale del webhook (sin navegador)
+    // cuando MP cobra de verdad; guardarlas acá mejora el match.
+    const ctx = await metaBrowserContext();
+    const metaCols = { ...(ctx.fbp ? { meta_fbp: ctx.fbp } : {}), ...(ctx.fbc ? { meta_fbc: ctx.fbc } : {}) };
 
     // MP no autorizó al instante (raro con card_token; ej. requiere revisión).
     // La sub queda creada: el webhook la activará cuando pase a authorized.
@@ -115,8 +116,8 @@ export async function POST(req: Request) {
 
     // ── Activación inmediata (no dependemos del webhook) ──
     if (userId) {
-      const { data: user } = await sb.from("users").select("id, plan").eq("clerk_user_id", userId).maybeSingle();
-      if (user && user.plan === "free") {
+      const { data: user } = await sb.from("users").select("id, plan, expires_at").eq("clerk_user_id", userId).maybeSingle();
+      if (user && !isPaidPlan(user.plan, user.expires_at)) {
         await sb
           .from("users")
           .update({
@@ -125,6 +126,7 @@ export async function POST(req: Request) {
             expires_at: expiresAt,
             mp_subscription_id: subscription.id,
             ...(phone ? { phone } : {}),
+            ...metaCols,
             updated_at: new Date().toISOString(),
           })
           .eq("id", user.id);
@@ -145,7 +147,7 @@ export async function POST(req: Request) {
 
     // Guardar el teléfono en la fila ya reclamada (evita el gate de
     // /completar-telefono tras el pago).
-    if (phone) await sb.from("users").update({ phone }).eq("clerk_user_id", clerkUserId);
+    await sb.from("users").update({ ...(phone ? { phone } : {}), ...metaCols }).eq("clerk_user_id", clerkUserId);
 
     await sendProWelcomeEmail(email, planKind);
 

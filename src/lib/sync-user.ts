@@ -24,7 +24,7 @@ export type SkillioUser = {
   normalized_email: string | null;
   full_name: string | null;
   avatar_url: string | null;
-  plan: "free" | "pro" | "semanal";
+  plan: "free" | "pro" | "semanal" | "trimestral" | "pase";
   mp_subscription_id: string | null;
   credits: number;
   free_generations_used: number;

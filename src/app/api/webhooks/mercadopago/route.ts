@@ -12,7 +12,21 @@ import {
 } from "@/lib/mercadopago";
 import { sendMetaPurchase } from "@/lib/meta-capi";
 import { recordFunnelEventForUser } from "@/lib/api/funnel";
-import { PRO_PRICE_ARS as FULL_MONTHLY_PRICE, PRO_PRICE_DISCOUNTED, planKindFromAmount } from "@/lib/pricing";
+import { activatePasePayment, isSkillioPasePayment } from "@/lib/pase";
+import {
+  DISCOUNT_CODE,
+  PLANS,
+  PRO_CREDITS,
+  PRO_PRICE_ARS,
+  PRO_PRICE_DISCOUNTED,
+  isDiscountedMonthly,
+  planKindFromAmount,
+  productName,
+  type PlanKind,
+} from "@/lib/pricing";
+
+// Planes que puede tener una SUSCRIPCIÓN (el Pase es pago único: va aparte).
+type SubPlan = Exclude<PlanKind, "pase">;
 
 // Descuento primer-mes: la sub nace a PRO_PRICE_DISCOUNTED. Tras el primer cobro
 // subimos el monto al precio normal para que el 2º mes en adelante salga full.
@@ -21,8 +35,8 @@ async function bumpDiscountedAmountIfNeeded(sub: MpSubscription) {
   const current = sub.auto_recurring?.transaction_amount;
   if (current === PRO_PRICE_DISCOUNTED) {
     try {
-      await mpUpdateSubscriptionAmount(sub.id, FULL_MONTHLY_PRICE);
-      console.log(`[webhook] descuento primer-mes agotado: sub ${sub.id} $${PRO_PRICE_DISCOUNTED} → $${FULL_MONTHLY_PRICE}`);
+      await mpUpdateSubscriptionAmount(sub.id, PRO_PRICE_ARS);
+      console.log(`[webhook] descuento primer-mes agotado: sub ${sub.id} $${PRO_PRICE_DISCOUNTED} → $${PRO_PRICE_ARS}`);
     } catch (e) {
       console.error(`[webhook] no se pudo subir el monto de la sub ${sub.id}:`, e);
     }
@@ -45,12 +59,7 @@ function verifySignature(req: NextRequest, dataId: string): boolean {
   return expected === v1;
 }
 
-const PRO_FULL_CREDITS = 500;
-const PRO_PRICE_ARS = 15900;
-const SEMANAL_PRICE_ARS = 4900;
-const TRIMESTRAL_PRICE_ARS = 34900;
-const SEMANAL_DAYS = 7;
-const TRIMESTRAL_DAYS = 90;
+const DAY = 24 * 60 * 60 * 1000;
 
 function looksLikeClerkId(s: string | null | undefined): s is string {
   return typeof s === "string" && s.startsWith("user_");
@@ -61,15 +70,18 @@ type Sb = ReturnType<typeof supabaseAdmin>;
 type MatchedUser = {
   id: string;
   email: string;
-  plan: "free" | "pro" | "semanal" | "trimestral";
+  plan: "free" | PlanKind;
   credits: number;
   referred_by: string | null;
   mp_subscription_id: string | null;
   expires_at: string | null;
   clerk_user_id: string | null;
+  phone: string | null;
+  meta_fbp: string | null;
+  meta_fbc: string | null;
 };
 
-const USER_COLS = "id, email, plan, credits, referred_by, mp_subscription_id, expires_at, clerk_user_id";
+const USER_COLS = "id, email, plan, credits, referred_by, mp_subscription_id, expires_at, clerk_user_id, phone, meta_fbp, meta_fbc";
 
 async function findUser(
   sb: Sb,
@@ -92,11 +104,8 @@ async function findUser(
     if (data) return { user: data as MatchedUser, matchedBy: "external_reference" };
   }
   // Registro diferido: el external_reference de una sesión anónima es su
-  // anon_session_id (UUID, sin prefijo user_). En el checkout embebido la fila
-  // se RECLAMA (clerk_user_id) en create-embedded de forma síncrona, antes de
-  // que llegue el webhook. Por eso solo activamos si la fila YA es una cuenta
-  // (tiene clerk_user_id): una fila anónima pura no debe quedar con plan pago
-  // (evita el bug "anónimo con PRO" — ver invariante en actor.ts).
+  // anon_session_id. Solo activamos si la fila YA es una cuenta (clerk_user_id):
+  // una fila anónima pura no debe quedar con plan pago (invariante de actor.ts).
   if (opts.externalRef && !looksLikeClerkId(opts.externalRef)) {
     const { data } = await sb
       .from("users")
@@ -116,45 +125,20 @@ async function findUser(
   return { user: null, matchedBy: null };
 }
 
-function isSemanalPlan(preapprovalPlanId: string | undefined): boolean {
-  const id = process.env.MP_PLAN_ID_SEMANAL;
-  return !!id && preapprovalPlanId === id;
+// Plan de una suscripción: por preapproval_plan_id (Checkout Pro viejo) o, si
+// no tiene (checkout embebido, monto directo), por el MONTO.
+function detectPlanType(preapprovalPlanId: string | undefined, amount?: number | null): SubPlan {
+  if (preapprovalPlanId && preapprovalPlanId === process.env.MP_PLAN_ID_SEMANAL) return "semanal";
+  if (preapprovalPlanId && preapprovalPlanId === process.env.MP_PLAN_ID_TRIMESTRAL) return "trimestral";
+  const k = planKindFromAmount(amount);
+  return k === "semanal" || k === "trimestral" ? k : "pro";
 }
 
-function isTrimestralPlan(preapprovalPlanId: string | undefined): boolean {
-  const id = process.env.MP_PLAN_ID_TRIMESTRAL;
-  return !!id && preapprovalPlanId === id;
-}
-
-// Detecta el plan por el preapproval_plan_id (Checkout Pro) y, si la sub no
-// tiene plan_id (Checkout EMBEBIDO, monto directo), por el MONTO.
-function detectPlanType(
-  preapprovalPlanId: string | undefined,
-  amount?: number | null,
-): "pro" | "semanal" | "trimestral" {
-  if (isSemanalPlan(preapprovalPlanId)) return "semanal";
-  if (isTrimestralPlan(preapprovalPlanId)) return "trimestral";
-  return planKindFromAmount(amount) ?? "pro";
-}
-
-// Determina el plan por el MONTO cobrado (para pagos sueltos sin preapproval_id).
-function planTypeFromAmount(
-  amount: number,
-  current?: string,
-): "pro" | "semanal" | "trimestral" {
-  if (amount === SEMANAL_PRICE_ARS) return "semanal";
-  if (amount === TRIMESTRAL_PRICE_ARS) return "trimestral";
-  if (amount === PRO_PRICE_ARS) return "pro";
-  // Monto desconocido: respetar el plan pago actual si lo hay, sino pro.
-  if (current === "semanal" || current === "trimestral") return current;
-  return "pro";
-}
-
-// Activa o renueva un plan pagado (pro, semanal o trimestral). Idempotente.
+// Activa o renueva un plan de SUSCRIPCIÓN (pro; semanal/trimestral legacy). Idempotente.
 async function activateOrRenewPlan(
   sb: Sb,
   user: MatchedUser,
-  opts: { subscriptionId?: string | null; planType: "pro" | "semanal" | "trimestral" },
+  opts: { subscriptionId?: string | null; planType: SubPlan },
 ) {
   const { data: pendingReferral } = await sb
     .from("referrals")
@@ -165,22 +149,14 @@ async function activateOrRenewPlan(
 
   const isFirstPayment = !!pendingReferral;
   const referralBonus = isFirstPayment ? 50 : 0;
+  const spec = PLANS[opts.planType];
 
   const patch: Record<string, unknown> = {
     plan: opts.planType,
+    credits: opts.planType === "semanal" ? 0 : PRO_CREDITS + referralBonus,
+    expires_at: spec.expiresDays == null ? null : new Date(Date.now() + spec.expiresDays * DAY).toISOString(),
     updated_at: new Date().toISOString(),
   };
-
-  if (opts.planType === "semanal") {
-    patch.credits = 0;
-    patch.expires_at = new Date(Date.now() + SEMANAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  } else if (opts.planType === "trimestral") {
-    patch.credits = PRO_FULL_CREDITS + referralBonus;
-    patch.expires_at = new Date(Date.now() + TRIMESTRAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  } else {
-    patch.credits = PRO_FULL_CREDITS + referralBonus;
-    patch.expires_at = null;
-  }
 
   if (opts.subscriptionId && !user.mp_subscription_id) {
     patch.mp_subscription_id = opts.subscriptionId;
@@ -196,7 +172,6 @@ async function activateOrRenewPlan(
     `[webhook] ${user.email} → ${opts.planType} (era ${user.plan}, sub=${opts.subscriptionId ?? user.mp_subscription_id ?? "-"})`,
   );
 
-  // Funnel: pago confirmado (cobro inicial o renovación)
   await recordFunnelEventForUser(user.id, "pago_confirmado", opts.planType);
 
   if (isFirstPayment && pendingReferral) {
@@ -208,23 +183,70 @@ async function activateOrRenewPlan(
   }
 }
 
-async function recordPayment(
+/**
+ * Registra un COBRO de suscripción y, si es el PRIMERO de esa suscripción,
+ * avisa la compra a Meta. MP avisa el mismo cobro por 2 vías (payment y
+ * subscription_authorized_payment): las dos usan el id del pago de MP
+ * (`pay_<id>`), así el cobro se registra y se manda a Meta UNA sola vez.
+ * Las renovaciones NO se mandan a Meta (decisión de negocio).
+ */
+async function recordSubscriptionCharge(
   sb: Sb,
-  opts: { user: MatchedUser; mpId: string; kind: string; amount?: number | null },
+  opts: { user: MatchedUser; mpPaymentId: string; subscriptionId: string | null; planType: SubPlan; amount: number },
 ) {
-  const { error } = await sb.from("payments").upsert(
-    {
-      user_id: opts.user.id,
-      mp_id: opts.mpId,
-      kind: opts.kind,
-      amount: opts.amount ?? PRO_PRICE_ARS,
-      currency: "ARS",
-      status: "approved",
-      email: opts.user.email,
-    },
-    { onConflict: "mp_id" },
-  );
-  if (error) console.error("[webhook] recordPayment error:", error);
+  const promo = opts.planType === "pro" && isDiscountedMonthly(opts.amount) ? DISCOUNT_CODE : null;
+  const { data: inserted, error } = await sb
+    .from("payments")
+    .upsert(
+      {
+        user_id: opts.user.id,
+        mp_id: `pay_${opts.mpPaymentId}`,
+        kind: "subscription",
+        plan: opts.planType,
+        promo,
+        installments: 1,
+        mp_subscription_id: opts.subscriptionId,
+        amount: opts.amount,
+        currency: "ARS",
+        status: "approved",
+        email: opts.user.email,
+      },
+      { onConflict: "mp_id", ignoreDuplicates: true },
+    )
+    .select("id");
+  if (error) {
+    console.error("[webhook] recordSubscriptionCharge error:", error);
+    return;
+  }
+  if (!inserted || inserted.length === 0) return; // ya registrado por la otra vía
+
+  // ¿Es el primer cobro de esta suscripción?
+  let isFirst = true;
+  if (opts.subscriptionId) {
+    const { count } = await sb
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("mp_subscription_id", opts.subscriptionId);
+    isFirst = (count ?? 0) <= 1;
+  }
+  if (!isFirst) {
+    console.log(`[webhook] renovación ${opts.user.email} $${opts.amount} — no se avisa a Meta`);
+    return;
+  }
+
+  await sendMetaPurchase({
+    email: opts.user.email,
+    phone: opts.user.phone,
+    value: opts.amount,
+    currency: "ARS",
+    eventId: `purchase_${opts.mpPaymentId}`,
+    contentName: productName(opts.planType, !!promo),
+    contentId: opts.planType,
+    orderId: opts.mpPaymentId,
+    externalId: opts.user.id,
+    fbp: opts.user.meta_fbp,
+    fbc: opts.user.meta_fbc,
+  });
 }
 
 async function processReferrerReward(sb: Sb, referrerId: string) {
@@ -280,10 +302,8 @@ async function handlePreapproval(subscriptionId: string) {
         .update({ mp_subscription_id: subscription.id })
         .eq("id", user.id);
     }
-    // OJO: NO subir el monto acá. MP cobra el 1er pago DIFERIDO (no al crear la
-    // sub); si subimos el monto en el alta, el 1er cobro sale full. El bump del
-    // descuento va SOLO tras el primer cobro real (handleAuthorizedPayment /
-    // handlePayment).
+    // OJO: NO subir el monto acá. MP cobra el 1er pago DIFERIDO; el bump del
+    // descuento va SOLO tras el primer cobro real.
   } else if (subscription.status === "cancelled" || subscription.status === "paused") {
     const { user, matchedBy } = await findUser(sb, lookup);
     if (!user) {
@@ -292,13 +312,12 @@ async function handlePreapproval(subscriptionId: string) {
       );
       return;
     }
-    // No corta el acceso en el momento: MercadoPago dejó de cobrar, pero el
-    // usuario ya pagó ese período — sigue con el plan hasta que venza.
+    // No corta el acceso en el momento: sigue con el plan hasta que venza el
+    // período pagado.
     const patch: Record<string, unknown> = { mp_subscription_id: null, updated_at: new Date().toISOString() };
     if (user.plan === "pro") {
       patch.expires_at = periodEndFromLastCharge(subscription, planType) ?? user.expires_at;
     }
-    // semanal/trimestral ya tienen expires_at correcto de su última renovación: no se toca.
     await sb.from("users").update(patch).eq("id", user.id);
     await recordFunnelEventForUser(user.id, "plan_cancelado_mp", subscription.status);
     console.log(`[webhook/preapproval] ${user.email} plan=${user.plan} vence=${patch.expires_at ?? user.expires_at ?? "-"} (${subscription.status}, matchedBy=${matchedBy})`);
@@ -306,17 +325,13 @@ async function handlePreapproval(subscriptionId: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUBSCRIPTION_AUTHORIZED_PAYMENT: cobro recurrente (renovación).
-// Pro: renueva 500 créditos. Semanal: extiende expires_at +7d.
+// SUBSCRIPTION_AUTHORIZED_PAYMENT: cobro de la suscripción (1º o renovación).
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleAuthorizedPayment(authPaymentId: string) {
   const ap = await mpGetAuthorizedPayment(authPaymentId);
   const paid = ap.status === "processed" || ap.payment?.status === "approved";
   const sb = supabaseAdmin();
 
-  // Traemos la suscripción ANTES de buscar el usuario: sirve para detectar el
-  // tipo de plan, da external_reference/payer_email como fallback de matching,
-  // y su `last_charged_date` nos dice si ya cobró (para la salvaguarda de abajo).
   let subscription: MpSubscription | null = null;
   if (ap.preapproval_id) {
     try {
@@ -333,13 +348,11 @@ async function handleAuthorizedPayment(authPaymentId: string) {
   });
 
   // SALVAGUARDA: activamos el plan de forma optimista en el alta (MP cobra el
-  // 1er pago DIFERIDO). Si ese PRIMER cobro se RECHAZA (la sub nunca cobró:
-  // last_charged_date null), el usuario tendría PRO sin haber pagado → lo
-  // revertimos a free. Una renovación rechazada (ya cobró antes) NO se toca:
-  // MP reintenta y el usuario ya pagó períodos previos.
+  // 1er pago DIFERIDO). Si ese PRIMER cobro se RECHAZA, lo revertimos a free.
+  // Una renovación rechazada NO se toca: MP reintenta.
   if (!paid) {
     const nuncaCobro = subscription ? !subscription.summarized?.last_charged_date : true;
-    if (user && user.plan !== "free" && nuncaCobro) {
+    if (user && user.plan !== "free" && user.plan !== "pase" && nuncaCobro) {
       await sb.from("users").update({
         plan: "free", credits: 0, expires_at: null, mp_subscription_id: null,
         updated_at: new Date().toISOString(),
@@ -357,43 +370,51 @@ async function handleAuthorizedPayment(authPaymentId: string) {
     return;
   }
 
-  const planType: "pro" | "semanal" | "trimestral" = subscription
-    ? detectPlanType(subscription.preapproval_plan_id, subscription.auto_recurring?.transaction_amount ?? ap.transaction_amount)
+  const amount = ap.transaction_amount ?? subscription?.auto_recurring?.transaction_amount ?? PRO_PRICE_ARS;
+  const planType: SubPlan = subscription
+    ? detectPlanType(subscription.preapproval_plan_id, ap.transaction_amount ?? subscription.auto_recurring?.transaction_amount)
     : (user.plan === "semanal" || user.plan === "trimestral") ? user.plan : "pro";
 
   await activateOrRenewPlan(sb, user, { subscriptionId: ap.preapproval_id, planType });
-  console.log(`[webhook/authpay] ${user.email} ${planType} renovado (matchedBy=${matchedBy})`);
+  console.log(`[webhook/authpay] ${user.email} ${planType} $${amount} (matchedBy=${matchedBy})`);
 
-  // Descuento primer-mes: tras el 1er cobro, subir el monto al precio normal.
   if (subscription) await bumpDiscountedAmountIfNeeded(subscription);
 
-  const amount = ap.transaction_amount ?? (
-    planType === "semanal" ? SEMANAL_PRICE_ARS :
-    planType === "trimestral" ? TRIMESTRAL_PRICE_ARS :
-    PRO_PRICE_ARS
-  );
-  await recordPayment(sb, {
+  await recordSubscriptionCharge(sb, {
     user,
-    mpId: `authpay_${authPaymentId}`,
-    kind: "authorized_payment",
+    // Mismo id que el aviso "payment" del mismo cobro → no se duplica.
+    mpPaymentId: ap.payment?.id ? String(ap.payment.id) : `authpay_${authPaymentId}`,
+    subscriptionId: ap.preapproval_id,
+    planType,
     amount,
-  });
-
-  await sendMetaPurchase({
-    email: user.email,
-    value: amount,
-    currency: "ARS",
-    eventId: `purchase_${authPaymentId}`,
   });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PAYMENT: pago suelto (compatibilidad).
+// PAYMENT: pago suelto. Puede ser (a) el Pase de cuatrimestre, (b) un cobro de
+// suscripción, o (c) un pago de OTRO negocio que comparte la cuenta de MP →
+// se ignora.
 // ─────────────────────────────────────────────────────────────────────────────
 async function handlePayment(paymentId: string) {
   const payment = await mpGetPayment(paymentId);
+
+  // (a) Pase de cuatrimestre (pago único, identificado por su metadata).
+  if (isSkillioPasePayment(payment)) {
+    const r = await activatePasePayment(payment);
+    console.log(`[webhook/payment] pase ${paymentId} → ${r.status}`);
+    return;
+  }
+
   if (payment.status !== "approved") return;
 
+  // (c) Sin suscripción y sin marca de Skillio → no es nuestro. Antes un monto
+  // desconocido caía en "pro" y podía regalar acceso si el mail coincidía.
+  if (!payment.preapproval_id) {
+    console.log(`[webhook/payment] ${paymentId} ignorado: no es de Skillio ($${payment.transaction_amount})`);
+    return;
+  }
+
+  // (b) Cobro de suscripción.
   const sb = supabaseAdmin();
   const { user, matchedBy } = await findUser(sb, {
     preapprovalId: payment.preapproval_id,
@@ -401,51 +422,29 @@ async function handlePayment(paymentId: string) {
     payerEmail: payment.payer?.email,
   });
   if (!user) {
-    console.warn(
-      `[webhook/payment] SIN MATCH payment=${paymentId} preapproval=${payment.preapproval_id}`,
-    );
+    console.warn(`[webhook/payment] SIN MATCH payment=${paymentId} preapproval=${payment.preapproval_id}`);
     return;
   }
 
-  // El plan se determina por el plan de la suscripción si el pago la referencia;
-  // si no (regular_payment sin preapproval_id), por el MONTO real del pago. NUNCA
-  // asumir "pro" a ciegas: eso daba PRO ilimitado a quien pagaba semanal.
   const amount = payment.transaction_amount ?? 0;
-  let planType: "pro" | "semanal" | "trimestral";
-  if (payment.preapproval_id) {
-    try {
-      const sub = await mpGetSubscription(payment.preapproval_id);
-      planType = detectPlanType(sub.preapproval_plan_id, sub.auto_recurring?.transaction_amount ?? amount);
-      // Descuento primer-mes: subir el monto tras el 1er cobro.
-      await bumpDiscountedAmountIfNeeded(sub);
-    } catch {
-      planType = planTypeFromAmount(amount, user.plan);
-    }
-  } else {
-    planType = planTypeFromAmount(amount, user.plan);
+  let planType: SubPlan;
+  try {
+    const sub = await mpGetSubscription(payment.preapproval_id);
+    planType = detectPlanType(sub.preapproval_plan_id, amount || sub.auto_recurring?.transaction_amount);
+    await bumpDiscountedAmountIfNeeded(sub);
+  } catch {
+    planType = detectPlanType(undefined, amount);
   }
 
   await activateOrRenewPlan(sb, user, { subscriptionId: payment.preapproval_id, planType });
   console.log(`[webhook/payment] ${user.email} ${planType} $${amount} (matchedBy=${matchedBy})`);
 
-  // Monto real cobrado; si MP no lo trae, caemos al precio de lista del plan.
-  const payAmount = amount > 0 ? amount :
-    planType === "semanal" ? SEMANAL_PRICE_ARS :
-    planType === "trimestral" ? TRIMESTRAL_PRICE_ARS :
-    PRO_PRICE_ARS;
-
-  await recordPayment(sb, {
+  await recordSubscriptionCharge(sb, {
     user,
-    mpId: `pay_${paymentId}`,
-    kind: "payment",
-    amount: payAmount,
-  });
-
-  await sendMetaPurchase({
-    email: user.email,
-    value: payAmount,
-    currency: "ARS",
-    eventId: `purchase_${paymentId}`,
+    mpPaymentId: String(payment.id),
+    subscriptionId: payment.preapproval_id,
+    planType,
+    amount: amount > 0 ? amount : PLANS[planType].amount,
   });
 }
 
@@ -472,7 +471,7 @@ export async function POST(req: NextRequest) {
       await handlePreapproval(dataId);
     } else if (type === "subscription_authorized_payment") {
       await handleAuthorizedPayment(dataId);
-    } else if (type === "payment") {
+    } else if (type === "payment" || type.startsWith("payment.")) {
       await handlePayment(dataId);
     } else {
       console.log(`[webhooks/mercadopago] tipo no manejado: ${type} (id=${dataId})`);

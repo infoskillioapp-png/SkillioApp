@@ -8,6 +8,7 @@ const PLAN_OPTIONS: { value: AdminPlan; label: string }[] = [
   { value: "semanal", label: "Semanal" },
   { value: "pro", label: "Mensual" },
   { value: "trimestral", label: "Trimestral" },
+  { value: "pase", label: "Pase cuatrimestre" },
 ];
 
 export function ActionsPanel({ userId, plan }: { userId: string; plan: AdminPlan }) {

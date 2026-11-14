@@ -26,6 +26,8 @@ export default async function PerfilPage() {
     free: "Plan Gratuito",
     semanal: "Plan Semanal",
     pro: "Plan Mensual PRO",
+    pase: "Pase de cuatrimestre",
+    trimestral: "Plan Trimestral",
     free_trial: "Trial 24hs",
   };
 

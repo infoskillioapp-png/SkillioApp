@@ -15,6 +15,7 @@ export function GiftPopup({
   successText = "¡Listo! Revisá tu correo 📬",
   onClose,
   onSuccess,
+  successAction,
 }: {
   type: GiftType;
   noteId?: string;
@@ -25,6 +26,8 @@ export function GiftPopup({
   successText?: string;
   onClose: () => void;
   onSuccess?: () => void;
+  /** Botón principal tras dejar el mail (ej. ir a pagar con el descuento). */
+  successAction?: { label: string; href: string; onClick?: () => void };
 }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -85,7 +88,14 @@ export function GiftPopup({
                 <div style={{ fontSize: 44 }}>📬</div>
                 <div style={{ fontFamily: "var(--po)", fontWeight: 800, fontSize: 19, color: "var(--ink,#1f2347)", margin: "8px 0 6px" }}>{successText}</div>
                 <div style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.55, marginBottom: 16 }}>Te lo mandamos a <b>{email}</b>. Si no lo ves, revisá spam/promociones.</div>
-                <button onClick={onClose} style={{ width: "100%", padding: 13, border: "none", borderRadius: 14, background: "linear-gradient(135deg,#8b5cf6,#4f7dff)", color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Listo</button>
+                {successAction ? (
+                  <>
+                    <a href={successAction.href} onClick={successAction.onClick} style={{ display: "block", width: "100%", boxSizing: "border-box", padding: 14, borderRadius: 14, background: "linear-gradient(135deg,#8b5cf6,#4f7dff)", color: "#fff", fontFamily: "var(--po)", fontWeight: 800, fontSize: 15.5, textDecoration: "none", boxShadow: "0 8px 22px rgba(99,60,220,.3)" }}>{successAction.label}</a>
+                    <button onClick={onClose} style={{ marginTop: 10, background: "none", border: "none", color: "var(--muted)", fontSize: 13, cursor: "pointer" }}>Ahora no</button>
+                  </>
+                ) : (
+                  <button onClick={onClose} style={{ width: "100%", padding: 13, border: "none", borderRadius: 14, background: "linear-gradient(135deg,#8b5cf6,#4f7dff)", color: "#fff", fontFamily: "var(--po)", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Listo</button>
+                )}
               </div>
             ) : (
               <>

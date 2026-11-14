@@ -6,7 +6,11 @@ import Link from "next/link";
 
 const PAL = ["#7c3aed", "#8b5cf6", "#4f7dff", "#ffc93c", "#34d399", "#f472b6"];
 
-export function GraciasClient() {
+export function GraciasClient({ plan = "pro", expiresAt = null }: { plan?: string; expiresAt?: string | null }) {
+  const isPase = plan === "pase";
+  const hasta = expiresAt
+    ? new Date(expiresAt).toLocaleDateString("es-AR", { day: "numeric", month: "long" })
+    : null;
   const layerRef = useRef<HTMLDivElement>(null);
 
   // Burst de confeti al entrar.
@@ -44,14 +48,16 @@ export function GraciasClient() {
         </div>
 
         <div style={{ display: "inline-block", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", color: "#7c3aed", background: "rgba(124,58,237,.10)", borderRadius: 999, padding: "5px 12px", marginBottom: 12 }}>
-          🎉 SUSCRIPCIÓN ACTIVA
+          {isPase ? "🎓 PASE DE CUATRIMESTRE ACTIVO" : "🎉 SUSCRIPCIÓN ACTIVA"}
         </div>
 
         <h1 style={{ fontFamily: "var(--po)", fontWeight: 800, fontSize: 26, letterSpacing: "-0.02em", color: "var(--ink,#1f2347)", margin: "0 0 8px" }}>
           ¡Ya sos PRO!
         </h1>
         <p style={{ fontSize: 14.5, color: "var(--muted,#5b6178)", lineHeight: 1.55, margin: "0 0 20px" }}>
-          Tu pago se acreditó y desbloqueaste todo Skillio <b>sin límites</b>. Te mandamos un mail con los detalles de tu suscripción.
+          {isPase
+            ? <>Tu pago se acreditó y desbloqueaste todo Skillio <b>sin límites</b>{hasta ? <> hasta el <b>{hasta}</b></> : null}. Es un pago único: no se renueva solo. Te mandamos un mail con los detalles.</>
+            : <>Tu pago se acreditó y desbloqueaste todo Skillio <b>sin límites</b>. Te mandamos un mail con los detalles de tu suscripción.</>}
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, textAlign: "left", background: "#faf9ff", border: "1px solid rgba(139,92,246,.14)", borderRadius: 14, padding: "14px 16px", marginBottom: 20 }}>

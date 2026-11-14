@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendMetaPurchase } from "@/lib/meta-capi";
+import { PRO_PRICE_ARS, SEMANAL_PRICE_ARS, TRIMESTRAL_PRICE_ARS } from "@/lib/pricing";
 import { recordFunnelEventForUser } from "@/lib/api/funnel";
 import { getAdminEmail } from "./auth";
 
@@ -25,7 +26,7 @@ export async function adminGrantCredits(userId: string, amount: number) {
   revalidatePath("/admin/usuarios");
 }
 
-export type AdminPlan = "free" | "pro" | "semanal" | "trimestral";
+export type AdminPlan = "free" | "pro" | "semanal" | "trimestral" | "pase";
 
 /** Cambia el plan de un usuario — útil para cortesías o soporte. */
 export async function adminSetPlan(userId: string, plan: AdminPlan) {
@@ -41,6 +42,9 @@ export async function adminSetPlan(userId: string, plan: AdminPlan) {
   } else if (plan === "trimestral") {
     patch.credits = 500;
     patch.expires_at = new Date(Date.now() + 90 * 86400000).toISOString();
+  } else if (plan === "pase") {
+    patch.credits = 500;
+    patch.expires_at = new Date(Date.now() + 120 * 86400000).toISOString();
   } else {
     // pro (mensual): créditos plenos, sin vencimiento
     patch.credits = 500;
@@ -91,10 +95,10 @@ function planFromPreapprovalPlanId(preapprovalPlanId: string | undefined): {
   amount: number;
 } {
   if (preapprovalPlanId && preapprovalPlanId === process.env.MP_PLAN_ID_SEMANAL)
-    return { key: "semanal", label: "Semanal", amount: 4900 };
+    return { key: "semanal", label: "Semanal", amount: SEMANAL_PRICE_ARS };
   if (preapprovalPlanId && preapprovalPlanId === process.env.MP_PLAN_ID_TRIMESTRAL)
-    return { key: "trimestral", label: "Trimestral", amount: 34900 };
-  return { key: "pro", label: "Mensual", amount: 15900 };
+    return { key: "trimestral", label: "Trimestral", amount: TRIMESTRAL_PRICE_ARS };
+  return { key: "pro", label: "Mensual", amount: PRO_PRICE_ARS };
 }
 
 export type MpLookupResult =

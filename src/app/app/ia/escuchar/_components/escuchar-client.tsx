@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { QuickPaywall } from "@/components/quick-paywall";
+import { SalePopup } from "@/components/sale-popup";
 
 // Pantalla inmersiva "Escuchar resumen" (portada de Claude Design "Reproductor
 // de audio Skillio Booki"). Booki en CSS: antena con glow, ojos que parpadean,
@@ -329,7 +329,7 @@ export function EscucharClient({ noteId, topicLabel, isPro }: { noteId: string; 
         </div>
       </div>
 
-      {showPaywall && <QuickPaywall ctx="escuchar_resumen" onClose={() => setShowPaywall(false)} />}
+      {showPaywall && <SalePopup ctx="audio" onClose={() => setShowPaywall(false)} />}
     </div>
   );
 }

@@ -1,14 +1,16 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { PASE_PRICE_ARS, PRO_PRICE_ARS, SEMANAL_PRICE_ARS, TRIMESTRAL_PRICE_ARS } from "@/lib/pricing";
 
 // ---------------------------------------------------------------------------
 // Precios de los planes (ARS). El MRR se normaliza a equivalente mensual.
 // ---------------------------------------------------------------------------
-export const PLAN_PRICES = { semanal: 4900, pro: 15900, trimestral: 34900 } as const;
+export const PLAN_PRICES = { semanal: SEMANAL_PRICE_ARS, pro: PRO_PRICE_ARS, trimestral: TRIMESTRAL_PRICE_ARS, pase: PASE_PRICE_ARS } as const;
 const MRR_MONTHLY = {
   semanal: PLAN_PRICES.semanal * (52 / 12),
   pro: PLAN_PRICES.pro,
   trimestral: PLAN_PRICES.trimestral / 3,
+  pase: PLAN_PRICES.pase / 4, // pago único de 4 meses, prorrateado
 };
 
 const PRICES: Record<string, { in: number; out: number }> = {
@@ -23,7 +25,7 @@ const PRICES: Record<string, { in: number; out: number }> = {
 };
 const DEFAULT_PRICE = { in: 1.5, out: 9.0 };
 
-type Plan = "free" | "pro" | "semanal" | "trimestral";
+type Plan = "free" | "pro" | "semanal" | "trimestral" | "pase";
 
 export type RangeInput = { fromISO: string; toISO: string };
 
@@ -42,7 +44,7 @@ function daysBetween(fromISO: string, toISO: string): string[] {
   for (let i = 0; i < n; i++) out.push(new Date(start + i * 86400000).toISOString().slice(0, 10));
   return out;
 }
-const isPaid = (p: Plan) => p === "pro" || p === "semanal" || p === "trimestral";
+const isPaid = (p: Plan) => p === "pro" || p === "semanal" || p === "trimestral" || p === "pase";
 
 type UserRow = {
   id: string;
@@ -134,14 +136,15 @@ export async function getDashboard(range: RangeInput) {
   const revenueArs = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
   // ====== ESTADO ACTUAL (global, no depende del rango) ======
-  const planCounts: Record<Plan, number> = { free: 0, pro: 0, semanal: 0, trimestral: 0 };
+  const planCounts: Record<Plan, number> = { free: 0, pro: 0, semanal: 0, trimestral: 0, pase: 0 };
   for (const u of allUsers) planCounts[u.plan] = (planCounts[u.plan] ?? 0) + 1;
-  const paying = planCounts.pro + planCounts.semanal + planCounts.trimestral;
+  const paying = planCounts.pro + planCounts.semanal + planCounts.trimestral + planCounts.pase;
   const payRate = allUsers.length > 0 ? paying / allUsers.length : 0;
   const mrrArs =
     planCounts.pro * MRR_MONTHLY.pro +
     planCounts.semanal * MRR_MONTHLY.semanal +
-    planCounts.trimestral * MRR_MONTHLY.trimestral;
+    planCounts.trimestral * MRR_MONTHLY.trimestral +
+    planCounts.pase * MRR_MONTHLY.pase;
   const totalRevenueAll = allPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
   // ====== FUNNEL — ACTIVIDAD del período ======
@@ -226,6 +229,7 @@ export async function getDashboard(range: RangeInput) {
   const usageByModel = Object.entries(byModel).map(([model, v]) => ({ model, ...v })).sort((a, b) => b.count - a.count);
 
   const planBreakdown = [
+    { plan: "Pase cuatrimestre", count: planCounts.pase },
     { plan: "Mensual PRO", count: planCounts.pro },
     { plan: "Trimestral", count: planCounts.trimestral },
     { plan: "Semanal", count: planCounts.semanal },

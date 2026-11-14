@@ -28,7 +28,7 @@ const google = createGoogleGenerativeAI(); // lee GOOGLE_GENERATIVE_AI_API_KEY
  * hasta que venza, igual que semanal/trimestral. */
 export function isPaidPlan(plan: string, expiresAt: string | null): boolean {
   if (plan === "pro") return !expiresAt || new Date(expiresAt) > new Date();
-  if (plan === "semanal" || plan === "trimestral")
+  if (plan === "semanal" || plan === "trimestral" || plan === "pase")
     return !!expiresAt && new Date(expiresAt) > new Date();
   return false;
 }

@@ -57,7 +57,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       // Si viene con `upgrade` (ej: link de mail "activar mi descuento"), no
       // le pisamos el paywall con el modal de subida.
       autoUpload={(upload === "1" || !actor) && !upgrade}
-      autoUpgrade={["semanal", "mensual", "trimestral"].includes(upgrade ?? "") ? (upgrade as "semanal" | "mensual" | "trimestral") : null}
+      autoUpgrade={["mensual", "pase", "semanal", "trimestral"].includes(upgrade ?? "") ? (upgrade as "mensual" | "pase" | "semanal" | "trimestral") : null}
     />
   );
 }

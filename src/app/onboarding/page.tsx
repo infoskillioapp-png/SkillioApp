@@ -41,7 +41,7 @@ export default async function OnboardingPage({ searchParams }: Props) {
   // (Los mails de bienvenida/nurture del free se rehacen desde cero en el nuevo
   // email marketing — el flujo viejo se retiró.)
 
-  const planParam = sp.plan && ["semanal", "mensual", "trimestral"].includes(sp.plan)
+  const planParam = sp.plan && ["mensual", "pase", "semanal", "trimestral"].includes(sp.plan)
     ? sp.plan
     : null;
 

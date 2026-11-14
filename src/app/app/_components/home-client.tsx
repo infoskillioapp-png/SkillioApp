@@ -115,7 +115,7 @@ type Props = {
   usage?: { daily: UsageBar; weekly: UsageBar } | null;
   isPro?: boolean;
   autoUpload?: boolean;
-  autoUpgrade?: "semanal" | "mensual" | "trimestral" | null;
+  autoUpgrade?: "mensual" | "pase" | "semanal" | "trimestral" | null;
 };
 
 const HOME_TOUR_KEY = "skillio_home_tour_v1";

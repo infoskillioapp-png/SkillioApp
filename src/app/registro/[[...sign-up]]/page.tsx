@@ -9,7 +9,7 @@ interface Props {
 export default async function RegistroPage({ searchParams }: Props) {
   const sp = await searchParams;
   const ref = sp.ref ? `?ref=${sp.ref}` : "";
-  const planParam = sp.plan && ["semanal", "mensual", "trimestral"].includes(sp.plan)
+  const planParam = sp.plan && ["mensual", "pase", "semanal", "trimestral"].includes(sp.plan)
     ? sp.plan
     : null;
 

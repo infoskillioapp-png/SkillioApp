@@ -210,8 +210,6 @@ export function ResumenClient({
     } catch { return new Set<number>(); }
   });
   const [showPaywall, setShowPaywall] = useState(false);
-  const [showDiscount, setShowDiscount] = useState(false);
-  const [discountDone, setDiscountDone] = useState(false);
   const [showPdfGift, setShowPdfGift] = useState(false);
   const showResumenTour = useTourRequired("skillio_resumen_tour_v1");
   // Modo oscuro solo para la lectura del resumen (descansa la vista en sesiones
@@ -236,11 +234,9 @@ export function ResumenClient({
   const active = sections[safeActiveIdx];
   const doneCount = doneSet.size;
 
+  // El regalo 25% OFF al cerrar lo maneja el propio SalePopup (una vez por usuario).
   function closePaywall() {
     setShowPaywall(false);
-    // Lead caliente que cerró el paywall → regalo de descuento (una sola vez):
-    // captura el mail y cierra la venta con un cupón. No aplica a pagos ni demo.
-    if (!isPro && !isDemo && !discountDone) setShowDiscount(true);
   }
 
   function persistDone(newSet: Set<number>) {
@@ -269,36 +265,7 @@ export function ResumenClient({
 
   return (
     <div className={dark ? "resumen-dark" : undefined}>
-      {showPaywall && <SalePopup ctx="resumen" onClose={closePaywall} />}
-      {showDiscount && (
-        <GiftPopup
-          type="discount"
-          eyebrow="🎁 SOLO PARA VOS"
-          title="Te queremos adentro: 25% OFF"
-          subtitle={
-            <>
-              Vimos que lo estás pensando. Te regalamos <b>25% OFF en tu primer mes</b> del plan Mensual PRO.
-              <div style={{ marginTop: 12, textAlign: "left" }}>
-                <div style={{ background: "linear-gradient(135deg,#f3f0ff,#eef2ff)", border: "1.5px solid #c4b5fd", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: "#8b5cf6" }}>⭐ Mensual PRO</div>
-                    <div style={{ fontSize: 11.5, color: "#9a8f80" }}>después $15.900/mes</div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 12.5, color: "#9a8f80", textDecoration: "line-through" }}>$15.900</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: "var(--ink,#1f2347)", lineHeight: 1.1 }}>$11.925</div>
-                    <div style={{ fontSize: 10.5, color: "#8b5cf6", fontWeight: 700 }}>primer mes</div>
-                  </div>
-                </div>
-              </div>
-            </>
-          }
-          ctaText="Enviame el código 25% OFF"
-          successText="¡Tu código va en camino! 🎟️"
-          onClose={() => { setShowDiscount(false); setDiscountDone(true); }}
-          onSuccess={() => setDiscountDone(true)}
-        />
-      )}
+      {showPaywall && <SalePopup ctx="resumen" onClose={closePaywall} allowDiscount={!isDemo} />}
       {showPdfGift && (
         <GiftPopup
           type="resumen_pdf"

@@ -55,17 +55,21 @@ export default function TerminosPage() {
 
       <h2 id="planes">5. Planes, precios y prueba gratuita</h2>
       <ul>
-        <li>Skillio ofrece un plan gratuito y planes pagos (<strong>Básico</strong> y <strong>PRO</strong>) con distintos beneficios y créditos mensuales.</li>
+        <li>Skillio ofrece un uso gratuito limitado y dos formas de acceder a PRO: el <strong>Plan Mensual</strong> (suscripción con débito automático) y el <strong>Pase de cuatrimestre</strong> (pago único que da 120 días de acceso, sin renovación automática).</li>
         <li>Los precios se expresan en pesos argentinos (ARS) e incluyen los impuestos aplicables. Podemos modificar los precios a futuro; los cambios no afectan períodos ya pagados.</li>
-        <li><strong>Prueba gratuita:</strong> al contratar un plan pago accedés a <strong>24 horas de prueba sin cargo</strong>. Si cancelás dentro de ese período, no se realiza ningún cobro.</li>
+        <li><strong>Prueba gratuita:</strong> podés probar Skillio sin cargo y sin tarjeta, con funciones limitadas, antes de contratar.</li>
         <li>Los <strong>créditos</strong> son la unidad que consumen las funciones de IA. Se renuevan según tu plan y no son canjeables por dinero.</li>
       </ul>
 
       <h2 id="pagos">6. Pagos y renovación</h2>
       <p>
-        Los pagos se procesan a través de <strong>Mercado Pago</strong>. Al contratar un plan pago te adherís a
-        un <strong>débito automático mensual</strong>: la suscripción se renueva por períodos mensuales y se
-        cobra automáticamente hasta que la canceles. Nosotros no almacenamos los datos de tu tarjeta.
+        Los pagos se procesan a través de <strong>Mercado Pago</strong>. Nosotros no almacenamos los datos de tu tarjeta.
+      </p>
+      <ul>
+        <li><strong>Plan Mensual:</strong> te adherís a un <strong>débito automático mensual</strong>; la suscripción se renueva por períodos mensuales y se cobra automáticamente hasta que la canceles.</li>
+        <li><strong>Pase de cuatrimestre:</strong> es un <strong>pago único</strong> (en un pago o en cuotas, según el medio de pago). Da acceso a PRO durante 120 días desde la acreditación del pago, <strong>no se renueva automáticamente</strong> y no genera cobros posteriores.</li>
+      </ul>
+      <p>
       </p>
 
       <h2 id="cancelacion">7. Cancelación</h2>
@@ -76,7 +80,7 @@ export default function TerminosPage() {
       <ul>
         <li>No se generan nuevos cobros a partir del siguiente período.</li>
         <li><strong>Conservás el acceso a las funciones del plan hasta que finalice el mes ya abonado.</strong></li>
-        <li>Si cancelás durante las primeras 24 horas de prueba gratuita, no se te cobra nada.</li>
+        <li>El Pase de cuatrimestre no requiere cancelación: al ser un pago único, simplemente vence al terminar sus 120 días.</li>
       </ul>
 
       <h2 id="arrepentimiento">8. Botón de arrepentimiento</h2>

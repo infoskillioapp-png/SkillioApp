@@ -3,27 +3,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
-import { initMercadoPago, CardPayment } from "@mercadopago/sdk-react";
-import { PLANS, PRO_PRICE_ARS, PRO_PRICE_DISCOUNTED, DISCOUNT_CODE, DISCOUNT_PCT, isValidDiscountCode, type PlanKind } from "@/lib/pricing";
+import { initMercadoPago, CardPayment, Payment } from "@mercadopago/sdk-react";
+import { pixel, track, consumeInitiateCheckoutMark } from "@/lib/track-client";
+import {
+  DISCOUNT_CODE, DISCOUNT_PCT, PASE_MAX_INSTALLMENTS, PRO_PRICE_ARS, PASE_PRICE_ARS,
+  cuota, fmtARS, isValidDiscountCode, priceFor, productName, type SellablePlan,
+} from "@/lib/pricing";
 
-const PERIODO: Record<PlanKind, string> = { pro: "/mes", semanal: "/semana", trimestral: "/trimestre" };
-
-// Checkout EMBEBIDO del plan Mensual, en 2 PASOS:
-//   Paso 1 (datos): mail + teléfono (+ código opcional) → se guardan ANTES de
-//     la tarjeta (si abandonan en el paso 2, quedamos con el contacto).
-//   Paso 2 (tarjeta): Card Brick de MP con el mail ya prefilleado. Al pagar,
-//     el server crea la suscripción y activa el plan (anon → auto-login).
+// Checkout EMBEBIDO en 2 PASOS:
+//   Paso 1 (datos): mail + teléfono (+ código opcional) → se guardan ANTES del
+//     pago (si abandonan en el paso 2, quedamos con el contacto).
+//   Paso 2 (pago):
+//     · Mensual → Card Brick (suscripción, solo tarjeta, 1 pago).
+//     · Pase → Payment Brick (pago único): tarjeta en hasta 3 cuotas sin
+//       interés, débito, dinero en cuenta de Mercado Pago y efectivo.
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const fmt = (n: number) => `$${n.toLocaleString("es-AR")}`;
 
 let mpInitDone = false;
-
-function fireStartTrial(value: number) {
-  const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
-  if (!fbq) return;
-  fbq("track", "StartTrial", { value, currency: "ARS", content_name: "Skillio PRO" });
-}
 
 const CUENTA_INFO: { icon: React.ReactNode; title: string; body: string }[] = [
   { icon: <IconMail />, title: "Tu mail crea tu cuenta", body: "Con el mail que dejes armamos tu acceso. Nada de formularios extra." },
@@ -43,29 +40,41 @@ function FormSkeleton() {
   );
 }
 
-export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = "pro" }: { initialEmail?: string; initialPromo?: string; plan?: PlanKind }) {
+type Props = {
+  plan: SellablePlan;
+  initialEmail?: string;
+  promoInput: string;
+  setPromoInput: (v: string) => void;
+};
+
+export function EmbeddedCheckout({ plan, initialEmail = "", promoInput, setPromoInput }: Props) {
   const router = useRouter();
   const { signIn } = useSignIn();
 
-  const spec = PLANS[plan];
-  const canDiscount = plan === "pro"; // el descuento SKILLIO25 es solo para Mensual
-
-  const [step, setStep] = useState<"datos" | "tarjeta">("datos");
+  const [step, setStep] = useState<"datos" | "pago">("datos");
   const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState("");
   const [savingLead, setSavingLead] = useState(false);
 
-  // Código de descuento (25% OFF primer mes, solo pro). `promoApplied` es
-  // DERIVADO del código escrito: apenas es válido se aplica solo, sin depender
-  // de tocar ningún botón (antes un código escrito-pero-no-aplicado cobraba full).
-  const [promoInput, setPromoInput] = useState(initialPromo);
-  const promoApplied = canDiscount && isValidDiscountCode(promoInput);
+  // Código SKILLIO25: vale para los 2 planes. Se aplica solo apenas es válido.
+  const promoApplied = isValidDiscountCode(promoInput);
   const promoTyped = promoInput.trim().length > 0;
-  const amount = promoApplied ? PRO_PRICE_DISCOUNTED : spec.amount;
+  const amount = priceFor(plan, promoApplied);
+  const fullPrice = plan === "pase" ? PASE_PRICE_ARS : PRO_PRICE_ARS;
 
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Pase: preferencia para pagar con dinero en cuenta de MP (opcional: si
+  // falla, el Brick se muestra igual sin esa opción).
+  // Se guarda junto con la clave de lo que la generó: si cambia el código o
+  // los datos, se pide una nueva (y mientras tanto se considera "cargando").
+  const prefKey = `${plan}|${promoApplied}|${email}|${phone}`;
+  const [pref, setPref] = useState<{ key: string; id: string | null } | null>(null);
+  const prefLoaded = pref?.key === prefKey;
+  const preferenceId = prefLoaded ? pref!.id : null;
+  // Pase en efectivo / en revisión: se activa cuando MP lo apruebe.
+  const [pending, setPending] = useState<{ voucherUrl: string | null } | null>(null);
 
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
@@ -74,6 +83,22 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = 
       mpInitDone = true;
     }
   }, []);
+
+  // Al llegar al paso del pago del Pase, pedimos la preferencia (dinero en cuenta).
+  useEffect(() => {
+    if (step !== "pago" || plan !== "pase") return;
+    let cancelled = false;
+    fetch("/api/checkout/pase/preference", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, phone, promo: promoApplied ? DISCOUNT_CODE : undefined }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setPref({ key: prefKey, id: d?.preference_id ?? null }); })
+      // Sin dinero en cuenta: el resto de los medios sigue funcionando.
+      .catch(() => { if (!cancelled) setPref({ key: prefKey, id: null }); });
+    return () => { cancelled = true; };
+  }, [step, plan, promoApplied, email, phone, prefKey]);
 
   // Paso 1 → 2: valida y guarda el contacto (recuperación de abandonos).
   async function continuarAlPago() {
@@ -89,18 +114,38 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = 
       });
     } catch { /* no bloqueamos el pago si esto falla */ }
     setSavingLead(false);
-    setStep("tarjeta");
+    // Meta: inicio de checkout con el plan elegido — solo si el paywall no lo
+    // mandó ya (llegó desde el mail del descuento o un link directo).
+    if (!consumeInitiateCheckoutMark()) {
+      pixel("InitiateCheckout", {
+        value: amount, currency: "ARS",
+        content_name: productName(plan, promoApplied), content_ids: [plan], content_type: "product",
+      });
+    }
+    track("checkout_paso_pago", promoApplied ? `${plan}_skillio25` : plan);
+    setReady(false);
+    setStep("pago");
   }
 
-  // Paso 2: la tarjeta ya está tokenizada. Creamos la sub y resolvemos login.
-  async function handleSubmit(formData: { token?: string; payer?: { email?: string } }) {
+  async function loginWithTicket(token: string | null | undefined): Promise<boolean> {
+    if (!token) return true;
+    if (!signIn) { router.replace("/login"); return false; }
+    const ticketRes = await signIn.ticket({ ticket: token });
+    if (ticketRes.error) { router.replace("/login"); return false; }
+    const finRes = await signIn.finalize();
+    if (finRes.error) { router.replace("/login"); return false; }
+    return true;
+  }
+
+  // ── Mensual: suscripción con tarjeta ──
+  async function handleMensualSubmit(formData: { token?: string; payer?: { email?: string } }) {
     setError(null);
     setProcessing(true);
     try {
       const res = await fetch("/api/subscription/create-embedded", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card_token: formData.token, email: email || formData.payer?.email, phone, plan, promo: promoApplied ? DISCOUNT_CODE : undefined }),
+        body: JSON.stringify({ card_token: formData.token, email: email || formData.payer?.email, phone, plan: "pro", promo: promoApplied ? DISCOUNT_CODE : undefined }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -110,23 +155,91 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = 
         return;
       }
       if (!res.ok) { setError("No pudimos procesar el pago. Probá de nuevo en un momento."); setProcessing(false); return; }
-
       if (data.pending) { router.replace("/pago-exitoso"); return; }
 
-      fireStartTrial(amount);
-
-      if (data.token) {
-        if (!signIn) { router.replace("/login"); return; }
-        const ticketRes = await signIn.ticket({ ticket: data.token });
-        if (ticketRes.error) { router.replace("/login"); return; }
-        const finRes = await signIn.finalize();
-        if (finRes.error) { router.replace("/login"); return; }
-      }
-      router.replace("/gracias");
+      // Activación de la suscripción (la plata entra cuando MP cobra: ahí sale
+      // el Purchase por CAPI desde el webhook).
+      pixel("StartTrial", { value: amount, currency: "ARS", content_name: productName("pro", promoApplied) });
+      if (!(await loginWithTicket(data.token))) return;
+      router.replace("/gracias?plan=pro");
     } catch {
       setError("Algo salió mal. Si el cobro se hizo, tu cuenta se activará sola.");
       setProcessing(false);
     }
+  }
+
+  // ── Pase: pago único (tarjeta / débito / efectivo; dinero en cuenta redirige a MP) ──
+  async function handlePaseSubmit(param: { selectedPaymentMethod?: string; formData?: unknown }) {
+    // Dinero en cuenta: el Brick lleva al usuario a Mercado Pago y vuelve a /pago-pase.
+    if (param.selectedPaymentMethod === "wallet_purchase" || !param.formData) return;
+    setError(null);
+    setProcessing(true);
+    try {
+      const res = await fetch("/api/checkout/pase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formData: param.formData, email, phone, promo: promoApplied ? DISCOUNT_CODE : undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.message ?? (data?.error === "already_subscribed"
+          ? "Ya tenés un plan activo. Entrá a la app para seguir estudiando."
+          : "No pudimos procesar el pago. Probá de nuevo o con otro medio."));
+        setProcessing(false);
+        return;
+      }
+      if (data.status === "pending") {
+        setPending({ voucherUrl: data.voucher_url ?? null });
+        setProcessing(false);
+        return;
+      }
+      // Aprobado: Purchase del navegador con el MISMO id que el del servidor.
+      pixel("Purchase", {
+        value: data.value ?? amount, currency: "ARS",
+        content_name: productName("pase", !!data.promo), content_ids: ["pase"], content_type: "product",
+      }, `purchase_${data.payment_id}`);
+      if (!(await loginWithTicket(data.token))) return;
+      router.replace("/gracias?plan=pase");
+    } catch {
+      setError("Algo salió mal. Si el cobro se hizo, tu cuenta se activará sola y te llega un mail.");
+      setProcessing(false);
+    }
+  }
+
+  const priceBlock = (
+    <div className="ck-price">
+      {promoApplied ? (
+        <>
+          <span className="ck-price-now"><s className="ck-price-old">{fmtARS(fullPrice)}</s> <b>{fmtARS(amount)}</b>{plan === "pro" ? " el primer mes" : ""}</span>
+          <span className="ck-price-then">{plan === "pro" ? `luego ${fmtARS(PRO_PRICE_ARS)}/mes` : `o ${PASE_MAX_INSTALLMENTS} cuotas sin interés de ${fmtARS(cuota(amount))}`}</span>
+        </>
+      ) : plan === "pase" ? (
+        <>
+          <span className="ck-price-now"><b>{fmtARS(amount)}</b> pago único</span>
+          <span className="ck-price-then">o {PASE_MAX_INSTALLMENTS} cuotas sin interés de {fmtARS(cuota(amount))}</span>
+        </>
+      ) : (
+        <span className="ck-price-now"><b>{fmtARS(amount)}</b>/mes</span>
+      )}
+    </div>
+  );
+
+  if (pending) {
+    return (
+      <div className="ck-pending">
+        <style>{CK_CSS}</style>
+        <div style={{ fontSize: 38 }}>🧾</div>
+        <h3>¡Ya casi!</h3>
+        {pending.voucherUrl ? (
+          <>
+            <p>Pagá el cupón en <b>Rapipago o Pago Fácil</b>. Apenas se acredite, tu Pase se activa solo y te llega un mail a <b>{email}</b>.</p>
+            <a className="ck-cta" href={pending.voucherUrl} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>Ver mi cupón de pago →</a>
+          </>
+        ) : (
+          <p>Mercado Pago está revisando tu pago. Te avisamos por mail a <b>{email}</b> apenas se apruebe (suele tardar unos minutos).</p>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -139,8 +252,8 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = 
         <div className="ck-datos">
           {promoApplied && (
             <div className="ck-pb">
-              <div className="ck-pb-top">🎟️ Tenés {DISCOUNT_PCT}% OFF en tu primer mes</div>
-              <div className="ck-pb-price"><s>{fmt(PRO_PRICE_ARS)}</s> <b>{fmt(PRO_PRICE_DISCOUNTED)}</b> primer mes · luego {fmt(PRO_PRICE_ARS)}/mes</div>
+              <div className="ck-pb-top">🎟️ Tenés {DISCOUNT_PCT}% OFF con {DISCOUNT_CODE}</div>
+              <div className="ck-pb-price"><s>{fmtARS(fullPrice)}</s> <b>{fmtARS(amount)}</b>{plan === "pro" ? ` primer mes · luego ${fmtARS(PRO_PRICE_ARS)}/mes` : " · pago único"}</div>
               <div className="ck-pb-cta">Completá tus datos y el descuento se aplica automáticamente.</div>
             </div>
           )}
@@ -183,10 +296,10 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = 
             <button onClick={() => { setStep("datos"); setReady(false); }} className="ck-change">Cambiar</button>
           </div>
 
-          {/* Código de descuento (solo Mensual) — se aplica solo al ser válido */}
-          {canDiscount && (promoApplied ? (
+          {/* Código de descuento — se aplica solo al ser válido */}
+          {promoApplied ? (
             <div className="ck-promo-ok">
-              <span>🎟️ Código <b>{DISCOUNT_CODE}</b> aplicado — {DISCOUNT_PCT}% OFF el primer mes</span>
+              <span>🎟️ Código <b>{DISCOUNT_CODE}</b> aplicado — {DISCOUNT_PCT}% OFF{plan === "pro" ? " el primer mes" : ""}</span>
               <button onClick={() => setPromoInput("")} className="ck-promo-remove">Quitar</button>
             </div>
           ) : (
@@ -195,40 +308,56 @@ export function EmbeddedCheckout({ initialEmail = "", initialPromo = "", plan = 
               placeholder="¿Tenés un código de descuento?" value={promoInput}
               onChange={(e) => setPromoInput(e.target.value)}
             />
-          ))}
-          {canDiscount && promoTyped && !promoApplied && <div className="ck-promo-err">Ese código no es válido.</div>}
+          )}
+          {promoTyped && !promoApplied && <div className="ck-promo-err">Ese código no es válido.</div>}
 
-          <div className="ck-price">
-            {promoApplied ? (
-              <>
-                <span className="ck-price-now">Primer mes: <b>{fmt(PRO_PRICE_DISCOUNTED)}</b></span>
-                <span className="ck-price-then">luego {fmt(PRO_PRICE_ARS)}/mes</span>
-              </>
-            ) : (
-              <span className="ck-price-now"><b>{fmt(spec.amount)}</b>{PERIODO[plan]}</span>
-            )}
-          </div>
+          {priceBlock}
 
           <div style={{ position: "relative", minHeight: ready ? undefined : 320 }}>
             {!ready && <div style={{ position: "absolute", inset: 0, zIndex: 2 }}><FormSkeleton /></div>}
             <div style={{ opacity: processing ? 0.5 : 1, pointerEvents: processing ? "none" : "auto", transition: "opacity .2s" }}>
-              <CardPayment
-                key={amount}
-                initialization={{ amount, payer: { email } }}
-                customization={{
-                  paymentMethods: { maxInstallments: 1 },
-                  visual: {
-                    hideFormTitle: true,
-                    style: {
-                      theme: "default",
-                      customVariables: { baseColor: "#7c3aed", borderRadiusMedium: "12px", borderRadiusLarge: "14px", fontSizeMedium: "15px" },
+              {plan === "pro" ? (
+                <CardPayment
+                  key={`pro-${amount}`}
+                  initialization={{ amount, payer: { email } }}
+                  customization={{
+                    paymentMethods: { maxInstallments: 1 },
+                    visual: {
+                      hideFormTitle: true,
+                      style: {
+                        theme: "default",
+                        customVariables: { baseColor: "#7c3aed", borderRadiusMedium: "12px", borderRadiusLarge: "14px", fontSizeMedium: "15px" },
+                      },
                     },
-                  },
-                }}
-                onReady={() => setReady(true)}
-                onSubmit={handleSubmit}
-                onError={() => setError("Revisá los datos de la tarjeta e intentá de nuevo.")}
-              />
+                  }}
+                  onReady={() => setReady(true)}
+                  onSubmit={handleMensualSubmit}
+                  onError={() => setError("Revisá los datos de la tarjeta e intentá de nuevo.")}
+                />
+              ) : prefLoaded ? (
+                <Payment
+                  key={`pase-${amount}-${preferenceId ?? "nopref"}`}
+                  initialization={{ amount, payer: { email }, ...(preferenceId ? { preferenceId } : {}) }}
+                  customization={{
+                    paymentMethods: {
+                      creditCard: "all",
+                      debitCard: "all",
+                      ticket: "all",
+                      ...(preferenceId ? { mercadoPago: "all" as const } : {}),
+                      maxInstallments: PASE_MAX_INSTALLMENTS,
+                    },
+                    visual: {
+                      style: {
+                        theme: "default",
+                        customVariables: { baseColor: "#7c3aed", borderRadiusMedium: "12px", borderRadiusLarge: "14px", fontSizeMedium: "15px" },
+                      },
+                    },
+                  }}
+                  onReady={() => setReady(true)}
+                  onSubmit={handlePaseSubmit as never}
+                  onError={() => setError("Revisá los datos del pago e intentá de nuevo.")}
+                />
+              ) : null}
             </div>
           </div>
 
@@ -261,22 +390,23 @@ const CK_CSS = `
 .ck-pb-price s{color:var(--muted)}
 .ck-pb-price b{font-family:var(--po);font-weight:800;font-size:16px}
 .ck-pb-cta{font-weight:800;font-size:12.5px;color:#1f2347;margin-top:7px}
-.ck-promo-row{display:flex;gap:8px;margin-bottom:6px}
-.ck-promo-apply{flex:none;padding:0 16px;border:1.5px solid #8b5cf6;border-radius:12px;background:#fff;color:#7c3aed;font-weight:700;font-size:13.5px;cursor:pointer;transition:.15s}
-.ck-promo-apply:hover{background:#f4f2ff}
 .ck-promo-ok{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(52,199,120,.10);border:1px solid rgba(52,199,120,.28);border-radius:12px;padding:10px 13px;font-size:12.5px;color:#2f7a4f;margin-bottom:6px}
 .ck-promo-remove{background:none;border:none;color:#2f7a4f;font-weight:700;font-size:12px;cursor:pointer;text-decoration:underline;white-space:nowrap}
 .ck-promo-err{font-size:12px;color:#d63a52;font-weight:600;margin-bottom:6px}
 .ck-price{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:6px 0 16px;font-size:14px;color:var(--ink)}
 .ck-price-now b{font-family:var(--po);font-weight:800;font-size:18px}
+.ck-price-old{color:var(--muted);font-size:13px}
 .ck-price-then{font-size:12.5px;color:var(--muted)}
-.ck-cta{width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#8b5cf6,#4f7dff);color:#fff;font-family:var(--po);font-weight:700;font-size:15.5px;cursor:pointer;box-shadow:0 10px 24px rgba(124,58,237,.30);transition:transform .12s,box-shadow .12s}
+.ck-cta{width:100%;box-sizing:border-box;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#8b5cf6,#4f7dff);color:#fff;font-family:var(--po);font-weight:700;font-size:15.5px;cursor:pointer;box-shadow:0 10px 24px rgba(124,58,237,.30);transition:transform .12s,box-shadow .12s}
 .ck-cta:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 30px rgba(124,58,237,.42)}
 .ck-cta:disabled{opacity:.7;cursor:default}
 .ck-payas{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f4f2ff;border:1px solid rgba(139,92,246,.18);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:var(--muted)}
-.ck-payas b{color:var(--ink);font-weight:700}
+.ck-payas b{color:var(--ink);font-weight:700;word-break:break-all}
 .ck-change{background:none;border:none;color:#7c3aed;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;text-decoration:underline}
 .ck-processing{text-align:center;padding:12px 0 2px;color:#7c3aed;font-size:13px;font-weight:700}
+.ck-pending{text-align:center;padding:10px 4px}
+.ck-pending h3{font-family:var(--po);font-weight:800;font-size:20px;color:var(--ink);margin:6px 0 8px}
+.ck-pending p{font-size:14px;color:var(--muted);line-height:1.55;margin:0 0 16px}
 .ck-skel{display:flex;flex-direction:column;gap:14px;padding:4px 0}
 .ck-skel-row{display:flex;gap:12px}
 .ck-skel-box,.ck-skel-btn{border-radius:10px;background:linear-gradient(100deg,#eef0f6 30%,#f7f8fc 50%,#eef0f6 70%);background-size:220% 100%;animation:ckShim 1.25s linear infinite;height:46px}

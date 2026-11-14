@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { QuickPaywall } from "@/components/quick-paywall";
+import { SalePopup } from "@/components/sale-popup";
 import { GiftPopup } from "@/components/gift-popup";
 import { OnboardingTour, useTourRequired, TourIconBook, TourIconSparkles } from "../../_components/onboarding-tour";
 
@@ -446,11 +446,9 @@ export function EspacioClient({ note, generating, fileName, isPro = false, giftB
     setIsGenerating(false);
     router.replace(`/app/ia?note_id=${note.id}`);
     router.refresh();
-    // Free + apunte propio (no demo): al terminar de generar mostramos el paywall
-    // una sola vez — es el momento de máxima atención (quieren ver el resultado).
-    // No bloquea: se cierra con "Seguir viendo gratis".
-    if (!isPro && !note.id.startsWith("demo-")) setShowPaywall(true);
-  }, [note.id, router, isPro]);
+    // (Ya NO mostramos precio al terminar de generar: el lead todavía no está
+    // listo. El paywall aparece cuando pide algo pago.)
+  }, [note.id, router]);
 
   // 402 free_limit_reached (free intentó un apunte nuevo estando bloqueado).
   // Antes del paywall le ofrecemos el REGALO #3: +1 generación por su mail.
@@ -532,7 +530,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false, giftB
         <GeneratingOverlay noteId={note.id} fileName={fileName} kinds={genKinds} onDone={handleDone} onPaywall={handlePaywall} onUsageLimit={handleUsageLimit} onError={handleGenError} />
       )}
 
-      {showPaywall && <QuickPaywall ctx="generic" onClose={() => setShowPaywall(false)} />}
+      {showPaywall && <SalePopup ctx="limite" onClose={() => setShowPaywall(false)} />}
 
       {showGiftBonus && (
         <GiftPopup

@@ -175,7 +175,7 @@ export function Strip({ items }: { items: { value: string; label: string }[] }) 
 }
 
 export function PlanBadge({ plan }: { plan: string }) {
-  const cls = plan === "pro" ? "pro" : plan === "trimestral" ? "trimestral" : plan === "semanal" ? "semanal" : "free";
+  const cls = plan === "pro" ? "pro" : plan === "trimestral" || plan === "pase" ? "trimestral" : plan === "semanal" ? "semanal" : "free";
   const label = plan === "pro" ? "MENSUAL" : plan.toUpperCase();
   return <span className={`badge badge--${cls}`}>{label}</span>;
 }

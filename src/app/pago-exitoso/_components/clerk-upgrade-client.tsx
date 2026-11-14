@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SkillioMark } from "@/app/_components/landing/landing-top";
+import { PLANS, isPlanKind } from "@/lib/pricing";
 
 const MAX_ATTEMPTS = 15; // 15 × 2s = 30s máximo de polling
 const POLL_INTERVAL = 2000;
@@ -47,7 +48,7 @@ export function ClerkUpgradeClient({ preapprovalId }: { preapprovalId: string | 
     function fireStartTrial(plan: string, preapproval: string | null) {
       const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
       if (!fbq) return;
-      const value = plan === "semanal" ? 4900 : plan === "trimestral" ? 34900 : 15900;
+      const value = isPlanKind(plan) ? PLANS[plan].amount : PLANS.pro.amount;
       fbq(
         "track",
         "StartTrial",

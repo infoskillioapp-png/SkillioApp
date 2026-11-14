@@ -1,4 +1,5 @@
 import "server-only";
+import type { PlanKind } from "@/lib/pricing";
 
 const MP_BASE = "https://api.mercadopago.com";
 
@@ -48,7 +49,7 @@ export interface MpSubscription {
 // real (MP no siempre devuelve next_payment_date en una suscripción cancelada).
 export function periodEndFromLastCharge(
   sub: MpSubscription,
-  planType: "pro" | "semanal" | "trimestral",
+  planType: PlanKind,
 ): string | null {
   const lastCharged = sub.summarized?.last_charged_date;
   if (!lastCharged) return null;
@@ -139,8 +140,8 @@ export function mpCreateSubscriptionWithToken(data: {
 }
 
 // Sube (o cambia) el importe de una suscripción ya autorizada. Se usa en la
-// primera renovación del descuento de primer mes: la sub nace a $11.925 y acá
-// se lleva a $15.900 para los cobros siguientes.
+// primera renovación del descuento de primer mes: la sub nace a $22.490 y acá
+// se lleva a $29.990 para los cobros siguientes.
 export function mpUpdateSubscriptionAmount(id: string, amount: number): Promise<MpSubscription> {
   return mpFetch<MpSubscription>(`/preapproval/${id}`, {
     method: "PUT",
@@ -172,11 +173,19 @@ export function mpCancelSubscription(id: string): Promise<MpSubscription> {
 
 export interface MpPayment {
   id: number;
-  status: string;
+  status: string; // approved | pending | in_process | rejected | cancelled | refunded ...
+  status_detail?: string | null;
   preapproval_id: string | null;
   external_reference: string | null;
   payer: { email: string };
   transaction_amount: number | null;
+  installments?: number | null;
+  payment_method_id?: string | null;
+  payment_type_id?: string | null;
+  date_approved?: string | null;
+  // MP devuelve las claves de metadata en snake_case.
+  metadata?: Record<string, unknown> | null;
+  transaction_details?: { external_resource_url?: string | null } | null;
 }
 
 export function mpGetPayment(id: string): Promise<MpPayment> {
@@ -195,4 +204,92 @@ export interface MpAuthorizedPayment {
 
 export function mpGetAuthorizedPayment(id: string): Promise<MpAuthorizedPayment> {
   return mpFetch<MpAuthorizedPayment>(`/authorized_payments/${id}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGO ÚNICO (Pase de cuatrimestre)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Metadata que viaja con cada pago único de Skillio. Es lo que el webhook usa
+ * para reconocer que el pago es NUESTRO (la cuenta de MP la comparte otro
+ * negocio) y a quién activarle el plan. */
+export type SkillioPaymentMeta = {
+  skillio_plan: "pase";
+  promo: string | null;
+  email: string;
+  clerk_user_id: string | null;
+  anon_row_id: string | null;
+  anon_session: string | null;
+  phone: string | null;
+  fbp: string | null;
+  fbc: string | null;
+  client_ip: string | null;
+  user_agent: string | null;
+};
+
+export const PASE_DESCRIPTION = "Skillio - Pase de cuatrimestre";
+const STATEMENT_DESCRIPTOR = "SKILLIO";
+
+/** Cobro con tarjeta tokenizada (crédito en cuotas / débito) o efectivo
+ * (Rapipago / Pago Fácil). Responde al toque: approved / rejected / pending. */
+export function mpCreatePayment(data: {
+  idempotencyKey: string;
+  amount: number;
+  paymentMethodId: string;
+  token?: string | null;
+  installments?: number | null;
+  issuerId?: string | number | null;
+  payer: { email: string; first_name?: string; last_name?: string; identification?: { type?: string; number?: string } };
+  externalReference: string;
+  metadata: SkillioPaymentMeta;
+  notificationUrl: string;
+}): Promise<MpPayment> {
+  const body: Record<string, unknown> = {
+    transaction_amount: data.amount,
+    description: PASE_DESCRIPTION,
+    payment_method_id: data.paymentMethodId,
+    payer: data.payer,
+    external_reference: data.externalReference,
+    metadata: data.metadata,
+    notification_url: data.notificationUrl,
+    statement_descriptor: STATEMENT_DESCRIPTOR,
+    additional_info: {
+      items: [{ id: "pase-cuatrimestre", title: PASE_DESCRIPTION, quantity: 1, unit_price: data.amount, category_id: "services" }],
+    },
+  };
+  if (data.token) body.token = data.token;
+  if (data.installments) body.installments = data.installments;
+  if (data.issuerId) body.issuer_id = String(data.issuerId);
+  return mpFetch<MpPayment>("/v1/payments", {
+    method: "POST",
+    headers: { "X-Idempotency-Key": data.idempotencyKey },
+    body: JSON.stringify(body),
+  });
+}
+
+/** Preferencia para pagar con la PLATA de la cuenta de Mercado Pago (o cuotas
+ * sin tarjeta). El Brick lleva al usuario a MP y vuelve a back_urls.success. */
+export function mpCreatePreference(data: {
+  amount: number;
+  payerEmail: string;
+  externalReference: string;
+  metadata: SkillioPaymentMeta;
+  notificationUrl: string;
+  successUrl: string;
+  failureUrl: string;
+}): Promise<{ id: string }> {
+  return mpFetch<{ id: string }>("/checkout/preferences", {
+    method: "POST",
+    body: JSON.stringify({
+      items: [{ id: "pase-cuatrimestre", title: PASE_DESCRIPTION, quantity: 1, unit_price: data.amount, currency_id: "ARS" }],
+      payer: { email: data.payerEmail },
+      external_reference: data.externalReference,
+      metadata: data.metadata,
+      notification_url: data.notificationUrl,
+      statement_descriptor: STATEMENT_DESCRIPTOR,
+      back_urls: { success: data.successUrl, pending: data.successUrl, failure: data.failureUrl },
+      auto_return: "approved",
+      payment_methods: { installments: 3 },
+    }),
+  });
 }

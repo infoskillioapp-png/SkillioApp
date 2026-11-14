@@ -18,6 +18,9 @@ export async function POST() {
 
   if (ue || !u) return NextResponse.json({ error: "user not found" }, { status: 404 });
 
+  // El Pase es pago único: no hay suscripción que cancelar.
+  if (u.plan === "pase") return NextResponse.json({ error: "nothing_to_cancel" }, { status: 400 });
+
   const planType = u.plan === "semanal" || u.plan === "trimestral" ? u.plan : "pro";
 
   // No corta el acceso en el momento: cancela el DÉBITO futuro en MercadoPago,

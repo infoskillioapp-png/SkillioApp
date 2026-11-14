@@ -28,11 +28,30 @@ export function track(
 // Dispara un evento estándar del Pixel de Meta (si está cargado). Para que
 // Facebook lea el comportamiento de compra con claridad (ViewContent,
 // InitiateCheckout, etc.) además del CAPI server-side.
-export function pixel(event: string, params?: Record<string, unknown>): void {
+// eventId: mismo id que el evento server-side (CAPI) para que Meta no lo cuente doble.
+export function pixel(event: string, params?: Record<string, unknown>, eventId?: string): void {
   try {
     const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
-    if (typeof fbq === "function") fbq("track", event, params ?? {});
+    if (typeof fbq === "function") {
+      if (eventId) fbq("track", event, params ?? {}, { eventID: eventId });
+      else fbq("track", event, params ?? {});
+    }
   } catch {
     /* noop */
   }
+}
+
+// InitiateCheckout se manda UNA vez por intento de compra: el paywall lo marca
+// al tocar "Continuar"; el checkout solo lo manda si no vino marcado (ej. llegó
+// desde el mail del descuento o un link directo).
+const IC_KEY = "skillio_ic_sent";
+export function markInitiateCheckout(): void {
+  try { sessionStorage.setItem(IC_KEY, String(Date.now())); } catch { /* noop */ }
+}
+export function consumeInitiateCheckoutMark(): boolean {
+  try {
+    const v = sessionStorage.getItem(IC_KEY);
+    sessionStorage.removeItem(IC_KEY);
+    return !!v && Date.now() - Number(v) < 30 * 60 * 1000;
+  } catch { return false; }
 }
