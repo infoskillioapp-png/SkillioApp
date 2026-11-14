@@ -141,7 +141,7 @@ export function PagarEmbeddedClient({ initialEmail = "", initialPromo = "", plan
 
         <p className="pagar-fine">
           {plan === "pase"
-            ? `Pago único: te da ${PASE_DAYS} días de acceso y no se renueva solo. Pagás con tarjeta, débito, dinero en Mercado Pago o efectivo. `
+            ? `Pago único: te da ${PASE_DAYS} días de acceso y no se renueva solo. Pagás con tarjeta, débito o dinero en Mercado Pago. `
             : "Se renueva automáticamente cada mes. Podés cancelar en un clic desde tu perfil. "}
           Al continuar aceptás los <a href="/terminos">términos y condiciones</a>.
         </p>

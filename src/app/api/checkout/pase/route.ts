@@ -28,7 +28,7 @@ function friendlyReject(detail: string | null | undefined): string {
 }
 
 // Pase de cuatrimestre — PAGO ÚNICO (no suscripción). El Payment Brick tokeniza
-// la tarjeta (o arma el pedido de efectivo) en el navegador; acá cobramos con
+// la tarjeta en el navegador; acá cobramos con
 // /v1/payments. La tarjeta NUNCA toca nuestro server. Respuesta inmediata.
 export async function POST(req: Request) {
   try {
@@ -62,6 +62,9 @@ export async function POST(req: Request) {
 
     const formPayer = (form.payer ?? {}) as Record<string, unknown>;
     const token = typeof form.token === "string" ? form.token : null;
+    // Solo tarjeta (crédito/débito) por esta vía: sin token = efectivo u otro
+    // medio que no aceptamos. Dinero en cuenta va por la preferencia.
+    if (!token) return NextResponse.json({ error: "payment_method_not_allowed", message: "Ese medio de pago no está disponible. Pagá con tarjeta o con dinero en Mercado Pago." }, { status: 400 });
     const installments = Math.min(PASE_MAX_INSTALLMENTS, Math.max(1, Number(form.installments) || 1));
 
     let payment;
@@ -106,7 +109,7 @@ export async function POST(req: Request) {
       result = await activatePasePayment(payment);
     }
 
-    // Efectivo (Rapipago/Pago Fácil) o tarjeta en revisión: se activa solo
+    // Tarjeta en revisión de MP: se activa sola
     // cuando MP lo apruebe (lo hace el webhook).
     if (result.status === "pending") {
       return NextResponse.json({ ok: true, status: "pending", voucher_url: result.voucherUrl ?? null, payment_id: payment.id });

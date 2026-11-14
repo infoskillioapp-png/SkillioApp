@@ -230,8 +230,8 @@ export type SkillioPaymentMeta = {
 export const PASE_DESCRIPTION = "Skillio - Pase de cuatrimestre";
 const STATEMENT_DESCRIPTOR = "SKILLIO";
 
-/** Cobro con tarjeta tokenizada (crédito en cuotas / débito) o efectivo
- * (Rapipago / Pago Fácil). Responde al toque: approved / rejected / pending. */
+/** Cobro con tarjeta tokenizada (crédito en cuotas / débito). Responde al
+ * toque: approved / rejected / in_process. (Efectivo NO se acepta.) */
 export function mpCreatePayment(data: {
   idempotencyKey: string;
   amount: number;
@@ -289,7 +289,8 @@ export function mpCreatePreference(data: {
       statement_descriptor: STATEMENT_DESCRIPTOR,
       back_urls: { success: data.successUrl, pending: data.successUrl, failure: data.failureUrl },
       auto_return: "approved",
-      payment_methods: { installments: 3 },
+      // Sin efectivo (Rapipago/Pago Fácil) ni cajeros: decisión de negocio.
+      payment_methods: { installments: 3, excluded_payment_types: [{ id: "ticket" }, { id: "atm" }] },
     }),
   });
 }

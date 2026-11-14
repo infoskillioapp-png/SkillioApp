@@ -16,7 +16,7 @@ import {
 //   Paso 2 (pago):
 //     · Mensual → Card Brick (suscripción, solo tarjeta, 1 pago).
 //     · Pase → Payment Brick (pago único): tarjeta en hasta 3 cuotas sin
-//       interés, débito, dinero en cuenta de Mercado Pago y efectivo.
+//       interés, débito y dinero en cuenta de Mercado Pago (sin efectivo).
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -73,7 +73,7 @@ export function EmbeddedCheckout({ plan, initialEmail = "", promoInput, setPromo
   const [pref, setPref] = useState<{ key: string; id: string | null } | null>(null);
   const prefLoaded = pref?.key === prefKey;
   const preferenceId = prefLoaded ? pref!.id : null;
-  // Pase en efectivo / en revisión: se activa cuando MP lo apruebe.
+  // Pago en revisión de MP: se activa cuando lo apruebe (webhook).
   const [pending, setPending] = useState<{ voucherUrl: string | null } | null>(null);
 
   useEffect(() => {
@@ -168,7 +168,7 @@ export function EmbeddedCheckout({ plan, initialEmail = "", promoInput, setPromo
     }
   }
 
-  // ── Pase: pago único (tarjeta / débito / efectivo; dinero en cuenta redirige a MP) ──
+  // ── Pase: pago único (tarjeta / débito; dinero en cuenta redirige a MP) ──
   async function handlePaseSubmit(param: { selectedPaymentMethod?: string; formData?: unknown }) {
     // Dinero en cuenta: el Brick lleva al usuario a Mercado Pago y vuelve a /pago-pase.
     if (param.selectedPaymentMethod === "wallet_purchase" || !param.formData) return;
@@ -232,7 +232,7 @@ export function EmbeddedCheckout({ plan, initialEmail = "", promoInput, setPromo
         <h3>¡Ya casi!</h3>
         {pending.voucherUrl ? (
           <>
-            <p>Pagá el cupón en <b>Rapipago o Pago Fácil</b>. Apenas se acredite, tu Pase se activa solo y te llega un mail a <b>{email}</b>.</p>
+            <p>Completá el pago desde este link. Apenas se acredite, tu Pase se activa solo y te llega un mail a <b>{email}</b>.</p>
             <a className="ck-cta" href={pending.voucherUrl} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>Ver mi cupón de pago →</a>
           </>
         ) : (
@@ -342,7 +342,6 @@ export function EmbeddedCheckout({ plan, initialEmail = "", promoInput, setPromo
                     paymentMethods: {
                       creditCard: "all",
                       debitCard: "all",
-                      ticket: "all",
                       ...(preferenceId ? { mercadoPago: "all" as const } : {}),
                       maxInstallments: PASE_MAX_INSTALLMENTS,
                     },

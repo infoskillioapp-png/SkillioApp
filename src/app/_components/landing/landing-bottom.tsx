@@ -597,7 +597,7 @@ export function Pricing({ onCTA }: { onCTA: (plan: string) => void }) {
           </button>
 
           <p style={{ textAlign: "center", fontSize: 12.5, color: "rgba(255,255,255,0.48)", margin: "12px 0 0" }}>
-            {cycle === "pase" ? "Pago seguro. Tarjeta, debito, dinero en Mercado Pago o efectivo." : "Pago seguro. Cancelas en cualquier momento."}
+            {cycle === "pase" ? "Pago seguro. Tarjeta, debito o dinero en Mercado Pago." : "Pago seguro. Cancelas en cualquier momento."}
           </p>
 
           {/* Divisor */}
@@ -647,7 +647,7 @@ export function FAQ() {
     { q: "¿Puedo subir cualquier formato?", a: "Sí: PDFs, fotos de pizarrón o apuntes, fotos de hojas escritas a mano. Si lo podés leer vos, lo puede leer Skillio." },
     { q: "¿Qué es el Pase de cuatrimestre?", a: `Es PRO completo por ${PASE_DAYS} días (todo el cuatrimestre, finales incluidos) con un solo pago de ${fmtARS(PASE_PRICE_ARS)}, o en ${PASE_MAX_INSTALLMENTS} cuotas sin interés de ${fmtARS(cuota(PASE_PRICE_ARS))}. Te sale ${fmtARS(PASE_SAVING_ARS)} menos que 4 meses de Mensual.` },
     { q: "¿El Pase se renueva solo?", a: "No. Es un pago único: no hay débito automático y no te cobramos nada más. Cuando se termina, si querés, lo comprás de nuevo." },
-    { q: "¿Cómo pago?", a: `Con Mercado Pago. El Pase lo pagás con tarjeta de crédito (hasta ${PASE_MAX_INSTALLMENTS} cuotas sin interés), débito, dinero en tu cuenta de Mercado Pago o efectivo. El Mensual (${fmtARS(PRO_PRICE_ARS)}/mes) es con tarjeta y débito automático: lo cancelás cuando quieras en 2 clicks.` },
+    { q: "¿Cómo pago?", a: `Con Mercado Pago. El Pase lo pagás con tarjeta de crédito (hasta ${PASE_MAX_INSTALLMENTS} cuotas sin interés), débito o dinero en tu cuenta de Mercado Pago. El Mensual (${fmtARS(PRO_PRICE_ARS)}/mes) es con tarjeta y débito automático: lo cancelás cuando quieras en 2 clicks.` },
     { q: "¿Sirve para mi carrera?", a: "Sí. Funciona para Medicina, Ingenierías, Derecho, Económicas, Psicología, profesorados, secundario. Cualquier materia que tenga texto." },
   ];
   return (
