@@ -756,7 +756,9 @@ export function EspacioClient({ note, generating, fileName, isPro = false, giftB
             href={`/app/ia/jugar?note_id=${note.id}`}
             className="in game-banner"
             style={{
-              display: "flex", alignItems: "center", gap: 16, marginTop: 14, padding: "16px 20px",
+              display: "flex", alignItems: "center", gap: 16, marginTop: 14,
+              // Free: más aire arriba para que la etiqueta verde no pise el texto en celular.
+              padding: isPro ? "16px 20px" : "30px 20px 16px",
               borderRadius: 20, textDecoration: "none", position: "relative", overflow: "hidden",
               background: "radial-gradient(120% 160% at 12% 0%, #2a1f5e 0%, #1a1440 55%, #120e2e 100%)",
               border: "1px solid rgba(150,110,255,.35)",
@@ -765,6 +767,12 @@ export function EspacioClient({ note, generating, fileName, isPro = false, giftB
             }}
           >
             <span style={{ position: "absolute", right: -40, top: -40, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle,#7c3aed,transparent 70%)", opacity: .5, filter: "blur(20px)", pointerEvents: "none" }} />
+            {/* Solo FREE: llamador para que prueben el juego (es gratis para todos) */}
+            {!isPro && (
+              <span style={{ position: "absolute", top: 10, right: 12, zIndex: 1, fontSize: 10.5, fontWeight: 900, letterSpacing: ".08em", color: "#052e16", background: "linear-gradient(135deg,#4ade80,#22c55e)", borderRadius: 999, padding: "3px 10px", boxShadow: "0 0 14px rgba(74,222,128,.55)" }}>
+                PROBALO GRATIS
+              </span>
+            )}
             <Image src="/booki-3.png" alt="Booki" width={62} height={62} style={{ width: 62, height: 62, objectFit: "contain", flexShrink: 0, filter: "drop-shadow(0 4px 12px rgba(124,58,237,.6))" }} />
             <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: ".08em", color: "#c4b5fd", background: "rgba(150,110,255,.16)", border: "1px solid rgba(150,110,255,.3)", borderRadius: 999, padding: "2px 9px", marginBottom: 6 }}>
