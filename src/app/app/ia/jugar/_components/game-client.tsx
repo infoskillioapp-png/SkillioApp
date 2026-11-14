@@ -134,6 +134,11 @@ function GameBackground({ heat }: { heat: number }) {
 }
 
 // ───────────────────────── Componente principal ─────────────────────────
+// Alto del escenario = pantalla VISIBLE con las barras de Safari desplegadas
+// (svh). Con inset:0 el fondo del juego quedaba debajo de la barra inferior de
+// Safari en iPhone y la 4ª opción salía cortada → había que scrollear.
+const STAGE_H = "100svh";
+
 export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = false }: Props) {
   const reduce = useReducedMotion();
   const [phase, setPhase] = useState<"intro" | "playing" | "over">("intro");
@@ -172,6 +177,15 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
 
   const clearTimers = useCallback(() => { timers.current.forEach(clearTimeout); timers.current = []; }, []);
   useEffect(() => () => { clearTimers(); setMusicWanted(false); }, [clearTimers]);
+
+  // Un juego no se scrollea: bloqueamos el scroll de la página de atrás mientras
+  // está abierto (si no, el dedo mueve la página y Safari esconde/muestra barras).
+  useEffect(() => {
+    const html = document.documentElement, body = document.body;
+    const prev = [html.style.overflow, body.style.overflow, html.style.overscrollBehavior];
+    html.style.overflow = "hidden"; body.style.overflow = "hidden"; html.style.overscrollBehavior = "none";
+    return () => { html.style.overflow = prev[0]; body.style.overflow = prev[1]; html.style.overscrollBehavior = prev[2]; };
+  }, []);
 
   const finish = useCallback(async (fScore: number, fCorrect: number, fAnswered: number) => {
     clearTimers(); setMusicWanted(false); setPhase("over");
@@ -277,7 +291,7 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
         {phase === "intro" && <IntroScreen key="intro" noteTitle={noteTitle} bestScore={bestScore} onStart={start} reduce={!!reduce} />}
 
         {phase === "playing" && q && (
-          <div key="play" style={{ position: "absolute", inset: 0, zIndex: 2, width: "100%", maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8, padding: "calc(50px + env(safe-area-inset-top)) 12px max(8px, env(safe-area-inset-bottom))", overflow: "hidden" }}>
+          <div key="play" style={{ position: "absolute", top: 0, left: 0, right: 0, height: STAGE_H, zIndex: 2, width: "100%", maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8, padding: "calc(50px + env(safe-area-inset-top)) 12px max(8px, env(safe-area-inset-bottom))", overflow: "hidden" }}>
             <div style={{ display: "contents" }}>
 
               {/* HUD */}
@@ -404,7 +418,7 @@ export function GameClient({ noteId, noteTitle, questions, bestScore, isDemo = f
 function IntroScreen({ noteTitle, bestScore, onStart, reduce }: { noteTitle: string; bestScore: number; onStart: () => void; reduce: boolean }) {
   return (
     <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }}
-      style={{ position: "absolute", inset: 0, zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+      style={{ position: "absolute", top: 0, left: 0, right: 0, height: STAGE_H, zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
       <div style={{ animation: reduce ? "none" : "gcFloaty 3.4s ease-in-out infinite" }}><Booki mood="cheer" scale={1.4} /></div>
       <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
         style={{ fontFamily: F, fontSize: "clamp(30px,7.5vw,48px)", fontWeight: 800, letterSpacing: "-.02em", margin: "14px 0 6px", background: "linear-gradient(90deg,#c4b5fd,#818cf8,#f9a8d4)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>
@@ -460,7 +474,7 @@ function EndScreen({ noteId, noteTitle, score, correct, answered, maxStreak, rec
 
   return (
     <motion.div key="over" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      style={{ position: "absolute", inset: 0, zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto" }}>
+      style={{ position: "absolute", top: 0, left: 0, right: 0, height: STAGE_H, zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto" }}>
       {step >= 1 && endConf.map((c, i) => (
         <div key={i} style={{ position: "fixed", left: `${c.x}%`, top: "10%", width: c.s, height: c.round ? c.s : c.s * 0.5, background: c.col, borderRadius: c.round ? "50%" : 2, zIndex: 5, pointerEvents: "none", ["--cx" as string]: `${c.cx}px`, ["--cy" as string]: `${c.cy}px`, animation: reduce ? "none" : `gcConf ${c.dur}s cubic-bezier(.2,.6,.5,1) ${c.d}s both` }} />
       ))}

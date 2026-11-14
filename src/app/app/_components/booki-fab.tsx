@@ -42,14 +42,37 @@ export function BookiFab({ firstName }: { firstName: string }) {
     skipFocusRef.current = false;
   }, [open]);
 
-  // Al entrar al resumen, desplegamos a Booki solo (en todas las sesiones). No
-  // robamos el foco para no abrir el teclado en mobile.
+  // Al entrar al resumen, desplegamos a Booki solo — SOLO en compu. En celular
+  // taparía el resumen justo cuando lo quieren leer: ahí se abre al tocar el botón.
   useEffect(() => {
-    if (pathname.startsWith("/app/ia/resumen")) {
+    if (pathname.startsWith("/app/ia/resumen") && !window.matchMedia("(max-width: 760px)").matches) {
       skipFocusRef.current = true;
       setOpen(true);
     }
   }, [pathname]);
+
+  // Celular: el chat es un panel pegado abajo. Con el teclado abierto, iOS no
+  // achica la pantalla "de layout", así que medimos lo visible (visualViewport)
+  // y subimos el panel justo encima del teclado (vars --kb / --vvh del CSS).
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = document.getElementById("bchat");
+    if (!open || !vv || !el) return;
+    const sync = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      el.style.setProperty("--kb", `${kb}px`);
+      el.style.setProperty("--vvh", `${vv.height}px`);
+    };
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+      el.style.removeProperty("--kb");
+      el.style.removeProperty("--vvh");
+    };
+  }, [open]);
 
   async function send() {
     const text = input.trim();
@@ -133,6 +156,9 @@ export function BookiFab({ firstName }: { firstName: string }) {
         </span>
         Preguntale a Booki
       </div>
+
+      {/* Fondo oscuro detrás del panel (solo se ve en celular, por CSS). Tocarlo cierra. */}
+      <div id="bchat-bg" className={open ? "open" : ""} onClick={() => setOpen(false)} aria-hidden />
 
       <div id="bchat" className={open ? "open" : ""}>
         <div className="bch">

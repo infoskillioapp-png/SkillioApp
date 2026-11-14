@@ -52,7 +52,7 @@ export default async function SimulacroPage({ searchParams }: { searchParams: Se
   const content = (outputs?.[0]?.content ?? null) as SimulacroContent | null;
   const questions: SimQuestion[] = content?.questions ?? [];
 
-  if (questions.length === 0) redirect(`/app/ia?note_id=${note_id}`);
+  if (questions.length === 0) redirect(`/app/ia?note_id=${note_id}&gen=simulacro`);
 
   const data: SimulacroData = {
     noteId: note.id,

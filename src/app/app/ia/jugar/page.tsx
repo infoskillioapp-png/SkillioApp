@@ -78,7 +78,7 @@ export default async function JugarPage({ searchParams }: { searchParams: Search
   const content = output?.content as { questions?: SimQuestion[] } | null;
   const questions = normalize(content?.questions ?? []);
   // Sin simulacro (o sin preguntas jugables) → al espacio a generarlo primero.
-  if (!questions.length) redirect(`/app/ia?note_id=${note_id}`);
+  if (!questions.length) redirect(`/app/ia?note_id=${note_id}&gen=jugar`);
 
   const { data: gs } = await sb
     .from("game_scores")

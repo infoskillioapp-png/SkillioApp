@@ -912,3 +912,27 @@ body.railed{padding-left:122px}
   .rtopbar .crumb-r{max-width:100px}
   .modo .mt{font-size:15px}
 }
+
+/* ── Celular: lectura fluida + chat de Booki como panel inferior ──
+   Va al final para pisar las reglas anteriores. Solo afecta a pantallas chicas. */
+#bchat-bg{display:none}
+@media(max-width:760px){
+  /* El vidrio esmerilado (backdrop-filter) re-desenfoca el texto en cada
+     cuadro del scroll y en iPhone hace que la pantalla vaya atrás del dedo. */
+  .rtopbar{backdrop-filter:none;-webkit-backdrop-filter:none;background:#fff}
+  .bfab{box-shadow:0 6px 16px rgba(40,44,90,.16)}
+
+  /* Chat = panel que sube desde abajo, de lado a lado. --kb (alto del teclado)
+     y --vvh (alto visible) los calcula booki-fab.tsx con visualViewport. */
+  #bchat{left:0;right:0;bottom:var(--kb,0px);width:100%;border-radius:22px 22px 0 0;
+    max-height:min(78vh,calc(var(--vvh,100vh) - 16px));display:flex;flex-direction:column;
+    z-index:260;transform:translateY(100%);transform-origin:bottom center;
+    box-shadow:0 -8px 24px rgba(40,44,90,.18);visibility:hidden;
+    transition:transform .28s cubic-bezier(.22,1,.36,1),opacity .2s,visibility 0s .28s}
+  #bchat.open{transform:translateY(0);visibility:visible;transition:transform .28s cubic-bezier(.22,1,.36,1),opacity .2s}
+  #bchat .bcb{flex:1;min-height:0;max-height:none;overscroll-behavior:contain}
+  #bchat .bin{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  #bchat-bg{display:block;position:fixed;inset:0;z-index:250;background:rgba(20,16,44,.38);
+    opacity:0;pointer-events:none;transition:opacity .25s;touch-action:none}
+  #bchat-bg.open{opacity:1;pointer-events:auto}
+}

@@ -51,7 +51,7 @@ export default async function TarjetasPage({ searchParams }: { searchParams: Sea
   const content = (outputs?.[0]?.content ?? null) as FlashcardsContent | null;
   const flashcards = content?.cards ?? content?.flashcards ?? [];
 
-  if (flashcards.length === 0) redirect(`/app/ia?note_id=${note_id}`);
+  if (flashcards.length === 0) redirect(`/app/ia?note_id=${note_id}&gen=flashcards`);
 
   const data: TarjetasData = {
     noteId: note.id,

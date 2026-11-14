@@ -141,6 +141,14 @@ const GEN_STEPS = [
 // Así no se gasta en lo que el usuario no pide.
 const AUTO_GEN_KINDS = ["summary"];
 
+// ?gen=… (llega cuando el usuario tocó "Ir a Tarjetas"/"Hacer Simulacro"/"Jugar"
+// y ese material todavía no existía): qué generar y a dónde llevarlo al terminar.
+const GEN_FROM_URL: Record<string, { kind: string; path: string }> = {
+  flashcards: { kind: "flashcards", path: "/app/ia/tarjetas" },
+  simulacro: { kind: "simulacro", path: "/app/ia/simulacro" },
+  jugar: { kind: "simulacro", path: "/app/ia/jugar" },
+};
+
 function GeneratingOverlay({ noteId, fileName, kinds, onDone, onPaywall, onUsageLimit, onError }: {
   noteId: string; fileName: string; kinds: string[]; onDone: () => void; onPaywall: () => void;
   onUsageLimit: (reason: "daily" | "weekly", resetAt: string) => void;
@@ -391,10 +399,14 @@ const STORAGE_KEY_PREFIX = "skillio_tema_";
 export function EspacioClient({ note, generating, fileName, isPro = false, giftBonusAvailable = false }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isGenerating, setIsGenerating] = useState(generating);
+  // Si el resumen todavía se está armando, eso manda; si no, respetamos ?gen=.
+  const genReq = !generating ? GEN_FROM_URL[searchParams.get("gen") ?? ""] : undefined;
+  const [isGenerating, setIsGenerating] = useState(generating || !!genReq);
+  // A dónde ir cuando termina de generar (null = quedarse en el set de estudio).
+  const [doneTarget, setDoneTarget] = useState<string | null>(genReq ? `${genReq.path}?note_id=${note.id}` : null);
   // Qué generar en esta pasada: la auto (al subir) solo el resumen; al tocar un
   // modo faltante, las 3. Ver AUTO_GEN_KINDS.
-  const [genKinds, setGenKinds] = useState<string[]>(AUTO_GEN_KINDS);
+  const [genKinds, setGenKinds] = useState<string[]>(genReq ? [genReq.kind] : AUTO_GEN_KINDS);
   const [domPct, setDomPct] = useState(0);
   const [donePcts, setDonePcts] = useState<Record<string, number>>({});
   const [showPaywall, setShowPaywall] = useState(false);
@@ -444,11 +456,13 @@ export function EspacioClient({ note, generating, fileName, isPro = false, giftB
 
   const handleDone = useCallback(() => {
     setIsGenerating(false);
+    // Generó algo a pedido (tarjetas, simulacro, juego) → lo llevamos directo ahí.
+    if (doneTarget) { router.replace(doneTarget); return; }
     router.replace(`/app/ia?note_id=${note.id}`);
     router.refresh();
     // (Ya NO mostramos precio al terminar de generar: el lead todavía no está
     // listo. El paywall aparece cuando pide algo pago.)
-  }, [note.id, router]);
+  }, [note.id, router, doneTarget]);
 
   // 402 free_limit_reached (free intentó un apunte nuevo estando bloqueado).
   // Antes del paywall le ofrecemos el REGALO #3: +1 generación por su mail.
@@ -516,7 +530,7 @@ export function EspacioClient({ note, generating, fileName, isPro = false, giftB
     return (
       <div
         className={className} style={{ ...style, cursor: "pointer" }}
-        onClick={() => { setGenKinds([genKind]); setIsGenerating(true); }}
+        onClick={() => { setGenKinds([genKind]); setDoneTarget(href); setIsGenerating(true); }}
         {...extra}
       >
         {children}
