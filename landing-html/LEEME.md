@@ -33,7 +33,7 @@ Esta es la página que se ve en **skillio.digital** cuando alguien entra sin hab
 ## Reglas del dueño
 - Ningún botón de compra arriba de todo: el primero va después de la demo.
 - Se mantienen la fuente Plus Jakarta Sans, el texto que se escribe solo y las tarjetas 3D del hero.
-- Los testimonios son videos hechos con IA y la página lo dice. Ese aviso no se saca.
+- Los testimonios (Lorena, Carolina, Martín) son de usuarios reales, según confirmó el socio el 15-nov-2026, y por eso no llevan aviso de IA. Si en algún momento se suma un testimonio hecho con IA o actuado, tiene que decirlo en pantalla.
 - **No poner números inventados.** Por ejemplo, la cantidad de estudiantes tiene que ser real.
 - Mobile es lo más importante: el tráfico viene de Instagram y Facebook.
 
