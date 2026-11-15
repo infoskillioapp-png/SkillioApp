@@ -653,8 +653,13 @@ section:not(.sk2-hero){content-visibility:auto;contain-intrinsic-size:auto 900px
 </script>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1331882875540046&ev=PageView&noscript=1" alt=""></noscript>
 <style>
-nav .navcta{opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s}
-body.past nav .navcta{opacity:1;visibility:visible}
+nav .navr{display:flex;align-items:center;gap:14px}
+nav .login{color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:9px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.28);white-space:nowrap}
+nav .login:hover{background:rgba(255,255,255,.08)}
+nav .navcta{display:none!important}
+body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease both}
+@keyframes navIn{from{opacity:0}to{opacity:1}}
+@media(max-width:420px){nav .navr{gap:8px}nav .login{font-size:13.5px;padding:8px 11px}nav .navcta{font-size:13.5px;padding:8px 11px}}
 .wafab{position:fixed;left:16px;bottom:18px;z-index:40;display:flex;align-items:center;gap:8px;background:#25D366;color:#fff;border-radius:999px;padding:11px 16px 11px 13px;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.45);transition:transform .18s,bottom .25s}
 .wafab:hover{transform:translateY(-2px)}
 @media(max-width:899px){body.past .wafab{bottom:86px}}
@@ -666,8 +671,8 @@ body.past nav .navcta{opacity:1;visibility:visible}
 <nav><div class="w">
   <a class="logo" href="#top">skillio<b>.</b></a>
   <div class="links"><a href="#incluye">Qué incluye</a><a href="#demo">Cómo funciona</a><a href="#casos">Casos</a><a href="#precio">Precio</a></div>
-  <!-- APP_URL: confirmar la ruta real que abre la app con «subir apunte» (hoy los botones de la landing la abren por JS) -->
-  <a class="btn mini navcta" href="/app?upload=1" data-cta>Probalo gratis</a>
+  <!-- Derecha: «Iniciar sesión» siempre visible (no es un CTA de venta) + «Probalo gratis» que aparece recién después de «Todo lo que incluye» -->
+  <div class="navr"><a class="login" href="/login">Iniciar sesión</a><a class="btn mini navcta" href="/app?upload=1" data-cta>Probalo gratis</a></div>
 </div></nav>
 
 <!-- 1 · HERO -->
