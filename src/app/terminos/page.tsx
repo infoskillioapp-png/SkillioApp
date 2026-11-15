@@ -108,6 +108,16 @@ export default function TerminosPage() {
         correspondiente</strong> o a compensarte de manera razonable. Para gestionarlo, contactanos a
         info.skillioapp@gmail.com describiendo lo sucedido.
       </p>
+      <h3 id="garantia" style={{ marginTop: 18 }}>Garantía de 7 días</h3>
+      <p>
+        Además, si en los primeros <strong>7 días corridos desde tu primer pago</strong> (Pase de cuatrimestre o
+        primer mes del plan Mensual) Skillio no te sirve, te devolvemos <strong>el 100 % de lo que pagaste</strong>,
+        sin que tengas que explicar el motivo. Para pedirla, escribinos por WhatsApp al +54 9 351 773-2460 o a
+        info.skillioapp@gmail.com con el asunto &ldquo;Garantía 7 días&rdquo; y el mail de tu cuenta. La
+        devolución se hace por el mismo medio de pago (Mercado Pago) y con ella se da de baja el acceso PRO; en el
+        plan Mensual también se cancela el débito automático. La garantía aplica una sola vez por persona, a su
+        primera contratación, y no reemplaza el derecho de arrepentimiento de la sección 8.
+      </p>
 
       <h2 id="uso">10. Uso aceptable</h2>
       <p>Al usar Skillio te comprometés a no:</p>
