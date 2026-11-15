@@ -31,7 +31,7 @@ Esta es la página que se ve en **skillio.digital** cuando alguien entra sin hab
 - **Garantía de 7 días:** está también en los Términos de la app (`src/app/terminos/page.tsx`, sección 9). Si cambia el plazo, cambiarlo en los dos lados.
 
 ## Reglas del dueño
-- Ningún botón de compra arriba de todo: el primero va después de la demo.
+- Ningún botón de "Probalo gratis" en el hero ni abajo del video. El primero va al final de «Todo lo que incluye». El botón del menú y la barra fija aparecen recién después de esa sección. «Iniciar sesión» se ve siempre.
 - Se mantienen la fuente Plus Jakarta Sans, el texto que se escribe solo y las tarjetas 3D del hero.
 - Los testimonios (Lorena, Carolina, Martín) son de usuarios reales, según confirmó el socio el 15-nov-2026, y por eso no llevan aviso de IA. Si en algún momento se suma un testimonio hecho con IA o actuado, tiene que decirlo en pantalla.
 - **No poner números inventados.** Por ejemplo, la cantidad de estudiantes tiene que ser real.
