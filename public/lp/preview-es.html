@@ -1083,30 +1083,8 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
 <!-- Barra fija en celular (aparece después del hero) -->
 <div class="sticky" id="sticky"><a class="btn" href="/app?upload=1" data-cta>Probalo gratis →</a></div>
 
-<!-- 17 · POPUP DE SALIDA (SKILLIO25) -->
-<div class="pop" id="pop" role="dialog" aria-modal="true" aria-labelledby="popt">
-  <div class="box">
-    <span class="cf c1"></span><span class="cf c2"></span><span class="cf c3"></span><span class="cf c4"></span><span class="cf c5"></span><span class="cf c6"></span>
-    <button class="x" aria-label="Cerrar" data-close>×</button>
-    <div class="gift">🎁</div>
-    <h3 id="popt">¡Esperá! Tenemos un regalo para vos</h3>
-    <p class="micro">25 % OFF en tu Pase de cuatrimestre.</p>
-    <button class="code" type="button" id="pcode">SKILLIO25 <small>Tocá para copiar</small></button>
-    <p class="pprice">Pase a <b>$59.900</b> <s>$79.900</s></p>
-    <p class="micro" style="margin-top:10px">Copialo y pegalo cuando actives tu plan, en el campo «¿Tenés un código de descuento?».</p>
-    <button class="no" data-close>Listo, ¡gracias!</button>
-  </div>
-</div>
-
 <script>
 (function(){
-  var pop=document.getElementById('pop'),shown=false;
-  function open(){ if(shown) return; try{ if(sessionStorage.getItem('sk_pop')) return; sessionStorage.setItem('sk_pop','1'); }catch(e){} shown=true; pop.classList.add('on'); }
-  pop.addEventListener('click',function(e){ if(e.target===pop||e.target.hasAttribute('data-close')) pop.classList.remove('on'); });
-  // computadora: el mouse sale por arriba
-  document.addEventListener('mouseout',function(e){ if(!e.relatedTarget && e.clientY<10) open(); });
-  // celular: botón «Atrás» (una vez por sesión)
-  try{ history.pushState({sk:1},''); window.addEventListener('popstate',function(){ if(!shown){ open(); history.pushState({sk:1},''); } }); }catch(e){}
   // barra fija (celular) y botón del menú: recién después de "Todo lo que incluye"
   (function(){ var bar=document.getElementById('sticky'),inc=document.getElementById('incluye'); if(!inc) return;
     function chk(){ var past=inc.getBoundingClientRect().bottom<innerHeight; document.body.classList.toggle('past',past); if(bar) bar.classList.toggle('on',past); }
@@ -1133,9 +1111,6 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
   // demo: botón de sonido
   var ds=document.getElementById('dsound'),dv=document.getElementById('demov');
   if(ds&&dv){ ds.addEventListener('click',function(){ dv.muted=!dv.muted; if(!dv.muted){ dv.play().catch(function(){}); } ds.classList.toggle('on',!dv.muted); ds.textContent=dv.muted?'🔇 Tocá para escuchar a Booki':'🔊 Sonido activado'; }); }
-  // popup: copiar el código
-  var pc=document.getElementById('pcode');
-  if(pc){ pc.addEventListener('click',function(){ try{ navigator.clipboard.writeText('SKILLIO25'); }catch(e){} pc.innerHTML='SKILLIO25 <small>¡Copiado! ✓</small>'; }); }
 
   // testimonios: arrancan solos y en silencio cuando se ven; se pausan al salir de pantalla
   var tvs=document.querySelectorAll('.vcard video');

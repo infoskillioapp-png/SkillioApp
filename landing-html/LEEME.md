@@ -22,7 +22,7 @@ Esta es la página que se ve en **skillio.digital** cuando alguien entra sin hab
 ## Ya conectado (no romper)
 - **Botones de prueba gratis:** todos van a `/app?upload=1`, que abre la app con la ventana para subir el apunte.
 - **Medición:** en el `<head>` están el Meta Pixel (PageView), Microsoft Clarity y la captura de UTMs en la cookie `skillio_utm`, que se usa para atribución. Usan los mismos IDs que el resto del sitio. No se sacan.
-- **Popup de salida:** solo muestra el código **SKILLIO25** para copiar. No lleva al checkout. El código se pega en el campo «¿Tenés un código de descuento?» del checkout (`/pagar`) y vale para los dos planes.
+- **Sin popup de descuento en la landing** (decisión del dueño, 15-nov-2026). El 25 % OFF (SKILLIO25) se ofrece SOLO dentro de la app, una vez, cuando la persona ve el paywall y lo cierra. No volver a agregar un popup de salida.
 - **Precios:**
   - Mensual $29.990.
   - Pase $79.900, o 3 × $26.633.
