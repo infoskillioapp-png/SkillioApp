@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { readAcquisition } from "@/lib/acquisition";
 
 const ANON_COOKIE = "skillio_anon";
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -17,6 +18,8 @@ export type AnonUserRow = {
 };
 
 const COLS = "id, plan, expires_at, credits, free_generations_used, full_name, created_at";
+// Igual que COLS + acquisition (de qué anuncio vino): solo para decidir si hay que guardarla.
+const COLS_ACQ = "id, plan, expires_at, credits, free_generations_used, full_name, created_at, acquisition";
 
 /**
  * Devuelve la fila `users` de la sesión anónima actual, creándola si no existe.
@@ -33,14 +36,22 @@ export async function getOrCreateAnonUser(): Promise<AnonUserRow> {
   const sb = supabaseAdmin();
 
   const existingId = jar.get(ANON_COOKIE)?.value;
+  // De qué anuncio vino (UTMs de primer toque). null si entró directo / orgánico.
+  const acquisition = await readAcquisition();
 
   if (existingId) {
     const { data } = await sb
       .from("users")
-      .select(COLS)
+      .select(COLS_ACQ)
       .eq("anon_session_id", existingId)
       .maybeSingle();
-    if (data) return data as AnonUserRow;
+    if (data) {
+      // Primer toque: se guarda una sola vez y no se pisa (.is null).
+      if (acquisition && !data.acquisition) {
+        await sb.from("users").update({ acquisition }).eq("id", data.id).is("acquisition", null);
+      }
+      return data as unknown as AnonUserRow;
+    }
     // Cookie presente pero sin fila (fila borrada): recreamos con el mismo id.
   }
 
@@ -48,7 +59,10 @@ export async function getOrCreateAnonUser(): Promise<AnonUserRow> {
 
   const { data, error } = await sb
     .from("users")
-    .upsert({ anon_session_id: anonId, plan: "free" }, { onConflict: "anon_session_id" })
+    .upsert(
+      { anon_session_id: anonId, plan: "free", ...(acquisition ? { acquisition } : {}) },
+      { onConflict: "anon_session_id" },
+    )
     .select(COLS)
     .single();
   if (error) throw new Error(`[anon] upsert failed: ${error.message}`);

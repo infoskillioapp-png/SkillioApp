@@ -1,21 +1,8 @@
 import "server-only";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isDisposableEmail, normalizeEmail } from "@/lib/anti-fraude";
-
-// Lee la cookie de UTMs (first-touch, seteada por <UtmCapture/>) para guardar de
-// dónde vino el usuario al crear su fila. Nunca lanza.
-async function readAcquisition(): Promise<Record<string, string> | null> {
-  try {
-    const raw = (await cookies()).get("skillio_utm")?.value;
-    if (!raw) return null;
-    const parsed = JSON.parse(decodeURIComponent(raw));
-    return parsed && typeof parsed === "object" ? parsed : null;
-  } catch {
-    return null;
-  }
-}
+import { readAcquisition } from "@/lib/acquisition";
 
 export type SkillioUser = {
   id: string;
