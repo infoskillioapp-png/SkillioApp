@@ -4,6 +4,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { recordAiUsage, checkUsageLimit } from "@/lib/ai/usage";
 import { resolveActor } from "@/lib/actor";
+import { recordFunnelEventForUser } from "@/lib/api/funnel";
 import {
   buildUserContent,
   getNoteContent,
@@ -167,6 +168,7 @@ export async function POST(req: Request) {
     await recordAiUsage({ kind: "summarize", model, usage, userDbId: userRow.id });
     // Activación: primera generación con material propio → evento Meta.
     const activationEventId = await markActivationIfFirst(userRow.id);
+    await recordFunnelEventForUser(userRow.id, "resumen_generado", activationEventId ? "primero" : "otro");
 
     return NextResponse.json({
       ok: true,

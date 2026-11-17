@@ -31,11 +31,22 @@ Esta es la página que se ve en **skillio.digital** cuando alguien entra sin hab
 - **Garantía de 7 días:** está también en los Términos de la app (`src/app/terminos/page.tsx`, sección 9). Si cambia el plazo, cambiarlo en los dos lados.
 
 ## Reglas del dueño
-- Ningún botón de "Probalo gratis" en el hero ni abajo del video. El primero va al final de «Todo lo que incluye». El botón del menú y la barra fija aparecen recién después de esa sección. «Iniciar sesión» se ve siempre.
+- **Botones (decisión del 16-nov-2026, revierte la del 15-nov):** en celular se puede entrar a probar desde el primer segundo. Hay 3 entradas: «Probá gratis» en el header (más llamativo que «Iniciar sesión»), «Probalo gratis con tu apunte» en el hero y la **barra fija abajo, siempre visible en celular**. Están verificados en 360×640, 390×844 y 412×915. Todos los botones llevan `data-cta` y `data-btn="<nombre>"`; el nombre viaja a Meta y al embudo, así que **todo botón nuevo de prueba necesita su `data-btn`**.
 - Se mantienen la fuente Plus Jakarta Sans, el texto que se escribe solo y las tarjetas 3D del hero.
 - Los testimonios (Lorena, Carolina, Martín) son de usuarios reales, según confirmó el socio el 15-nov-2026, y por eso no llevan aviso de IA. Si en algún momento se suma un testimonio hecho con IA o actuado, tiene que decirlo en pantalla.
 - **No poner números inventados.** Por ejemplo, la cantidad de estudiantes tiene que ser real.
 - Mobile es lo más importante: el tráfico viene de Instagram y Facebook.
+
+## Eventos del embudo (no romper)
+- **Landing:**
+  - `ViewContent` con `content_category:"landing"`.
+  - `CTA_Click` con `{boton}` y UTM.
+  - En `funnel_events`: `landing_vista` y `cta_click:<boton>`.
+- **App:**
+  - `Upload_Panel_Open` con `{origen}`.
+  - `File_Selected` con `{tipo}`.
+  - `Apunte_Subido` y `Activacion`, que se mandan por navegador y por CAPI con el mismo event_id.
+  - En `funnel_events`: `panel_subida_abierto`, `archivo_elegido`, `apunte_subido` y `resumen_generado`.
 
 ## Velocidad
 - `index.html` tiene que pesar alrededor de 100 KB o menos.

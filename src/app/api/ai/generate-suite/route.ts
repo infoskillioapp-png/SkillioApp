@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { resolveActor } from "@/lib/actor";
 import { recordAiUsage, checkUsageLimit } from "@/lib/ai/usage";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { recordFunnelEventForUser } from "@/lib/api/funnel";
 
 // Sin esto, la función corre con el timeout por defecto de Vercel (unos
 // pocos segundos) — muy poco para un PDF de 30 páginas + Sonnet razonando
@@ -152,6 +153,8 @@ export async function POST(req: Request) {
 
     // Activación (1ª generación con material propio) — una sola vez.
     const activationEventId = await markActivationIfFirst(userRow.id);
+    // Embudo: resumen listo (primero = activación; otro = apuntes siguientes).
+    if (saved.summary) await recordFunnelEventForUser(userRow.id, "resumen_generado", activationEventId ? "primero" : "otro");
 
     return NextResponse.json({ ok: true, saved, is_paid: isPaid, activation_event_id: activationEventId });
   } catch (e) {

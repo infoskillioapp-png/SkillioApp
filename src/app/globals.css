@@ -936,3 +936,8 @@ body.railed{padding-left:122px}
     opacity:0;pointer-events:none;transition:opacity .25s;touch-action:none}
   #bchat-bg.open{opacity:1;pointer-events:auto}
 }
+
+/* ── Panel de subida: texto según dispositivo + "gratis y sin registro" ── */
+.um-free{margin:-4px 0 12px;text-align:center;font-size:12.5px;font-weight:700;color:#15803d;background:#ecfdf3;border:1px solid #bbf7d0;border-radius:999px;padding:6px 12px}
+.um-mob{display:none}
+@media(max-width:760px){.um-desk{display:none}.um-mob{display:inline}}

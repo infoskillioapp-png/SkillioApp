@@ -6,7 +6,7 @@ import Image from "next/image";
 import { PdfSplitter } from "./pdf-splitter";
 import { DEMO_TOPICS } from "@/lib/demo-content";
 import type { DemoTopic } from "@/lib/demo-content";
-import { track } from "@/lib/track-client";
+import { track, pixelCustom, consumeCtaOrigin, fileKind } from "@/lib/track-client";
 import { countPdfPages, buildSegments, directUpload } from "@/lib/notes/upload-client";
 
 const PDF_PAGE_LIMIT = 20; // arriba de esto, mostramos el divisor
@@ -29,6 +29,14 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
+  // Embudo: se abrió el panel de subida (y con qué botón de la landing llegó).
+  useEffect(() => {
+    if (!open) return;
+    const origen = consumeCtaOrigin();
+    track("panel_subida_abierto", origen);
+    pixelCustom("Upload_Panel_Open", { origen });
+  }, [open]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -38,6 +46,11 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
   }, [onClose]);
 
   async function uploadFile(file: File) {
+    // Embudo: eligió un archivo o foto (antes de subirlo).
+    const tipo = fileKind(file);
+    track("archivo_elegido", tipo, { kb: Math.round(file.size / 1024) });
+    pixelCustom("File_Selected", { tipo });
+
     const isPdf =
       file.type === "application/pdf" ||
       file.name.toLowerCase().endsWith(".pdf");
@@ -107,6 +120,7 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
       const res = await fetch("/api/notes/upload", { method: "POST", body: form });
       const data = await res.json();
       if (res.ok && data.note?.id) {
+        pixelCustom("Apunte_Subido", { tipo: "texto" }, `apunte_${data.note.id}`);
         onClose();
         router.push(`/app/ia?note_id=${data.note.id}&gen=1`);
       }
@@ -165,6 +179,8 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
             </svg>
           </button>
         </div>
+        {/* Que quede claro desde el primer segundo: no hay que pagar ni registrarse. */}
+        {!splitterFile && <div className="um-free">✓ Gratis · ✓ Sin registrarte · ✓ Sin tarjeta</div>}
 
         {/* Vista divisor de PDF */}
         {splitterFile && (
@@ -207,14 +223,14 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
                   <path d="M12 4v12M6 12l6 6 6-6" />
                 </svg>
               </div>
-              <h4>Arrastrá y soltá tus archivos acá</h4>
+              <h4><span className="um-desk">Arrastrá y soltá tus archivos acá</span><span className="um-mob">Elegí tu apunte: PDF, Word o una foto</span></h4>
               <div className="types">Formatos: PDF · Word · PPT · TXT · JPG · PNG · HEIC · WebP · MP3 · WAV · M4A</div>
               <input ref={fileRef} type="file" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp3,.wav,.m4a" />
               <button data-tour="um-pick" className="um-pick" onClick={() => fileRef.current?.click()} disabled={uploading}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                 </svg>
-                {uploading ? "Subiendo…" : "Seleccionar archivo"}
+                {uploading ? "Subiendo…" : <><span className="um-desk">Seleccionar archivo</span><span className="um-mob">Elegir mi apunte</span></>}
               </button>
               {uploadError && (
                 <div style={{ marginTop: 12, fontSize: 13, color: "#c0392b", background: "#fff1f2", borderRadius: 10, padding: "9px 12px", maxWidth: 320, margin: "12px auto 0" }}>

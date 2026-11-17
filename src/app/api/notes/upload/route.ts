@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { recordFunnelEventForUser } from "@/lib/api/funnel";
+import { sendMetaFunnelEvent } from "@/lib/meta-funnel";
 import { resolveActor } from "@/lib/actor";
 
 const BUCKET = "notes-uploads";
@@ -172,6 +173,7 @@ export async function POST(req: Request) {
     }
 
     await recordFunnelEventForUser(u.id, "apunte_subido", resolved.kind, { segments: inserted.length });
+    await sendMetaFunnelEvent({ eventName: "Apunte_Subido", eventId: `apunte_${(inserted[0] as { id: string }).id}`, userId: u.id, customData: { tipo: resolved.kind } });
     return NextResponse.json({ ok: true, notes: inserted, note: inserted[0] });
   }
 
@@ -199,5 +201,6 @@ export async function POST(req: Request) {
   }
 
   await recordFunnelEventForUser(u.id, "apunte_subido", resolved.kind);
+  await sendMetaFunnelEvent({ eventName: "Apunte_Subido", eventId: `apunte_${inserted.id}`, userId: u.id, customData: { tipo: resolved.kind } });
   return NextResponse.json({ ok: true, note: inserted });
 }

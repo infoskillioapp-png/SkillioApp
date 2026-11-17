@@ -8,7 +8,7 @@ import { PDFDocument } from "pdf-lib";
 import { extractText } from "unpdf";
 import mammoth from "mammoth";
 import type { Note } from "@/lib/types";
-import { sendMetaEvent } from "@/lib/meta-capi";
+import { sendMetaFunnelEvent } from "@/lib/meta-funnel";
 
 const BUCKET = "notes-uploads";
 
@@ -270,11 +270,15 @@ export async function markActivationIfFirst(userId: string): Promise<string | nu
   if (!data) return null; // ya estaba activado
 
   const eventId = randomUUID();
-  await sendMetaEvent({
+  // Antes se mandaba solo mail/teléfono: el invitado no los tiene y Meta
+  // rechazaba el evento. Ahora va con external_id + IP/navegador/_fbp, y el
+  // navegador dispara el mismo evento con este eventId (se deduplica).
+  await sendMetaFunnelEvent({
     eventName: "Activacion",
+    eventId,
+    userId,
     email: data.email,
     phone: data.phone,
-    eventId,
   });
   return eventId;
 }

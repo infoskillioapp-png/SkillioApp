@@ -1,4 +1,5 @@
 import { supabaseBrowser } from "@/lib/supabase/browser";
+import { pixelCustom, fileKind } from "@/lib/track-client";
 
 // Subida de apuntes desde el navegador DIRECTO a Supabase Storage, sin pasar
 // el archivo por una función de Vercel (que topea el body en ~4,5 MB). Flujo:
@@ -63,5 +64,7 @@ export async function directUpload(
   });
   const data = await createRes.json().catch(() => ({}));
   if (!createRes.ok || !data?.note?.id) return { error: data?.error ?? "No pudimos crear el apunte." };
+  // Embudo: mismo event_id que el CAPI del server (apunte_<id>) → Meta lo cuenta una vez.
+  pixelCustom("Apunte_Subido", { tipo: fileKind(file) }, `apunte_${data.note.id}`);
   return { noteId: data.note.id };
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { pixelCustom } from "@/lib/track-client";
 import Image from "next/image";
 import Link from "next/link";
 import { SalePopup } from "@/components/sale-popup";
@@ -197,6 +198,10 @@ function GeneratingOverlay({ noteId, fileName, kinds, onDone, onPaywall, onUsage
           apiDone = true;
           return;
         }
+        // Primer resumen con material propio = Activacion. El server ya la
+        // mandó por CAPI con este mismo id; el píxel la duplica y Meta deduplica.
+        const okBody = await res.json().catch(() => null);
+        if (okBody?.activation_event_id) pixelCustom("Activacion", {}, okBody.activation_event_id);
       } catch {
         hasHardError = true;
       } finally {

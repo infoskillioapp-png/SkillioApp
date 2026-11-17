@@ -6,6 +6,10 @@
 <title>Skillio · Estudiá en minutos lo que te llevaba toda la noche</title>
 <meta name="description" content="Para quienes trabajan y estudian: subí tu apunte y en segundos tenés resumen, tarjetas, simulacro tipo parcial y tu resumen en audio. Probalo gratis, sin registrarte.">
 <link rel="preload" as="font" type="font/woff2" href="img/plus-jakarta-latin.woff2" crossorigin>
+<link rel="preconnect" href="https://connect.facebook.net" crossorigin>
+<link rel="preconnect" href="https://www.facebook.com">
+<link rel="preconnect" href="https://www.clarity.ms" crossorigin>
+<link rel="preconnect" href="https://scripts.clarity.ms" crossorigin>
 <style>
 /* ===== Skillio · landing modelada sobre la estructura de 100ads.ai (VISTA PREVIA) ===== */
 :root{--v:#7c3aed;--v2:#a855f7;--m:#db2777;--ink:#1e1236;--mut:#5b5375;--bg:#faf7ff;--card:#fff;--line:#ece6fb;--ok:#10b981;--r:22px}
@@ -647,22 +651,38 @@ section:not(.sk2-hero){content-visibility:auto;contain-intrinsic-size:auto 900px
 <!-- Medición (Skillio): Meta Pixel, Microsoft Clarity y UTMs de primer toque.
      Mismos IDs que el resto del sitio (src/app/layout.tsx). No sacar. -->
 <script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","1331882875540046");fbq("track","PageView");
-(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","xhyrtnm2yu");
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","1331882875540046");fbq("track","PageView");fbq("track","ViewContent",{content_name:"Landing",content_category:"landing"});
+window.addEventListener("load",function(){var go=function(){(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","xhyrtnm2yu");};("requestIdleCallback" in window)?requestIdleCallback(go,{timeout:4000}):setTimeout(go,2500);});
 (function(){try{if(document.cookie.split("; ").some(function(c){return c.indexOf("skillio_utm=")===0}))return;var p=new URLSearchParams(location.search),a={},k=["utm_source","utm_medium","utm_campaign","utm_content","utm_term"],n=0;k.forEach(function(x){var v=p.get(x);if(v){a[x]=v.slice(0,200);n++}});if(!n)return;a.landing_path=location.pathname.slice(0,200);if(document.referrer)a.referrer=document.referrer.slice(0,200);document.cookie="skillio_utm="+encodeURIComponent(JSON.stringify(a))+"; max-age=2592000; path=/; samesite=lax"}catch(e){}})();
 </script>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1331882875540046&ev=PageView&noscript=1" alt=""></noscript>
 <style>
 nav .navr{display:flex;align-items:center;gap:14px}
-nav .login{color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:9px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.28);white-space:nowrap}
-nav .login:hover{background:rgba(255,255,255,.08)}
-nav .navcta{display:none!important}
-body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease both}
-@keyframes navIn{from{opacity:0}to{opacity:1}}
-@media(max-width:420px){nav .navr{gap:8px}nav .login{font-size:13.5px;padding:8px 11px}nav .navcta{font-size:13.5px;padding:8px 11px}}
+nav .login{color:rgba(255,255,255,.85);font-size:15px;font-weight:500;text-decoration:none;padding:8px 6px;white-space:nowrap}
+nav .login:hover{color:#fff;text-decoration:underline}
+nav .navcta{display:inline-flex!important;background:linear-gradient(90deg,#7c3aed,#ec4899)!important;box-shadow:0 0 0 2px rgba(255,255,255,.18),0 6px 18px rgba(236,72,153,.45)!important;font-weight:800!important;white-space:nowrap}
+@media(max-width:420px){nav .navr{gap:6px}nav .login{font-size:13px}nav .navcta{font-size:13.5px!important;padding:9px 12px!important}}
 .wafab{position:fixed;left:16px;bottom:18px;z-index:40;display:flex;align-items:center;gap:8px;background:#25D366;color:#fff;border-radius:999px;padding:11px 16px 11px 13px;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.45);transition:transform .18s,bottom .25s}
 .wafab:hover{transform:translateY(-2px)}
-@media(max-width:899px){body.past .wafab{bottom:86px}}
+@media(max-width:899px){
+ .sticky{transform:none!important;flex-direction:column;gap:6px;background:rgba(240,237,255,.97)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border-top:1px solid rgba(53,56,49,.08)!important;padding:10px 16px calc(10px + env(safe-area-inset-bottom))!important;box-shadow:0 -6px 24px -12px rgba(53,56,49,.25)}
+ .sticky .btn{width:100%}
+ .sticky small{display:block;text-align:center;font-size:11.5px;color:#6b6585}
+ .wafab{bottom:96px}
+ body{padding-bottom:92px}
+}
+/* VELOCIDAD en celular (no cambia el diseño) */
+@media(max-width:899px){
+ /* 1) lo que está fuera de pantalla no se dibuja ni se anima hasta que se acerca */
+ body>section:not(.sk2-hero),body>footer{content-visibility:auto;contain-intrinsic-size:auto 900px}
+ /* 2) el fondo del hero (halos, esferas, ondas) queda quieto: es decorativo y era lo que más redibujaba */
+ .sk2-bg,.sk2-bg *{animation:none!important}
+ /* 3) brillos decorativos de las tarjetas (no muestran contenido). Las microanimaciones de ADENTRO
+    (cronómetro, monedas, palabras clave) se dejan: muestran contenido y sacarlas cambiaba el diseño. */
+ .sk2-sheen,.sk2-wavebar,.sk2-heartpop{animation:none!important}
+}
+/* 3) el hero se pausa cuando no está en pantalla */
+.sk2-hero.off *{animation-play-state:paused!important}
 </style>
 </head>
 <body>
@@ -672,11 +692,11 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
   <a class="logo" href="#top">skillio<b>.</b></a>
   <div class="links"><a href="#incluye">Qué incluye</a><a href="#demo">Cómo funciona</a><a href="#casos">Casos</a><a href="#precio">Precio</a></div>
   <!-- Derecha: «Iniciar sesión» siempre visible (no es un CTA de venta) + «Probalo gratis» que aparece recién después de «Todo lo que incluye» -->
-  <div class="navr"><a class="login" href="/login">Iniciar sesión</a><a class="btn mini navcta" href="/app?upload=1" data-cta>Probalo gratis</a></div>
+  <div class="navr"><a class="login" href="/login">Iniciar sesión</a><a class="btn mini navcta" href="/app?upload=1" data-cta data-btn="header">Probá gratis</a></div>
 </div></nav>
 
 <!-- 1 · HERO -->
-<section id="top" class="sk2-hero"><div class="sk2-bg sk2-bg-d" aria-hidden="true"><div class="sk2-halo"></div><div class="sk2-halo-mask"></div><div class="sk2-halo-ring"></div><div class="sk2-sphere sk2-sphere-v"></div><div class="sk2-sphere sk2-sphere-t"></div><div class="sk2-orb-far"></div><div class="sk2-vignette"></div></div><div class="sk2-bg sk2-bg-m" aria-hidden="true"><svg class="sk2-caustic-svg" viewBox="0 0 1500 900" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="sk2cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#c0abfc"></stop><stop offset="50%" stop-color="#5eead4"></stop><stop offset="100%" stop-color="#4f7dff"></stop></linearGradient></defs><g fill="none" stroke="url(#sk2cg)" stroke-width="4"><path d="M-40 200C220 120 340 320 620 250 880 184 1000 360 1300 280"></path><path d="M-40 400C240 320 360 520 640 450 900 384 1020 560 1320 480"></path><path d="M-40 620C220 540 380 740 660 670 920 604 1040 780 1340 700"></path></g></svg><div class="sk2-orb-m1"></div><div class="sk2-glassring"></div><div class="sk2-vignette"></div></div><div class="container-x sk2-grid"><div class="sk2-copy"><span class="sk-eye">Para quienes trabajan y estudian</span><div id="twwrap" style="position:relative"><h1 class="h-display" style="margin:0;overflow-wrap:anywhere;color:#fff;position:relative;z-index:1">Trabajás todo el día.<br/><span class="gradient-text" id="tw">Estudiar no te puede llevar toda la noche.</span><span class="hero-tw-cursor">|</span></h1><div id="twsize" aria-hidden="true" style="position:absolute;inset:0;visibility:hidden;pointer-events:none;z-index:-1"><h1 class="h-display hsz">Trabajás todo el día.<br/><span class="gradient-text">Estudiar no te puede llevar toda la noche.</span><span class="hero-tw-cursor">|</span></h1><h1 class="h-display hsz">Trabajás todo el día.<br/><span class="gradient-text">Estudiá en el almuerzo.</span><span class="hero-tw-cursor">|</span></h1><h1 class="h-display hsz">Trabajás todo el día.<br/><span class="gradient-text">Escuchá tu apunte en el viaje.</span><span class="hero-tw-cursor">|</span></h1><h1 class="h-display hsz">Trabajás todo el día.<br/><span class="gradient-text">Aprobá sin releer todo.</span><span class="hero-tw-cursor">|</span></h1></div></div><p class="sk2-sub">Subí tu apunte y en segundos tenés resumen, tarjetas y un simulacro tipo parcial. Lo repasás en el almuerzo y lo escuchás volviendo a casa.</p><p class="sk-mini">✓ PDF, Word, fotos y audio &nbsp; ✓ Listo en segundos &nbsp; ✓ Sin tarjeta</p><div class="sk2-ctas"><a href="#demo" class="btn btn-ghost btn-lg">Mirá cómo funciona</a></div><div class="sk2-trust"><div class="sk2-avatars"><span style="background:#865CB8"></span><span style="background:#A67EFF"></span><span style="background:#9655E5"></span></div><span><b style="color:#fff">+400 estudiantes ya lo probaron</b> · Sin registrarte</span></div></div><div class="sk2-visual"><div class="sk2-stackwrap" aria-hidden="true"><div class="sk2-stack"><div class="sk2-card" style="animation-delay:0s"><div class="sk2-sheen"></div><div class="sk2-cardicon" style="background:#ece5fe;color:#7c3aed"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div><div class="sk2-eyebrow" style="color:#7c3aed">PARA ENTENDER</div><div class="sk2-cardtitle">Resúmenes<br/>de IA</div><div class="hc hc-res"><div class="hc-src">PDF · 45 págs. <b>➜</b> Resumen</div><i class="tl t1"></i><i class="tl t2"></i><i class="tl t3"></i><div class="kw"><span>Variables</span><span>Restricciones</span><span>Función objetivo</span></div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#865CB8,#9655E5);box-shadow:0 10px 22px rgba(150,85,229,.3)">Ver resumen</div></div><div class="sk2-card" style="animation-delay:-2.8s"><div class="sk2-cardicon" style="background:#dfe7ff;color:#3d63e0"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"></path><path d="M3 7l9 5 9-5M12 12v10"></path></svg></div><div class="sk2-eyebrow" style="color:#3d63e0">PARA MEMORIA</div><div class="sk2-cardtitle">Tarjetas<br/>infinitas</div><div class="hc hc-tar"><div class="hc-mini">Tarjeta 3 de 15</div><div class="flip"><div class="fc front">¿Qué es la mitosis?</div><div class="fc back">División de una célula en dos</div></div><div class="tbtn"><span>✗</span><span>~</span><span class="ok">✓ ¡La sabía!</span></div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#6f97ff,#3d63e0);box-shadow:0 10px 22px rgba(61,99,224,.3)">Repasar</div></div><div class="sk2-card" style="animation-delay:-5.6s"><div class="sk2-cardicon" style="background:#ffe1e6;color:#e4264f"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle></svg></div><div class="sk2-eyebrow" style="color:#e4264f">PARA EL EXAMEN</div><div class="sk2-cardtitle">Simulacro<br/>de IA</div><div class="hc hc-sim"><div class="srow"><span>Pregunta 5 de 20</span><span class="timer">⏱ 00:<b class="tm"></b></span></div><div class="sbar"><i></i></div><div class="sopt">A</div><div class="sopt pick">B</div><div class="sopt">C</div><div class="okc">✓ Correcta</div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#ff6b81,#e4264f);box-shadow:0 10px 22px rgba(228,38,79,.28)">Comenzar</div></div><div class="sk2-card" style="animation-delay:-8.399999999999999s"><div class="sk2-cardicon" style="background:#fff3d6;color:#e2921a"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10a5 5 0 0 1 5 5v2a3 3 0 0 1-5.2 2L15 15H9l-1.8 2A3 3 0 0 1 2 15v-2a5 5 0 0 1 5-5Z"></path><line x1="7.5" y1="11.5" x2="7.5" y2="14.5"></line><line x1="6" y1="13" x2="9" y2="13"></line><circle cx="15.5" cy="11.5" r="0.6" fill="currentColor"></circle><circle cx="17.5" cy="13.5" r="0.6" fill="currentColor"></circle></svg></div><div class="sk2-eyebrow" style="color:#e2921a">PARA ENGANCHARTE</div><div class="sk2-cardtitle">Modo<br/>juego</div><div class="hc hc-jue"><div class="ghud"><span class="lives"><i>❤</i><i>❤</i><i class="lost">❤</i></span><span class="coins">🪙 <b class="cnt"></b></span><span class="gstreak">🔥 x<b class="stk"></b></span></div><div class="gopts"><span class="go bad">Una restricción</span><span class="go good">Lo que querés optimizar</span></div><div class="gpop">¡Correcto! +10</div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#ffd873,#ffb020);box-shadow:0 10px 22px rgba(255,176,32,.25)">Jugar</div></div><div class="sk2-card" style="animation-delay:-11.2s"><div class="sk2-cardicon" style="background:#d9f7f2;color:#0e9e91"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13a9 9 0 0 1 18 0"></path><rect x="2.5" y="13" width="5" height="7" rx="2"></rect><rect x="16.5" y="13" width="5" height="7" rx="2"></rect></svg></div><div class="sk2-eyebrow" style="color:#0e9e91">PARA EL VIAJE</div><div class="sk2-cardtitle">Podcast<br/>del resumen</div><div class="hc hc-pod"><div class="bk"><span class="eye"></span><span class="eye"></span><span class="mouth"></span></div><div class="aright"><div class="cap"><span>Introducción a las finanzas corporativas…</span></div><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="pbar"><i></i></div></div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#5eead4,#0e9e91);box-shadow:0 10px 22px rgba(14,158,145,.28)">Escuchar</div></div></div><div class="sk2-rail"><span class="sk2-pill" style="animation-delay:0s">Resúmenes<i style="background:#7c3aed;animation-delay:0s"></i></span><span class="sk2-pill" style="animation-delay:-2.8s">Tarjetas<i style="background:#3d63e0;animation-delay:-2.8s"></i></span><span class="sk2-pill" style="animation-delay:-5.6s">Simulacro<i style="background:#e4264f;animation-delay:-5.6s"></i></span><span class="sk2-pill" style="animation-delay:-8.399999999999999s">Modo juego<i style="background:#e2921a;animation-delay:-8.399999999999999s"></i></span><span class="sk2-pill" style="animation-delay:-11.2s">Podcast<i style="background:#0e9e91;animation-delay:-11.2s"></i></span></div></div></div></div><style>
+<section id="top" class="sk2-hero"><div class="sk2-bg sk2-bg-d" aria-hidden="true"><div class="sk2-halo"></div><div class="sk2-halo-mask"></div><div class="sk2-halo-ring"></div><div class="sk2-sphere sk2-sphere-v"></div><div class="sk2-sphere sk2-sphere-t"></div><div class="sk2-orb-far"></div><div class="sk2-vignette"></div></div><div class="sk2-bg sk2-bg-m" aria-hidden="true"><svg class="sk2-caustic-svg" viewBox="0 0 1500 900" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="sk2cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#c0abfc"></stop><stop offset="50%" stop-color="#5eead4"></stop><stop offset="100%" stop-color="#4f7dff"></stop></linearGradient></defs><g fill="none" stroke="url(#sk2cg)" stroke-width="4"><path d="M-40 200C220 120 340 320 620 250 880 184 1000 360 1300 280"></path><path d="M-40 400C240 320 360 520 640 450 900 384 1020 560 1320 480"></path><path d="M-40 620C220 540 380 740 660 670 920 604 1040 780 1340 700"></path></g></svg><div class="sk2-orb-m1"></div><div class="sk2-glassring"></div><div class="sk2-vignette"></div></div><div class="container-x sk2-grid"><div class="sk2-copy"><span class="sk-eye">Para quienes trabajan y estudian</span><div id="twwrap" style="position:relative"><h1 class="h-display" style="margin:0;overflow-wrap:anywhere;color:#fff;position:relative;z-index:1">Trabajás todo el día.<br/><span class="gradient-text" id="tw">Estudiar no te puede llevar toda la noche.</span><span class="hero-tw-cursor">|</span></h1><div id="twsize" aria-hidden="true" style="position:absolute;inset:0;visibility:hidden;pointer-events:none;z-index:-1"><h1 class="h-display hsz">Trabajás todo el día.<br/><span class="gradient-text">Estudiar no te puede llevar toda la noche.</span><span class="hero-tw-cursor">|</span></h1><h1 class="h-display hsz">Trabajás todo el día.<br/><span class="gradient-text">Estudiá en el almuerzo.</span><span class="hero-tw-cursor">|</span></h1><h1 class="h-display hsz">Trabajás todo el día.<br/><span class="gradient-text">Escuchá tu apunte en el viaje.</span><span class="hero-tw-cursor">|</span></h1><h1 class="h-display hsz">Trabajás todo el día.<br/><span class="gradient-text">Aprobá sin releer todo.</span><span class="hero-tw-cursor">|</span></h1></div></div><p class="sk2-sub">Subí tu apunte y en segundos tenés resumen, tarjetas y un simulacro tipo parcial. Lo repasás en el almuerzo y lo escuchás volviendo a casa.</p><p class="sk-mini">✓ PDF, Word, fotos y audio &nbsp; ✓ Listo en segundos &nbsp; ✓ Sin tarjeta</p><div class="sk2-ctas"><a href="/app?upload=1" data-cta data-btn="hero" class="btn btn-primary btn-lg btn-pulse">Probalo gratis con tu apunte <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></a><a href="#demo" class="btn btn-ghost btn-lg">Mirá cómo funciona</a></div><div class="sk2-trust"><div class="sk2-avatars"><span style="background:#865CB8"></span><span style="background:#A67EFF"></span><span style="background:#9655E5"></span></div><span><b style="color:#fff">+400 estudiantes ya lo probaron</b> · Sin registrarte</span></div></div><div class="sk2-visual"><div class="sk2-stackwrap" aria-hidden="true"><div class="sk2-stack"><div class="sk2-card" style="animation-delay:0s"><div class="sk2-sheen"></div><div class="sk2-cardicon" style="background:#ece5fe;color:#7c3aed"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div><div class="sk2-eyebrow" style="color:#7c3aed">PARA ENTENDER</div><div class="sk2-cardtitle">Resúmenes<br/>de IA</div><div class="hc hc-res"><div class="hc-src">PDF · 45 págs. <b>➜</b> Resumen</div><i class="tl t1"></i><i class="tl t2"></i><i class="tl t3"></i><div class="kw"><span>Variables</span><span>Restricciones</span><span>Función objetivo</span></div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#865CB8,#9655E5);box-shadow:0 10px 22px rgba(150,85,229,.3)">Ver resumen</div></div><div class="sk2-card" style="animation-delay:-2.8s"><div class="sk2-cardicon" style="background:#dfe7ff;color:#3d63e0"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"></path><path d="M3 7l9 5 9-5M12 12v10"></path></svg></div><div class="sk2-eyebrow" style="color:#3d63e0">PARA MEMORIA</div><div class="sk2-cardtitle">Tarjetas<br/>infinitas</div><div class="hc hc-tar"><div class="hc-mini">Tarjeta 3 de 15</div><div class="flip"><div class="fc front">¿Qué es la mitosis?</div><div class="fc back">División de una célula en dos</div></div><div class="tbtn"><span>✗</span><span>~</span><span class="ok">✓ ¡La sabía!</span></div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#6f97ff,#3d63e0);box-shadow:0 10px 22px rgba(61,99,224,.3)">Repasar</div></div><div class="sk2-card" style="animation-delay:-5.6s"><div class="sk2-cardicon" style="background:#ffe1e6;color:#e4264f"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle></svg></div><div class="sk2-eyebrow" style="color:#e4264f">PARA EL EXAMEN</div><div class="sk2-cardtitle">Simulacro<br/>de IA</div><div class="hc hc-sim"><div class="srow"><span>Pregunta 5 de 20</span><span class="timer">⏱ 00:<b class="tm"></b></span></div><div class="sbar"><i></i></div><div class="sopt">A</div><div class="sopt pick">B</div><div class="sopt">C</div><div class="okc">✓ Correcta</div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#ff6b81,#e4264f);box-shadow:0 10px 22px rgba(228,38,79,.28)">Comenzar</div></div><div class="sk2-card" style="animation-delay:-8.399999999999999s"><div class="sk2-cardicon" style="background:#fff3d6;color:#e2921a"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10a5 5 0 0 1 5 5v2a3 3 0 0 1-5.2 2L15 15H9l-1.8 2A3 3 0 0 1 2 15v-2a5 5 0 0 1 5-5Z"></path><line x1="7.5" y1="11.5" x2="7.5" y2="14.5"></line><line x1="6" y1="13" x2="9" y2="13"></line><circle cx="15.5" cy="11.5" r="0.6" fill="currentColor"></circle><circle cx="17.5" cy="13.5" r="0.6" fill="currentColor"></circle></svg></div><div class="sk2-eyebrow" style="color:#e2921a">PARA ENGANCHARTE</div><div class="sk2-cardtitle">Modo<br/>juego</div><div class="hc hc-jue"><div class="ghud"><span class="lives"><i>❤</i><i>❤</i><i class="lost">❤</i></span><span class="coins">🪙 <b class="cnt"></b></span><span class="gstreak">🔥 x<b class="stk"></b></span></div><div class="gopts"><span class="go bad">Una restricción</span><span class="go good">Lo que querés optimizar</span></div><div class="gpop">¡Correcto! +10</div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#ffd873,#ffb020);box-shadow:0 10px 22px rgba(255,176,32,.25)">Jugar</div></div><div class="sk2-card" style="animation-delay:-11.2s"><div class="sk2-cardicon" style="background:#d9f7f2;color:#0e9e91"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13a9 9 0 0 1 18 0"></path><rect x="2.5" y="13" width="5" height="7" rx="2"></rect><rect x="16.5" y="13" width="5" height="7" rx="2"></rect></svg></div><div class="sk2-eyebrow" style="color:#0e9e91">PARA EL VIAJE</div><div class="sk2-cardtitle">Podcast<br/>del resumen</div><div class="hc hc-pod"><div class="bk"><span class="eye"></span><span class="eye"></span><span class="mouth"></span></div><div class="aright"><div class="cap"><span>Introducción a las finanzas corporativas…</span></div><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="pbar"><i></i></div></div></div><div class="sk2-cardcta" style="background:linear-gradient(135deg,#5eead4,#0e9e91);box-shadow:0 10px 22px rgba(14,158,145,.28)">Escuchar</div></div></div><div class="sk2-rail"><span class="sk2-pill" style="animation-delay:0s">Resúmenes<i style="background:#7c3aed;animation-delay:0s"></i></span><span class="sk2-pill" style="animation-delay:-2.8s">Tarjetas<i style="background:#3d63e0;animation-delay:-2.8s"></i></span><span class="sk2-pill" style="animation-delay:-5.6s">Simulacro<i style="background:#e4264f;animation-delay:-5.6s"></i></span><span class="sk2-pill" style="animation-delay:-8.399999999999999s">Modo juego<i style="background:#e2921a;animation-delay:-8.399999999999999s"></i></span><span class="sk2-pill" style="animation-delay:-11.2s">Podcast<i style="background:#0e9e91;animation-delay:-11.2s"></i></span></div></div></div></div><style>
         @keyframes heroCursorBlink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
         .hero-tw-cursor { animation: heroCursorBlink 0.75s step-end infinite; color: rgba(166,126,255,0.85); font-weight: 300; }
         @media (prefers-reduced-motion: reduce) { .hero-tw-cursor { animation: none !important; } }
@@ -911,7 +931,7 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
       <div class="fly2"><div class="chips"><span>PDF</span><span>DOC</span><span>PPT</span><span>FOTO</span><span>AUDIO</span></div><div class="pipe"><i></i></div><div class="hub2"><span>skillio<b>.</b></span><em>✓ Listo</em></div></div>
     </div>
   </div>
-  <div class="c" style="margin-top:30px"><a class="btn btn-primary btn-lg btn-pulse" href="/app?upload=1" data-cta>Probalo gratis con tu apunte →</a></div>
+  <div class="c" style="margin-top:30px"><a class="btn btn-primary btn-lg btn-pulse" href="/app?upload=1" data-cta data-btn="incluye">Probalo gratis con tu apunte →</a></div>
 </div></section>
 
 <!-- 6 · PERO ESO NO ES TODO (3 bonus con mockups premium, paleta propia) -->
@@ -934,7 +954,7 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
       <div class="pbig">$29.990<small>/mes</small></div>
       <p class="pnote">Débito automático · cancelás cuando quieras</p>
       <ul class="pul"><li>Resúmenes, tarjetas y simulacros ilimitados</li><li>Tu resumen en audio (podcast)</li><li>Booki, tu tutor 24 h</li><li>Modo juego con rachas</li><li>La mejor IA, con el apunte completo</li><li>PDF, Word, PowerPoint, fotos y audio</li><li>Hasta 5 apuntes nuevos por día</li><li>3 bonus incluidos</li></ul>
-      <a class="btn" href="/app?upload=1" data-cta>Probalo gratis primero →</a>
+      <a class="btn" href="/app?upload=1" data-cta data-btn="precio_mensual">Probalo gratis primero →</a>
     </div>
     <div class="plan pp vip">
       <span class="sheen"></span><span class="spk s1">✦</span><span class="spk s2">✦</span><span class="spk s3">✦</span><span class="spk s4">✦</span>
@@ -945,7 +965,7 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
       <p class="pnote">o $79.900 en un pago · 120 días · ≈ $666 por día</p>
       <p class="pbefore">4 meses de Mensual: <s>$119.960</s></p>
       <ul class="pul"><li>Resúmenes, tarjetas y simulacros ilimitados</li><li>Audio, Booki y modo juego</li><li>La mejor IA y todos los formatos</li><li>Hasta 5 apuntes nuevos por día</li><li><b>Todo el cuatrimestre, finales incluidos</b></li><li><b>3 cuotas sin interés</b></li><li><b>Sin débito automático: no se renueva solo</b></li><li>3 bonus incluidos</li></ul>
-      <a class="btn vipbtn" href="/app?upload=1" data-cta>Probalo gratis primero →</a>
+      <a class="btn vipbtn" href="/app?upload=1" data-cta data-btn="precio_pase">Probalo gratis primero →</a>
     </div>
   </div>
   <p class="micro">Pagás con tarjeta, débito o dinero en Mercado Pago.</p>
@@ -991,7 +1011,7 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
   <div class="pturn">
     <p>El problema <span class="nsv">no sos vos.</span></p>
     <p class="pt2">Es que <b>releer</b> no alcanza para aprobar.</p>
-    <a class="btn pbtn" href="/app?upload=1" data-cta>Probá estudiar distinto, gratis →</a>
+    <a class="btn pbtn" href="/app?upload=1" data-cta data-btn="dolores">Probá estudiar distinto, gratis →</a>
   </div>
 </div></section>
 
@@ -1008,7 +1028,7 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
   </div>
   <!-- 11 · LA FRASE -->
   <p class="quote2">Si releés, es <s class="strike">suerte</s>. <span class="prep">Si practicás, es preparación.</span></p>
-  <div class="c" style="margin-top:22px"><a class="btn" href="/app?upload=1" data-cta>Probalo gratis con tu apunte →</a></div>
+  <div class="c" style="margin-top:22px"><a class="btn" href="/app?upload=1" data-cta data-btn="cruda_verdad">Probalo gratis con tu apunte →</a></div>
 </div></section>
 
 <!-- 12 · EL ENEMIGO: CHATGPT (duelo animado) -->
@@ -1022,7 +1042,7 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
     <div class="dr"><div class="dl">Repaso con tarjetas</div><div class="dc off">✗ No</div><div class="dc on">✓ Automático</div></div>
     <div class="dr"><div class="dl">Resumen en audio</div><div class="dc off">✗ No</div><div class="dc on">✓ Sí, para el viaje</div></div>
   </div>
-  <div class="c" style="margin-top:26px"><a class="btn" href="/app?upload=1" data-cta>Prendé Skillio gratis →</a></div>
+  <div class="c" style="margin-top:26px"><a class="btn" href="/app?upload=1" data-cta data-btn="chatgpt">Prendé Skillio gratis →</a></div>
 </div></section>
 
 <!-- 15 · FAQ (premium) -->
@@ -1051,7 +1071,7 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
     <span class="sk-eye">Tu próximo parcial puede ser distinto</span>
     <h2>Dejá de perder noches <span class="fgrad">releyendo el apunte.</span></h2>
     <p class="lead">Resumen, tarjetas, simulacro y audio de tu propio material, en segundos.</p>
-    <a class="btn btn-primary btn-lg btn-pulse fcta" href="/app?upload=1" data-cta>Probalo gratis con tu apunte →</a>
+    <a class="btn btn-primary btn-lg btn-pulse fcta" href="/app?upload=1" data-cta data-btn="final">Probalo gratis con tu apunte →</a>
     <div class="fchips"><span>✓ Sin registrarte</span><span>✓ Sin tarjeta</span><span>✓ Pase de un solo pago</span><span>✓ Garantía de 7 días</span></div>
   </div>
 </section>
@@ -1080,15 +1100,28 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
 <!-- WhatsApp flotante (abajo a la izquierda) -->
 <a class="wafab" href="https://wa.me/5493517732460" target="_blank" rel="noopener noreferrer" aria-label="Escribinos por WhatsApp"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg><span>Soporte</span></a>
 
-<!-- Barra fija en celular (aparece después del hero) -->
-<div class="sticky" id="sticky"><a class="btn" href="/app?upload=1" data-cta>Probalo gratis →</a></div>
+<!-- Barra fija en celular: SIEMPRE visible (estilo de la de julio: landing.tsx StickyMobileCTA) -->
+<div class="sticky on" id="sticky"><a class="btn" href="/app?upload=1" data-cta data-btn="barra_fija">Probá gratis →</a><small>Gratis · Sin tarjeta · Sin registrarte</small></div>
 
 <script>
 (function(){
-  // barra fija (celular) y botón del menú: recién después de "Todo lo que incluye"
-  (function(){ var bar=document.getElementById('sticky'),inc=document.getElementById('incluye'); if(!inc) return;
-    function chk(){ var past=inc.getBoundingClientRect().bottom<innerHeight; document.body.classList.toggle('past',past); if(bar) bar.classList.toggle('on',past); }
-    window.addEventListener('scroll',chk,{passive:true}); chk(); })();
+  // EMBUDO: vista de la landing y clic en cada «Probalo gratis» (Pixel + funnel_events)
+  function utm(){ try{ var m=document.cookie.match(/(?:^|; )skillio_utm=([^;]+)/); return m?JSON.parse(decodeURIComponent(m[1])):{}; }catch(e){ return {}; } }
+  function beacon(ev,step,meta){ try{ var b=JSON.stringify({event:ev,step:step||null,meta:meta||null}); if(navigator.sendBeacon) navigator.sendBeacon('/api/track',new Blob([b],{type:'application/json'})); else fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:b,keepalive:true}); }catch(e){} }
+  var U=utm(), UM={utm_source:U.utm_source||null,utm_campaign:U.utm_campaign||null,utm_content:U.utm_content||null};
+  beacon('landing_vista',null,UM);
+  document.addEventListener('click',function(e){
+    var a=e.target&&e.target.closest?e.target.closest('[data-cta]'):null; if(!a) return;
+    var b=a.getAttribute('data-btn')||'otro';
+    try{ if(window.fbq) fbq('trackCustom','CTA_Click',{boton:b,utm_campaign:U.utm_campaign||'',utm_content:U.utm_content||''}); }catch(x){}
+    beacon('cta_click',b,UM);
+    try{ sessionStorage.setItem('skillio_cta',b); }catch(x){}
+    // 150 ms para que el píxel salga antes de cambiar de página
+    if(!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&a.target!=='_blank'){ e.preventDefault(); var h=a.href; setTimeout(function(){ location.href=h; },150); }
+  });
+  // el hero deja de animarse cuando no se ve
+  var heroEl=document.querySelector('.sk2-hero');
+  if(heroEl&&'IntersectionObserver' in window){ new IntersectionObserver(function(en){ heroEl.classList.toggle('off',!en[0].isIntersecting); }).observe(heroEl); }
   
   // carrusel: puntitos + avance automático hasta que la persona lo toque
   var car=document.getElementById('car'),dots=document.getElementById('dots'),items=car.querySelectorAll('.ph'),auto=true;
@@ -1118,7 +1151,6 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
   if('IntersectionObserver' in window){ var tio=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.play().catch(function(){}); } else { e.target.pause(); } }); },{threshold:.6}); tvs.forEach(function(v){ tio.observe(v); }); }
   // testimonios: solo uno sonando a la vez
   document.querySelectorAll('.vcard video').forEach(function(v){ v.addEventListener('volumechange',function(){ if(!v.muted){ document.querySelectorAll('.vcard video').forEach(function(o){ if(o!==v) o.muted=true; }); } }); });
-  var st=document.getElementById('sticky'),hero=document.querySelector('.sk2-hero');
   // máquina de escribir del hero (mismos tiempos que skillio.digital: 80 ms escribe, 2,8 s espera, 55 ms borra)
   var F=["Estudiar no te puede llevar toda la noche.", "Estudiá en el almuerzo.", "Escuchá tu apunte en el viaje.", "Aprobá sin releer todo."], tw=document.getElementById('tw'), k=0, txt=F[0], st='wait';
   function tick(){ var d; if(st==='wait'){ st='erase'; d=2800; }
@@ -1131,7 +1163,6 @@ body.past nav .navcta{display:inline-flex!important;animation:navIn .25s ease bo
   // video demo: arranca cuando se ve
   var v=document.getElementById('demov'); if('IntersectionObserver' in window){ new IntersectionObserver(function(e){ if(e[0].isIntersecting){ v.play().catch(function(){}); } else v.pause(); },{threshold:.35}).observe(v); }
 
-  if('IntersectionObserver' in window){ new IntersectionObserver(function(en){ st.classList.toggle('on',!en[0].isIntersecting); }).observe(hero); }
 })();
 </script>
 </body>
